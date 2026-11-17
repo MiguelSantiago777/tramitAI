@@ -621,7 +621,7 @@ def mark_read(conversation: Conversation) -> None:
 def update_conversation(
     conversation: Conversation, *, user: User, changes: dict[str, Any]
 ) -> Conversation:
-    """Vincular/desvincular cliente e encerrar/reabrir. Vínculo limpa a sugestão por CPF."""
+    """Vincular cliente, encerrar/reabrir e atribuir responsável. Vínculo limpa a sugestão."""
     fields: list[str] = []
     if "client" in changes and changes["client"] != conversation.client:
         conversation.client = changes["client"]
@@ -637,6 +637,16 @@ def update_conversation(
     if "status" in changes and changes["status"] != conversation.status:
         conversation.status = changes["status"]
         fields.append("status")
+    if "assignee" in changes and changes["assignee"] != conversation.assignee:
+        conversation.assignee = changes["assignee"]
+        fields.append("assignee")
+        audit.record(
+            "conversation.assigned",
+            conversation,
+            actor_type=audit.Actor.USER,
+            actor_user=user,
+            data={"assignee_id": str(conversation.assignee.pk) if conversation.assignee else None},
+        )
     if fields:
         conversation.save(update_fields=[*fields, "updated_at"])
     return conversation

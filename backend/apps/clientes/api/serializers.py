@@ -2,7 +2,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from apps.clientes.models import Client, ClientNote, ClientTermAcceptance
+from apps.clientes.models import Client, ClientNote, ClientTermAcceptance, Tag
 from apps.clientes.selectors import document_in_use
 from apps.core.br import is_valid_cnpj, is_valid_cpf, normalize_br_phone, normalize_document
 from apps.core.serializers import TenantScopedPrimaryKeyRelatedField
@@ -17,6 +17,10 @@ class ClientSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(
         source="phone_e164", required=False, allow_blank=True, max_length=30
     )
+    tags = serializers.SerializerMethodField()
+    tag_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False, max_length=20
+    )
 
     class Meta:
         model = Client
@@ -29,10 +33,25 @@ class ClientSerializer(serializers.ModelSerializer):
             "email",
             "status",
             "notes",
+            "tags",
+            "tag_ids",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_tags(self, obj: Client) -> list[dict[str, str]]:
+        return [
+            {"id": str(ct.tag.pk), "name": ct.tag.name, "color": ct.tag.color}
+            for ct in obj.client_tags.all()
+        ]
+
+    def validate_tag_ids(self, value: list[Any]) -> list[Tag]:
+        # Só etiquetas do escritório ativo (o FK do banco não respeita RLS).
+        tags = list(Tag.objects.filter(pk__in=value))
+        if len(tags) != len(set(value)):
+            raise serializers.ValidationError("Etiqueta inválida.")
+        return tags
 
     def validate_name(self, value: str) -> str:
         value = " ".join(value.split())
@@ -69,6 +88,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
 class ClientFilterSerializer(serializers.Serializer):
     q = serializers.CharField(required=False, allow_blank=True, default="")
+    tag_id = serializers.UUIDField(required=False, allow_null=True, default=None)
     status = serializers.ChoiceField(
         choices=Client.Status.choices, required=False, allow_blank=True, default=""
     )
@@ -131,3 +151,24 @@ class TimelineSerializer(serializers.Serializer):
 class TimelineQuerySerializer(serializers.Serializer):
     before = serializers.DateTimeField(required=False, allow_null=True, default=None)
     limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=30)
+
+
+class TagSerializer(serializers.ModelSerializer):
+    client_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "color", "client_count"]
+        read_only_fields = ["id", "client_count"]
+
+    def validate_name(self, value: str) -> str:
+        value = " ".join(value.split())
+        if not value:
+            raise serializers.ValidationError("Dê um nome à etiqueta.")
+        instance: Tag | None = self.instance
+        clash = Tag.objects.filter(name__iexact=value)
+        if instance is not None:
+            clash = clash.exclude(pk=instance.pk)
+        if clash.exists():
+            raise serializers.ValidationError("Já existe uma etiqueta com esse nome.")
+        return value

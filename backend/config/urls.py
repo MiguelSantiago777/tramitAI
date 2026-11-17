@@ -17,6 +17,7 @@ api_v1 = [
     path("", include("apps.whatsapp.api.urls")),
     path("", include("apps.aprovacoes.api.urls")),
     path("", include("apps.agenda.api.urls")),
+    path("", include("apps.funil.api.urls")),
 ]
 
 urlpatterns = [

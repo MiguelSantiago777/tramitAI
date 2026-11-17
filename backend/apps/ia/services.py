@@ -212,4 +212,9 @@ def _store(
         summary=triage.summary_for_lawyer,
         guardrail_flags=flags,
     )
+    if triage.intent == "new_matter":
+        # Pessoa querendo contratar: entra no funil de novos clientes.
+        from apps.funil.services import ensure_whatsapp_opportunity
+
+        ensure_whatsapp_opportunity(conversation, triage.summary_for_lawyer)
     return "draft_created"

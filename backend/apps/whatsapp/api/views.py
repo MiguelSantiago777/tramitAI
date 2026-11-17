@@ -11,12 +11,13 @@ from rest_framework.serializers import BaseSerializer
 from apps.accounts.models import User
 from apps.core.views_base import schema_safe_queryset
 from apps.whatsapp import selectors, services
-from apps.whatsapp.models import Conversation
+from apps.whatsapp.models import Conversation, QuickReply
 
 from .serializers import (
     ConversationFilterSerializer,
     ConversationSerializer,
     MessageSerializer,
+    QuickReplySerializer,
     SendMessageSerializer,
 )
 
@@ -28,7 +29,7 @@ class ConversationViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Inbox do WhatsApp. PATCH só altera cliente vinculado e situação."""
+    """Inbox do WhatsApp. PATCH altera cliente vinculado, situação e responsável."""
 
     serializer_class = ConversationSerializer
     http_method_names = ["get", "post", "patch", "head", "options"]
@@ -40,7 +41,9 @@ class ConversationViewSet(
         if self.action == "list":
             filters = ConversationFilterSerializer(data=self.request.query_params)
             filters.is_valid(raise_exception=True)
-            return selectors.search_conversations(**filters.validated_data)
+            return selectors.search_conversations(
+                **filters.validated_data, user=cast(User, self.request.user)
+            )
         return selectors.conversations_with_preview()
 
     def perform_update(self, serializer: BaseSerializer[Conversation]) -> None:
@@ -81,3 +84,20 @@ class ConversationViewSet(
     def read(self, request: Request, pk: str | None = None) -> Response:
         services.mark_read(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["whatsapp"])
+class QuickReplyViewSet(viewsets.ModelViewSet):
+    """Respostas prontas da equipe. Qualquer pessoa do escritório cria e edita."""
+
+    serializer_class = QuickReplySerializer
+    pagination_class = None
+
+    def get_queryset(self) -> QuerySet[QuickReply]:
+        fake = schema_safe_queryset(self, QuickReply)
+        if fake is not None:
+            return fake
+        return QuickReply.objects.order_by("title")
+
+    def perform_create(self, serializer: BaseSerializer[QuickReply]) -> None:
+        serializer.save(created_by=self.request.user)

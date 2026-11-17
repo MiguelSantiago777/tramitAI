@@ -1,3 +1,5 @@
+import uuid
+
 from django.db.models import Q, QuerySet
 
 from apps.core.br import normalize_document, only_digits
@@ -5,11 +7,19 @@ from apps.core.br import normalize_document, only_digits
 from .models import Client, ClientTermAcceptance
 
 
-def search_clients(*, q: str = "", status: str = "") -> QuerySet[Client]:
+def clients_with_tags() -> QuerySet[Client]:
+    return Client.objects.prefetch_related("client_tags__tag")
+
+
+def search_clients(
+    *, q: str = "", status: str = "", tag_id: uuid.UUID | None = None
+) -> QuerySet[Client]:
     """Busca por nome, e-mail, CPF/CNPJ ou telefone (tenant ativo)."""
-    qs = Client.objects.all()
+    qs = clients_with_tags()
     if status:
         qs = qs.filter(status=status)
+    if tag_id:
+        qs = qs.filter(client_tags__tag_id=tag_id)
     q = q.strip()
     if q:
         condition = Q(name__icontains=q) | Q(email__icontains=q)

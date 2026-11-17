@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.ia",
     "apps.aprovacoes",
     "apps.agenda",
+    "apps.funil",
     "apps.cobranca",
 ]
 
@@ -157,6 +158,10 @@ SPECTACULAR_SETTINGS = {
         "TaskKindEnum": "apps.agenda.models.Task.Kind",
         "EventStatusEnum": "apps.agenda.models.Event.Status",
         "EventKindEnum": "apps.agenda.models.Event.Kind",
+        "OpportunityStageEnum": "apps.funil.models.Opportunity.Stage",
+        "OpportunityAreaEnum": "apps.funil.models.Opportunity.Area",
+        "OpportunitySourceEnum": "apps.funil.models.Opportunity.Source",
+        "TagColorEnum": "apps.clientes.models.Tag.Color",
     },
 }
 

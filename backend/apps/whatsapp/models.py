@@ -132,6 +132,15 @@ class Conversation(TenantModel):
     )
     # Versão do termo de ciência oferecida nesta conversa (rascunho criado).
     ai_consent_version = models.PositiveIntegerField(null=True, blank=True)
+    # Quem da equipe cuida desta conversa (inbox de equipe).
+    assignee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="responsável",
+    )
 
     class Meta:
         verbose_name = "conversa"
@@ -217,3 +226,23 @@ OUTBOUND_STATUS_RANK: dict[str, int] = {
     Message.Status.DELIVERED: 3,
     Message.Status.READ: 4,
 }
+
+
+class QuickReply(TenantModel):
+    """Resposta pronta do escritório (texto escrito por pessoa, não pela IA).
+
+    `{nome}` no texto vira o primeiro nome do cliente na hora de usar.
+    """
+
+    title = models.CharField("título", max_length=80)
+    body = models.TextField("texto")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = "resposta pronta"
+        ordering = ["title"]
+
+    def __str__(self) -> str:
+        return self.title

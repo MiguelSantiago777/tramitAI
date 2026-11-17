@@ -2,6 +2,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 
 from apps.core.models import TenantModel
 
@@ -110,3 +111,42 @@ class ClientNote(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} {self.created_at:%d/%m/%Y}"
+
+
+class Tag(TenantModel):
+    """Etiqueta do escritório (ex.: Trabalhista, VIP, Indicação)."""
+
+    class Color(models.TextChoices):
+        INDIGO = "indigo", "Índigo"
+        GREEN = "green", "Verde"
+        AMBER = "amber", "Amarelo"
+        RED = "red", "Vermelho"
+        TEAL = "teal", "Azul-petróleo"
+        PINK = "pink", "Rosa"
+        SLATE = "slate", "Cinza"
+
+    name = models.CharField("nome", max_length=40)
+    color = models.CharField(max_length=10, choices=Color.choices, default=Color.INDIGO)
+
+    class Meta:
+        verbose_name = "etiqueta"
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint("tenant", Lower("name"), name="tag_name_unique_per_tenant"),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class ClientTag(TenantModel):
+    """Cliente ↔ etiqueta. Tabela explícita (com tenant e RLS), não M2M automático."""
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="client_tags")
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name="client_tags")
+
+    class Meta:
+        verbose_name = "etiqueta do cliente"
+        constraints = [
+            models.UniqueConstraint(fields=["client", "tag"], name="client_tag_unique"),
+        ]

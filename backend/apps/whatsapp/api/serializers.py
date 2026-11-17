@@ -5,8 +5,9 @@ from rest_framework import serializers
 
 from apps.clientes.models import Client
 from apps.core.serializers import TenantScopedPrimaryKeyRelatedField
+from apps.processos.api.serializers import TenantMemberField
 from apps.whatsapp import services
-from apps.whatsapp.models import Conversation, Message
+from apps.whatsapp.models import Conversation, Message, QuickReply
 
 PREVIEW_LENGTH = 140
 
@@ -29,6 +30,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         source="suggested_client.name", read_only=True, default=""
     )
     pending_drafts = serializers.IntegerField(read_only=True, default=0)
+    assignee_id = TenantMemberField(source="assignee", required=False, allow_null=True)
+    assignee_name = serializers.SerializerMethodField()
     window_open = serializers.SerializerMethodField()
     window_expires_at = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
@@ -45,6 +48,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             "suggested_client_id",
             "suggested_client_name",
             "pending_drafts",
+            "assignee_id",
+            "assignee_name",
             "ai_consent_version",
             "status",
             "last_inbound_at",
@@ -63,6 +68,10 @@ class ConversationSerializer(serializers.ModelSerializer):
             "unread_count",
             "ai_consent_version",
         ]
+
+    def get_assignee_name(self, obj: Conversation) -> str:
+        user = obj.assignee
+        return (user.full_name or user.email) if user else ""
 
     def get_phone(self, obj: Conversation) -> str:
         return f"+{obj.wa_id}"
@@ -127,3 +136,15 @@ class ConversationFilterSerializer(serializers.Serializer):
         choices=Conversation.Status.choices, required=False, allow_blank=True, default=""
     )
     unread = serializers.BooleanField(required=False, default=False)
+    # "me" = minhas; "none" = sem responsável.
+    assignee = serializers.ChoiceField(
+        choices=["", "me", "none"], required=False, allow_blank=True, default=""
+    )
+
+
+class QuickReplySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuickReply
+        fields = ["id", "title", "body", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {"body": {"trim_whitespace": True}, "title": {"trim_whitespace": True}}
