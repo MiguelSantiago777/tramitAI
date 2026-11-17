@@ -1,0 +1,75 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "backend/**"
+      - "infra/**"
+      - ".github/workflows/backend.yml"
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DJANGO_SECRET_KEY: ci-only-not-a-secret-just-long-enough-for-hs256
+      DATABASE_URL: postgres://tramitai_app:app-ci@localhost:5432/tramitai
+      DATABASE_OWNER_URL: postgres://tramitai_owner:owner-ci@localhost:5432/tramitai
+      DB_APP_ROLE: tramitai_app
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.9"
+          enable-cache: true
+
+      - name: Criar roles do Postgres (mesmo script do compose)
+        working-directory: .
+        env:
+          PGHOST: localhost
+          PGPASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          TRAMITAI_OWNER_PASSWORD: owner-ci
+          TRAMITAI_APP_PASSWORD: app-ci
+        run: bash infra/postgres/init/01-roles.sh
+
+      - run: uv sync --frozen
+      - name: Ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy .
+      - name: Migrations em dia
+        run: uv run python manage.py makemigrations --check --dry-run
+      - name: Testes (banco criado como owner, testes como app)
+        run: uv run pytest
+      - name: OpenAPI válido
+        run: uv run python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml

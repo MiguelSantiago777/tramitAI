@@ -6,7 +6,7 @@ como tramitai_app (DATABASE_URL). A troca de credenciais está em backend/confte
 
 import os
 
-os.environ.setdefault("DJANGO_SECRET_KEY", "test-only-not-a-secret")
+os.environ.setdefault("DJANGO_SECRET_KEY", "test-only-not-a-secret-just-long-enough-for-hs256")
 os.environ.setdefault("DATABASE_URL", "postgres://tramitai_app:app-local@localhost:5432/tramitai")
 os.environ.setdefault(
     "DATABASE_OWNER_URL", "postgres://tramitai_owner:owner-local@localhost:5432/tramitai"
