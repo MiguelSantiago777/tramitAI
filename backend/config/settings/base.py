@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.whatsapp",
     "apps.ia",
     "apps.aprovacoes",
+    "apps.agenda",
     "apps.cobranca",
 ]
 
@@ -109,7 +110,8 @@ DEFAULT_FROM_EMAIL: str = env(
 )
 # Endereço público do app, para links nos e-mails (ex.: redefinir senha).
 FRONTEND_URL: str = env("FRONTEND_URL", default="http://localhost:4200")
-PASSWORD_RESET_TIMEOUT = 60 * 60 * 2  # 2 horas
+# Link de criar/redefinir senha (convite e esqueci a senha). Uso único: troca a senha, expira.
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3  # 3 dias
 
 # --------------------------------------------------------------------------- DRF
 REST_FRAMEWORK = {
@@ -151,6 +153,10 @@ SPECTACULAR_SETTINGS = {
         "TenantStatusEnum": "apps.tenants.models.Tenant.Status",
         "SyncStatusEnum": "apps.processos.models.LegalCase.SyncStatus",
         "MovementNotificationEnum": "apps.processos.models.CaseMovement.Notification",
+        "TaskStatusEnum": "apps.agenda.models.Task.Status",
+        "TaskKindEnum": "apps.agenda.models.Task.Kind",
+        "EventStatusEnum": "apps.agenda.models.Event.Status",
+        "EventKindEnum": "apps.agenda.models.Event.Kind",
     },
 }
 
@@ -169,6 +175,10 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "fail-stuck-outbound-messages": {
         "task": "apps.whatsapp.tasks.fail_stuck_outbound_messages",
         "schedule": 60 * 5,
+    },
+    "event-reminders": {
+        "task": "apps.agenda.tasks.create_event_reminders",
+        "schedule": 60 * 60,
     },
     "schedule-case-checks": {
         "task": "apps.processos.tasks.schedule_case_checks",

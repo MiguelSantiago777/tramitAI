@@ -12,10 +12,15 @@ class TenantSerializer(serializers.ModelSerializer):
 
 
 class TenantSettingsSerializer(serializers.ModelSerializer):
+    """Configurações do escritório. Edição: só o titular (permissão na view)."""
+
+    tenant_name = serializers.CharField(max_length=200, required=False, trim_whitespace=True)
+
     class Meta:
         model = TenantSettings
         fields = [
             "id",
+            "tenant_name",
             "auto_send_simple_replies",
             "staff_can_approve",
             "ai_triage_enabled",
@@ -24,8 +29,25 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             "timezone",
             "updated_at",
         ]
-        # Edição chega numa etapa futura (tela de configurações + auditoria).
-        read_only_fields = fields
+        # A IA nunca envia sozinha: auto_send fica só leitura (sempre desligado por ora).
+        read_only_fields = [
+            "id",
+            "auto_send_simple_replies",
+            "data_retention_days",
+            "message_retention_days",
+            "timezone",
+            "updated_at",
+        ]
+
+    def to_representation(self, instance: TenantSettings) -> dict[str, object]:
+        data = super().to_representation(instance)
+        data["tenant_name"] = Tenant.objects.get(pk=instance.tenant_id).name
+        return data
+
+    def validate_tenant_name(self, value: str) -> str:
+        if not value:
+            raise serializers.ValidationError("Informe o nome do escritório.")
+        return value
 
 
 class ClientTermVersionSerializer(serializers.ModelSerializer):
@@ -51,3 +73,30 @@ class MemberSerializer(serializers.ModelSerializer):
         model = Membership
         fields = ["user_id", "email", "full_name", "role"]
         read_only_fields = fields
+
+
+class TeamMemberSerializer(serializers.Serializer):
+    id = serializers.UUIDField(source="membership.id")
+    user_id = serializers.UUIDField(source="membership.user.id")
+    email = serializers.EmailField(source="membership.user.email")
+    full_name = serializers.CharField(source="membership.user.full_name")
+    role = serializers.ChoiceField(choices=Membership.Role.choices, source="membership.role")
+    is_active = serializers.BooleanField(source="membership.is_active")
+    pending = serializers.BooleanField()
+    is_me = serializers.SerializerMethodField()
+
+    def get_is_me(self, obj: object) -> bool:
+        request = self.context.get("request")
+        membership = getattr(obj, "membership", None)
+        return bool(request and membership and membership.user_id == request.user.pk)
+
+
+class InviteSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    role = serializers.ChoiceField(choices=Membership.Role.choices)
+
+
+class MemberUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=Membership.Role.choices, required=False)
+    is_active = serializers.BooleanField(required=False)

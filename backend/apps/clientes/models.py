@@ -79,3 +79,34 @@ class ClientTermAcceptance(TenantModel):
         if not self._state.adding:
             raise ValueError("Aceite do termo é imutável.")
         super().save(*args, **kwargs)
+
+
+class ClientNote(TenantModel):
+    """Registro de atendimento (ligação, reunião, anotação) na ficha do cliente."""
+
+    class Kind(models.TextChoices):
+        NOTE = "NOTE", "Anotação"
+        CALL = "CALL", "Ligação"
+        MEETING = "MEETING", "Reunião"
+        VISIT = "VISIT", "Atendimento presencial"
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="service_notes")
+    legal_case = models.ForeignKey(
+        "processos.LegalCase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    kind = models.CharField(max_length=8, choices=Kind.choices, default=Kind.NOTE)
+    body = models.TextField("texto")
+    author = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = "registro de atendimento"
+        indexes = [models.Index(fields=["client", "-created_at"], name="client_note_recent_idx")]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} {self.created_at:%d/%m/%Y}"

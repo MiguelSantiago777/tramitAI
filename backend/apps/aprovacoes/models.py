@@ -17,6 +17,7 @@ class OutboundDraft(TenantModel):
         AI_REPLY = "AI_REPLY", "Resposta da IA"
         TERM_REQUEST = "TERM_REQUEST", "Termo de ciência"
         MOVEMENT_UPDATE = "MOVEMENT_UPDATE", "Atualização de processo"
+        EVENT_REMINDER = "EVENT_REMINDER", "Lembrete de compromisso"
 
     class Status(models.TextChoices):
         DRAFT = "DRAFT", "Rascunho"

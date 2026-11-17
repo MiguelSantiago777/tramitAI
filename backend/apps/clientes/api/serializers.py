@@ -2,9 +2,11 @@ from typing import Any
 
 from rest_framework import serializers
 
-from apps.clientes.models import Client, ClientTermAcceptance
+from apps.clientes.models import Client, ClientNote, ClientTermAcceptance
 from apps.clientes.selectors import document_in_use
 from apps.core.br import is_valid_cnpj, is_valid_cpf, normalize_br_phone, normalize_document
+from apps.core.serializers import TenantScopedPrimaryKeyRelatedField
+from apps.processos.models import LegalCase
 
 
 class ClientSerializer(serializers.ModelSerializer):
@@ -93,3 +95,39 @@ class TermAcceptanceSerializer(serializers.ModelSerializer):
     def get_recorded_by_name(self, obj: ClientTermAcceptance) -> str:
         user = obj.recorded_by
         return (user.full_name or user.email) if user else ""
+
+
+class ClientNoteSerializer(serializers.ModelSerializer):
+    legal_case_id = TenantScopedPrimaryKeyRelatedField(
+        model=LegalCase, source="legal_case", required=False, allow_null=True
+    )
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClientNote
+        fields = ["id", "kind", "body", "legal_case_id", "author_name", "created_at"]
+        read_only_fields = ["id", "author_name", "created_at"]
+        extra_kwargs = {"body": {"trim_whitespace": True}}
+
+    def get_author_name(self, obj: ClientNote) -> str:
+        user = obj.author
+        return (user.full_name or user.email) if user else ""
+
+
+class TimelineItemSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    type = serializers.CharField()
+    at = serializers.DateTimeField()
+    title = serializers.CharField()
+    body = serializers.CharField()
+    meta = serializers.DictField()
+
+
+class TimelineSerializer(serializers.Serializer):
+    results = TimelineItemSerializer(many=True)
+    next_before = serializers.DateTimeField(allow_null=True)
+
+
+class TimelineQuerySerializer(serializers.Serializer):
+    before = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=30)

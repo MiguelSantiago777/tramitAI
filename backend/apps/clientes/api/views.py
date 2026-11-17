@@ -10,9 +10,18 @@ from rest_framework.serializers import BaseSerializer
 
 from apps.clientes import selectors, services
 from apps.clientes.models import Client
+from apps.clientes.timeline import client_timeline
+from apps.core import audit
 from apps.core.views_base import schema_safe_queryset
 
-from .serializers import ClientFilterSerializer, ClientSerializer, TermAcceptanceSerializer
+from .serializers import (
+    ClientFilterSerializer,
+    ClientNoteSerializer,
+    ClientSerializer,
+    TermAcceptanceSerializer,
+    TimelineQuerySerializer,
+    TimelineSerializer,
+)
 
 
 @extend_schema(tags=["clientes"])
@@ -71,3 +80,29 @@ class ClientViewSet(
             **payload.validated_data,
         )
         return Response(TermAcceptanceSerializer(acceptance).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(parameters=[TimelineQuerySerializer], responses=TimelineSerializer)
+    @action(detail=True, methods=["get"])
+    def timeline(self, request: Request, pk: str | None = None) -> Response:
+        """Ficha 360°: atendimentos, tarefas, agenda, WhatsApp, processos e andamentos."""
+        query = TimelineQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        items, next_before = client_timeline(self.get_object(), **query.validated_data)
+        return Response(TimelineSerializer({"results": items, "next_before": next_before}).data)
+
+    @extend_schema(request=ClientNoteSerializer, responses={201: ClientNoteSerializer})
+    @action(detail=True, methods=["post"])
+    def notes(self, request: Request, pk: str | None = None) -> Response:
+        """Registrar atendimento (ligação, reunião, anotação)."""
+        client = self.get_object()
+        payload = ClientNoteSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        note = payload.save(client=client, author=request.user)
+        audit.record(
+            "client.note_added",
+            note,
+            actor_type=audit.Actor.USER,
+            actor_user=request.user,
+            data={"client_id": str(client.pk), "kind": note.kind},
+        )
+        return Response(ClientNoteSerializer(note).data, status=status.HTTP_201_CREATED)
