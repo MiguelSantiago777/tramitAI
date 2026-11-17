@@ -1,0 +1,64 @@
+"""WhatsApp Cloud API (Meta), direto, sem BSP."""
+
+import logging
+
+import httpx
+from django.conf import settings
+
+from .base import Credentials, GatewayError, SendResult
+
+logger = logging.getLogger(__name__)
+
+# Erros da Meta em que a mensagem comprovadamente não foi aceita e vale tentar de novo.
+_RETRYABLE_HTTP = {429, 503}
+
+
+class CloudApiGateway:
+    def __init__(self, client: httpx.Client | None = None) -> None:
+        self._client = client or httpx.Client(timeout=settings.WHATSAPP_HTTP_TIMEOUT)
+
+    def _url(self, phone_number_id: str) -> str:
+        base = settings.WHATSAPP_GRAPH_URL.rstrip("/")
+        return f"{base}/{settings.WHATSAPP_GRAPH_VERSION}/{phone_number_id}/messages"
+
+    def send_text(self, credentials: Credentials, *, to: str, body: str) -> SendResult:
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "text",
+            "text": {"preview_url": False, "body": body},
+        }
+        try:
+            response = self._client.post(
+                self._url(credentials.phone_number_id),
+                json=payload,
+                headers={"Authorization": f"Bearer {credentials.access_token}"},
+            )
+        except httpx.ConnectError as exc:
+            # Não conectou: o request não saiu.
+            raise GatewayError("connect_error", str(exc), retryable=True) from exc
+        except httpx.HTTPError as exc:
+            # Timeout de leitura etc.: pode ter sido aceito pela Meta. Não reenviar sozinho.
+            raise GatewayError("uncertain", type(exc).__name__, retryable=False) from exc
+
+        if response.is_success:
+            data = response.json()
+            try:
+                return SendResult(wa_message_id=str(data["messages"][0]["id"]))
+            except (KeyError, IndexError, TypeError) as exc:
+                raise GatewayError("bad_response", "resposta sem id", retryable=False) from exc
+
+        error = _error_from(response)
+        logger.warning("whatsapp send failed status=%s code=%s", response.status_code, error.code)
+        raise error
+
+
+def _error_from(response: httpx.Response) -> GatewayError:
+    try:
+        err = response.json().get("error", {})
+    except ValueError:
+        err = {}
+    code = str(err.get("code") or response.status_code)
+    detail = str(err.get("error_user_msg") or err.get("message") or response.reason_phrase)
+    return GatewayError(code, detail, retryable=response.status_code in _RETRYABLE_HTTP)

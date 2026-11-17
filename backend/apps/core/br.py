@@ -65,3 +65,20 @@ def normalize_br_phone(value: str) -> str | None:
         # 8 dígitos só é válido para fixo (começa com 2-5).
         return None
     return f"+55{digits}"
+
+
+def whatsapp_phone_candidates(wa_id: str) -> list[str]:
+    """Telefones E.164 que podem corresponder a um `wa_id` da Meta.
+
+    Para celulares brasileiros a Meta às vezes manda o wa_id sem o nono dígito
+    (ex.: 552198765432 em vez de 5521998765432). Devolve as duas formas quando aplicável.
+    """
+    digits = only_digits(wa_id)
+    candidates = [f"+{digits}"]
+    if digits.startswith("55"):
+        local = digits[2:]
+        if len(local) == 10 and local[2] in "6789":
+            candidates.append(f"+55{local[:2]}9{local[2:]}")
+        elif len(local) == 11 and local[2] == "9":
+            candidates.append(f"+55{local[:2]}{local[3:]}")
+    return candidates

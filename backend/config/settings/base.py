@@ -132,7 +132,34 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {}
+CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
+    "purge-webhook-events": {
+        "task": "apps.whatsapp.tasks.purge_processed_webhook_events",
+        "schedule": 60 * 60 * 6,
+    },
+    "fail-stuck-outbound-messages": {
+        "task": "apps.whatsapp.tasks.fail_stuck_outbound_messages",
+        "schedule": 60 * 5,
+    },
+}
+
+# --------------------------------------------------------------------------- segredos
+# Chaves Fernet (urlsafe base64, 32 bytes) separadas por vírgula. A primeira cifra; todas
+# decifram (permite rotação). Gere com:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEYS: list[str] = env.list("FIELD_ENCRYPTION_KEYS", default=[])
+
+# --------------------------------------------------------------------------- WhatsApp
+# App único do TramitAI na Meta: o App Secret valida a assinatura antes de saber o tenant.
+WHATSAPP_APP_SECRET: str = env("WHATSAPP_APP_SECRET", default="")
+WHATSAPP_VERIFY_TOKEN: str = env("WHATSAPP_VERIFY_TOKEN", default="")
+# "cloud_api" (Meta) ou "fake" (dev/testes: não envia nada para fora).
+WHATSAPP_GATEWAY: str = env("WHATSAPP_GATEWAY", default="fake")
+WHATSAPP_GRAPH_URL: str = env("WHATSAPP_GRAPH_URL", default="https://graph.facebook.com")
+WHATSAPP_GRAPH_VERSION: str = env("WHATSAPP_GRAPH_VERSION", default="v24.0")
+WHATSAPP_HTTP_TIMEOUT: float = env.float("WHATSAPP_HTTP_TIMEOUT", default=10.0)
+# Payload bruto do webhook contém mensagens: guardar só o necessário para reprocessar.
+WEBHOOK_EVENT_RETENTION_DAYS: int = env.int("WEBHOOK_EVENT_RETENTION_DAYS", default=7)
 
 # --------------------------------------------------------------------------- logging
 # Regra: nunca logar conteúdo de mensagem, CPF, telefone ou payload de webhook.
