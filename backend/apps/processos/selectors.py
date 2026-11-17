@@ -1,14 +1,24 @@
 import uuid
 
-from django.db.models import Q, QuerySet
+from django.db.models import Count, Q, QuerySet
 
 from apps.core.br import only_digits
 
-from .models import LegalCase
+from .models import CaseMovement, LegalCase
 
 
 def cases_with_relations() -> QuerySet[LegalCase]:
-    return LegalCase.objects.select_related("responsible").prefetch_related("case_clients__client")
+    return (
+        LegalCase.objects.select_related("responsible")
+        .prefetch_related("case_clients__client")
+        .annotate(
+            pending_movement_count=Count(
+                "movements",
+                filter=Q(movements__notification=CaseMovement.Notification.PENDING),
+                distinct=True,
+            )
+        )
+    )
 
 
 def search_cases(

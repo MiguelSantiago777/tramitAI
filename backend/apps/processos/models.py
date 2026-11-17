@@ -31,9 +31,23 @@ class LegalCase(TenantModel):
         verbose_name="responsável",
     )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+
+    class SyncStatus(models.TextChoices):
+        NEVER = "NEVER", "Nunca consultado"
+        OK = "OK", "Atualizado"
+        NOT_FOUND = "NOT_FOUND", "Não encontrado na fonte"
+        ERROR = "ERROR", "Erro na consulta"
+
     monitoring_enabled = models.BooleanField("monitorar andamento", default=True)
     last_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
     last_movement_at = models.DateTimeField(null=True, blank=True, editable=False)
+    sync_status = models.CharField(
+        max_length=10, choices=SyncStatus.choices, default=SyncStatus.NEVER, editable=False
+    )
+    # Só código técnico do erro (ex.: http_429), nunca conteúdo.
+    sync_error = models.CharField(max_length=64, blank=True, default="", editable=False)
+    # Primeira consulta bem-sucedida: o histórico encontrado ali vira base, sem aviso ao cliente.
+    baseline_at = models.DateTimeField(null=True, blank=True, editable=False)
     notes = models.TextField("observações", blank=True, default="")
 
     clients: models.ManyToManyField[Any, Any] = models.ManyToManyField(
@@ -82,3 +96,44 @@ class CaseClient(TenantModel):
         constraints = [
             models.UniqueConstraint(fields=["case", "client"], name="case_client_unique"),
         ]
+
+
+class CaseMovement(TenantModel):
+    """Andamento do processo vindo da fonte (DataJud). Dados públicos do tribunal.
+
+    A fonte não dá id para movimento: `fingerprint` é um hash do conteúdo e deduplica.
+    """
+
+    class Notification(models.TextChoices):
+        # Já existia na primeira consulta (ou é antigo demais): não vira aviso.
+        BASELINE = "BASELINE", "Histórico"
+        PENDING = "PENDING", "Aguardando aviso"
+        NOTIFIED = "NOTIFIED", "Cliente avisado"
+        SKIPPED = "SKIPPED", "Sem aviso"
+
+    case = models.ForeignKey(LegalCase, on_delete=models.CASCADE, related_name="movements")
+    source = models.CharField(max_length=16)
+    fingerprint = models.CharField(max_length=64)
+    code = models.PositiveIntegerField(null=True, blank=True)
+    name = models.CharField(max_length=255)
+    complements = models.JSONField(default=list, blank=True)
+    grau = models.CharField(max_length=8, blank=True, default="")
+    occurred_at = models.DateTimeField()
+    notification = models.CharField(
+        max_length=10, choices=Notification.choices, default=Notification.PENDING
+    )
+
+    class Meta:
+        verbose_name = "andamento"
+        ordering = ["-occurred_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["case", "fingerprint"], name="case_movement_fingerprint_unique"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["case", "-occurred_at"], name="case_movement_recent_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} em {self.occurred_at:%d/%m/%Y}"

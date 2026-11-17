@@ -8,7 +8,9 @@ class OutboundDraft(TenantModel):
     """Mensagem que só sai para o cliente depois de aprovada por uma pessoa do escritório.
 
     Ciclo: DRAFT → APPROVED → SENT, ou DRAFT → REJECTED. APPROVED → FAILED se o WhatsApp
-    recusar. Transições só pelos services; cada uma gera evento de auditoria.
+    recusar. Aviso de andamento com a janela de 24h fechada: DRAFT → AWAITING (sai o modelo
+    aprovado pela Meta) → APPROVED quando o cliente responde (sai o texto aprovado) → SENT.
+    Transições só pelos services; cada uma gera evento de auditoria.
     """
 
     class Origin(models.TextChoices):
@@ -19,6 +21,7 @@ class OutboundDraft(TenantModel):
     class Status(models.TextChoices):
         DRAFT = "DRAFT", "Rascunho"
         APPROVED = "APPROVED", "Aprovada"
+        AWAITING = "AWAITING", "Aguardando resposta do cliente"
         SENT = "SENT", "Enviada"
         REJECTED = "REJECTED", "Rejeitada"
         FAILED = "FAILED", "Falhou"
@@ -49,6 +52,19 @@ class OutboundDraft(TenantModel):
     source_message = models.ForeignKey(
         "whatsapp.Message", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # Aviso de andamento: processo e andamentos (ids de CaseMovement) que o texto cobre.
+    legal_case = models.ForeignKey(
+        "processos.LegalCase", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    movement_ids = models.JSONField(default=list, blank=True)
+    # Modelo da Meta enviado quando a janela estava fechada (antes do texto).
+    template_message = models.OneToOneField(
+        "whatsapp.Message",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="template_draft",
+    )
     sent_message = models.OneToOneField(
         "whatsapp.Message",
         on_delete=models.SET_NULL,
@@ -61,6 +77,8 @@ class OutboundDraft(TenantModel):
     intent = models.CharField(max_length=20, blank=True, default="")
     urgency = models.CharField(max_length=10, blank=True, default="")
     needs_lawyer = models.BooleanField(default=False)
+    # Aviso de andamento: a IA acha que interessa ao cliente? (só sugestão para o advogado)
+    client_relevant = models.BooleanField(null=True, blank=True)
     summary = models.TextField(blank=True, default="")
     guardrail_flags = models.JSONField(default=list, blank=True)
 

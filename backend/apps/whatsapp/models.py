@@ -63,6 +63,12 @@ class WhatsAppAccount(TenantModel):
     # Token da Cloud API cifrado com apps.core.crypto. Nunca sai pela API nem por log.
     access_token_encrypted = models.TextField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    # Modelo (template) utility aprovado na WABA do escritório para avisar de andamento fora da
+    # janela de 24h. Texto esperado em apps/whatsapp/templates.py (o README explica como criar).
+    movement_template_name = models.CharField(
+        max_length=64, blank=True, default="atualizacao_processo"
+    )
+    template_language = models.CharField(max_length=10, default="pt_BR")
 
     class Meta:
         verbose_name = "conta de WhatsApp"
@@ -127,6 +133,7 @@ class Message(TenantModel):
         DOCUMENT = "document", "Documento"
         STICKER = "sticker", "Figurinha"
         LOCATION = "location", "Localização"
+        TEMPLATE = "template", "Modelo aprovado"
         OTHER = "other", "Outro"
 
     class Status(models.TextChoices):
@@ -147,6 +154,10 @@ class Message(TenantModel):
     type = models.CharField(max_length=10, choices=Type.choices, default=Type.TEXT)
     body = models.TextField(blank=True, default="")
     media_id = models.CharField(max_length=128, blank=True, default="")
+    # Só para type=template. `body` guarda a prévia renderizada, para o inbox.
+    template_name = models.CharField(max_length=64, blank=True, default="")
+    template_language = models.CharField(max_length=10, blank=True, default="")
+    template_params = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices)
     error_code = models.CharField(max_length=32, blank=True, default="")
     error_detail = models.CharField(max_length=255, blank=True, default="")

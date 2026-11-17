@@ -12,6 +12,7 @@ class AiGeneration(TenantModel):
 
     class Kind(models.TextChoices):
         TRIAGE = "TRIAGE", "Triagem"
+        MOVEMENT_UPDATE = "MOVEMENT", "Aviso de andamento"
 
     class Status(models.TextChoices):
         OK = "OK", "Gerado"
@@ -26,6 +27,9 @@ class AiGeneration(TenantModel):
     model = models.CharField(max_length=64, blank=True, default="")
     conversation = models.ForeignKey(
         "whatsapp.Conversation", on_delete=models.CASCADE, related_name="+", null=True
+    )
+    legal_case = models.ForeignKey(
+        "processos.LegalCase", on_delete=models.SET_NULL, related_name="+", null=True
     )
     trigger_message = models.ForeignKey(
         "whatsapp.Message", on_delete=models.SET_NULL, related_name="+", null=True

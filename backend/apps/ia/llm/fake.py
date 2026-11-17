@@ -18,6 +18,18 @@ DEFAULT_TRIAGE: dict[str, Any] = {
 }
 
 
+DEFAULT_MOVEMENT_UPDATE: dict[str, Any] = {
+    "message": (
+        "[IA de teste] O tribunal registrou um novo andamento no seu processo. "
+        "O(a) advogado(a) está acompanhando. Se tiver dúvida, é só responder."
+    ),
+    "client_relevant": True,
+    "needs_lawyer": True,
+    "summary_for_lawyer": "[IA de teste] Andamento novo; texto simulado.",
+}
+_DEFAULTS = {"movement_update": DEFAULT_MOVEMENT_UPDATE}
+
+
 @dataclass
 class FakeLlmClient:
     provider: str = "fake"
@@ -27,12 +39,13 @@ class FakeLlmClient:
 
     def complete(self, request: LlmRequest) -> LlmResult:
         self.calls.append(request)
-        item: dict[str, Any] | LlmError = self.queue.pop(0) if self.queue else DEFAULT_TRIAGE
+        default = _DEFAULTS.get(request.purpose, DEFAULT_TRIAGE)
+        item: dict[str, Any] | LlmError = self.queue.pop(0) if self.queue else default
         if isinstance(item, LlmError):
             raise item
         return LlmResult(
             data=dict(item),
             raw_text=json.dumps(item, ensure_ascii=False),
             provider=self.provider,
-            model="fake-triage-1",
+            model="fake-llm-1",
         )

@@ -52,6 +52,34 @@ responde ACEITO → a partir daí cada mensagem passa pela triagem e vira rascun
 **Aprovações**. Nada é enviado sem aprovação humana; tudo fica em `core_auditevent`
 (append-only).
 
+## Andamentos (DataJud)
+
+- `PROCESS_SOURCE=fake` (padrão): histórico fixo local. `PROCESS_SOURCE=datajud` +
+  `DATAJUD_API_KEY` (chave pública da [wiki do DataJud](https://datajud-wiki.cnj.jus.br/api-publica/acesso))
+  consulta a API Pública do CNJ.
+- O beat agenda, de hora em hora, os processos ativos sem consulta há `CASE_CHECK_INTERVAL_HOURS`
+  (padrão 12h), espaçados para não tomar 429. Na tela do processo há "Verificar agora".
+- A primeira consulta vira linha de base (sem aviso). Depois, cada andamento novo dos últimos
+  `MOVEMENT_NOTIFY_MAX_AGE_DAYS` vira um rascunho de aviso em português simples por cliente
+  vinculado, na fila **Aprovações**. Para o LLM vão só dados públicos do tribunal e o papel do
+  cliente; nome, CPF e telefone não.
+- Janela de 24h fechada: ao aprovar, sai o modelo da Meta abaixo; o texto aprovado fica
+  "aguardando o cliente" e sai sozinho quando ele responder.
+
+Modelo a cadastrar na WABA de cada escritório (categoria **Utility**, idioma `pt_BR`, nome
+`atualizacao_processo`; o nome pode ser trocado em `WhatsAppAccount.movement_template_name`):
+
+```text
+Olá, {{1}}! Há uma atualização no seu processo nº {{2}}. Responda esta mensagem para receber os detalhes.
+```
+
+Simular um andamento em dev (passa pelo mesmo caminho da consulta real):
+
+```bash
+docker compose exec backend uv run python manage.py simulate_movement \
+  --tenant escritorio-demo --cnj 0004242-57.2024.8.19.0001 --name "Conclusão"
+```
+
 ## Testes e lint
 
 ```bash

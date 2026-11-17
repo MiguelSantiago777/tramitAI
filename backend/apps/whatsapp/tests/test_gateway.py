@@ -34,6 +34,44 @@ def test_send_text_builds_request_and_returns_wamid(settings):
     assert seen["json"]["text"] == {"preview_url": False, "body": "Olá"}
 
 
+def test_send_template_builds_body_parameters():
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["json"] = json.loads(request.content)
+        return httpx.Response(200, json={"messages": [{"id": "wamid.TPL"}]})
+
+    result = _gateway(handler).send_template(
+        CREDS,
+        to="5521998765432",
+        name="atualizacao_processo",
+        language="pt_BR",
+        params=["Maria", "0801234-56.2024.8.19.0001"],
+    )
+    assert result.wa_message_id == "wamid.TPL"
+    assert seen["json"]["type"] == "template"
+    assert seen["json"]["template"] == {
+        "name": "atualizacao_processo",
+        "language": {"code": "pt_BR"},
+        "components": [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "Maria"},
+                    {"type": "text", "text": "0801234-56.2024.8.19.0001"},
+                ],
+            }
+        ],
+    }
+
+
+def test_template_params_are_cleaned_for_meta():
+    from apps.whatsapp.templates import MOVEMENT_UPDATE, clean_param
+
+    assert clean_param("Maria\nda   \tSilva      Souza") == "Maria da    Silva Souza"
+    assert MOVEMENT_UPDATE.render(["Ana", "123"]).startswith("Olá, Ana! Há uma atualização")
+
+
 def test_meta_error_is_definitive():
     def handler(request):
         return httpx.Response(

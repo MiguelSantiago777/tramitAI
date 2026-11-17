@@ -27,4 +27,5 @@ WHATSAPP_APP_SECRET = "test-app-secret"
 WHATSAPP_VERIFY_TOKEN = "test-verify-token"
 WHATSAPP_GATEWAY = "fake"
 LLM_PROVIDER = "fake"
+PROCESS_SOURCE = "fake"
 TRIAGE_DEBOUNCE_SECONDS = 0

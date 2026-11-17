@@ -40,6 +40,7 @@ from .models import (
     WhatsAppAccount,
 )
 from .signals import inbound_message_received, outbound_message_settled
+from .templates import MOVEMENT_UPDATE, TemplateSpec, clean_param
 
 logger = logging.getLogger(__name__)
 
@@ -324,6 +325,79 @@ def queue_text(*, conversation: Conversation, body: str, sent_by: User | None) -
     return message
 
 
+def queue_template(
+    *,
+    conversation: Conversation,
+    spec: TemplateSpec,
+    params: list[str],
+    sent_by: User | None,
+) -> Message:
+    """Grava um template QUEUED (vale com a janela de 24h fechada) e agenda o envio."""
+    from .tasks import send_message
+
+    account = conversation.account
+    name = account.movement_template_name if spec is MOVEMENT_UPDATE else spec.default_name
+    if not name:
+        raise ApiError(
+            "Este número de WhatsApp não tem modelo aprovado para avisos fora da janela de 24h.",
+            code="template_not_configured",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
+    params = [clean_param(p) for p in params]
+    message = Message.objects.create(
+        conversation=conversation,
+        direction=Message.Direction.OUTBOUND,
+        type=Message.Type.TEMPLATE,
+        body=spec.render(params),
+        template_name=name,
+        template_language=account.template_language,
+        template_params=params,
+        status=Message.Status.QUEUED,
+        sent_by=sent_by,
+    )
+    Conversation.objects.filter(pk=conversation.pk).update(last_message_at=message.created_at)
+    tenant_id, message_id = str(conversation.tenant_id), str(message.id)
+    transaction.on_commit(lambda: send_message.delay(tenant_id, message_id))
+    return message
+
+
+def conversation_for_client(client: Client) -> Conversation | None:
+    """Conversa para falar com o cliente: a vinculada a ele, a do mesmo telefone ou uma nova.
+
+    Cria conversa sem mensagens quando o cliente nunca escreveu (aviso de andamento). Sem
+    telefone ou sem número de WhatsApp ativo no escritório, devolve None.
+    """
+    existing = (
+        Conversation.objects.filter(client=client)
+        .select_related("account")
+        .order_by(F("last_message_at").desc(nulls_last=True))
+        .first()
+    )
+    if existing is not None:
+        return existing
+    if not client.phone_e164:
+        return None
+    candidates = whatsapp_phone_candidates(client.phone_e164.lstrip("+"))
+    by_phone = (
+        Conversation.objects.filter(wa_id__in=candidates, client__isnull=True)
+        .select_related("account")
+        .first()
+    )
+    if by_phone is not None:
+        by_phone.client = client
+        by_phone.save(update_fields=["client", "updated_at"])
+        return by_phone
+    account = WhatsAppAccount.objects.filter(status=WhatsAppAccount.Status.ACTIVE).first()
+    if account is None:
+        return None
+    conversation, _ = Conversation.objects.get_or_create(
+        account=account,
+        wa_id=client.phone_e164.lstrip("+"),
+        defaults={"client": client, "contact_name": client.name[:200]},
+    )
+    return conversation
+
+
 def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
     """Envia uma mensagem QUEUED. Três transações curtas; a chamada HTTP fica fora delas."""
     with tenant_atomic(tenant_id):
@@ -343,9 +417,20 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
             access_token=decrypt_secret(account.access_token_encrypted),
         )
         to, body = message.conversation.wa_id, message.body
+        template = (
+            (message.template_name, message.template_language, list(message.template_params))
+            if message.type == Message.Type.TEMPLATE
+            else None
+        )
 
     try:
-        result = get_gateway().send_text(credentials, to=to, body=body)
+        if template is not None:
+            name, language, params = template
+            result = get_gateway().send_template(
+                credentials, to=to, name=name, language=language, params=params
+            )
+        else:
+            result = get_gateway().send_text(credentials, to=to, body=body)
     except GatewayError as exc:
         with tenant_atomic(tenant_id):
             Message.objects.filter(pk=message_id).update(

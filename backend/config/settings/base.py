@@ -128,6 +128,8 @@ SPECTACULAR_SETTINGS = {
         "MessageStatusEnum": "apps.whatsapp.models.Message.Status",
         "DraftStatusEnum": "apps.aprovacoes.models.OutboundDraft.Status",
         "TenantStatusEnum": "apps.tenants.models.Tenant.Status",
+        "SyncStatusEnum": "apps.processos.models.LegalCase.SyncStatus",
+        "MovementNotificationEnum": "apps.processos.models.CaseMovement.Notification",
     },
 }
 
@@ -146,6 +148,10 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "fail-stuck-outbound-messages": {
         "task": "apps.whatsapp.tasks.fail_stuck_outbound_messages",
         "schedule": 60 * 5,
+    },
+    "schedule-case-checks": {
+        "task": "apps.processos.tasks.schedule_case_checks",
+        "schedule": 60 * 60,
     },
 }
 
@@ -179,6 +185,21 @@ LLM_REFUSAL_FALLBACK: bool = env.bool("LLM_REFUSAL_FALLBACK", default=True)
 # Espera antes da triagem, para juntar mensagens enviadas em sequência.
 TRIAGE_DEBOUNCE_SECONDS: int = env.int("TRIAGE_DEBOUNCE_SECONDS", default=15)
 TRIAGE_HISTORY_MESSAGES: int = env.int("TRIAGE_HISTORY_MESSAGES", default=20)
+
+# --------------------------------------------------------------------------- andamentos
+# "fake" (dev/testes, nada sai da máquina) ou "datajud" (API Pública do CNJ).
+PROCESS_SOURCE: str = env("PROCESS_SOURCE", default="fake")
+DATAJUD_URL: str = env("DATAJUD_URL", default="https://api-publica.datajud.cnj.jus.br")
+# Chave pública divulgada pelo CNJ na wiki do DataJud. Fica só em env: o CNJ troca às vezes.
+DATAJUD_API_KEY: str = env("DATAJUD_API_KEY", default="")
+DATAJUD_TIMEOUT: float = env.float("DATAJUD_TIMEOUT", default=30.0)
+# Cada processo ativo é consultado no máximo a cada N horas.
+CASE_CHECK_INTERVAL_HOURS: int = env.int("CASE_CHECK_INTERVAL_HOURS", default=12)
+CASE_CHECKS_PER_RUN: int = env.int("CASE_CHECKS_PER_RUN", default=300)
+# Intervalo entre consultas agendadas no mesmo ciclo (o DataJud devolve 429 fácil).
+CASE_CHECK_SPACING_SECONDS: int = env.int("CASE_CHECK_SPACING_SECONDS", default=3)
+# Andamento novo para nós, mas mais velho que isso, não vira aviso (reindexação da fonte).
+MOVEMENT_NOTIFY_MAX_AGE_DAYS: int = env.int("MOVEMENT_NOTIFY_MAX_AGE_DAYS", default=30)
 
 # Tabelas append-only: o role da aplicação perde UPDATE/DELETE e um trigger bloqueia
 # alterações para qualquer role.

@@ -35,7 +35,14 @@ class DraftViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
         if fake is not None:
             return fake
         qs = OutboundDraft.objects.select_related(
-            "conversation", "client", "source_message", "sent_message", "decided_by", "generation"
+            "conversation",
+            "client",
+            "source_message",
+            "sent_message",
+            "template_message",
+            "legal_case",
+            "decided_by",
+            "generation",
         )
         if self.action == "list":
             filters = DraftFilterSerializer(data=self.request.query_params)

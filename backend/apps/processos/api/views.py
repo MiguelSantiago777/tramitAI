@@ -2,16 +2,18 @@ from typing import Any, cast
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from apps.accounts.models import User
 from apps.core.views_base import schema_safe_queryset
-from apps.processos import selectors, services
+from apps.processos import monitoring, selectors, services
 from apps.processos.models import LegalCase
 
-from .serializers import CaseFilterSerializer, LegalCaseSerializer
+from .serializers import CaseFilterSerializer, CaseMovementSerializer, LegalCaseSerializer
 
 
 def _links(data: dict[str, Any]) -> list[services.ClientLink] | None:
@@ -56,3 +58,19 @@ class LegalCaseViewSet(
         serializer.instance = services.update_case(
             cast(LegalCase, serializer.instance), links=_links(data), **data
         )
+
+    @extend_schema(responses=CaseMovementSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def movements(self, request: Request, pk: str | None = None) -> Response:
+        """Andamentos do processo (mais recentes primeiro), paginados."""
+        case = self.get_object()
+        qs = case.movements.order_by("-occurred_at", "-created_at")
+        page = self.paginate_queryset(qs)
+        return self.get_paginated_response(CaseMovementSerializer(page, many=True).data)
+
+    @extend_schema(request=None, responses={202: None})
+    @action(detail=True, methods=["post"])
+    def check(self, request: Request, pk: str | None = None) -> Response:
+        """Consulta o andamento agora (fila; o resultado aparece em alguns segundos)."""
+        monitoring.request_check(self.get_object(), user=cast(User, request.user))
+        return Response(status=status.HTTP_202_ACCEPTED)

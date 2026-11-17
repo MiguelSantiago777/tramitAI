@@ -20,7 +20,11 @@ from rest_framework.test import APIClient
 
 from apps.tenants.services import CreatedTenant, create_tenant
 
-pytest_plugins = ["apps.whatsapp.tests.fixtures", "apps.ia.tests.fixtures"]
+pytest_plugins = [
+    "apps.whatsapp.tests.fixtures",
+    "apps.ia.tests.fixtures",
+    "apps.processos.tests.fixtures",
+]
 
 PASSWORD = "senha-de-teste-123"
 

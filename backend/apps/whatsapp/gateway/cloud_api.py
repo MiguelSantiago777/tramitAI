@@ -1,6 +1,7 @@
 """WhatsApp Cloud API (Meta), direto, sem BSP."""
 
 import logging
+from typing import Any
 
 import httpx
 from django.conf import settings
@@ -22,13 +23,43 @@ class CloudApiGateway:
         return f"{base}/{settings.WHATSAPP_GRAPH_VERSION}/{phone_number_id}/messages"
 
     def send_text(self, credentials: Credentials, *, to: str, body: str) -> SendResult:
-        payload = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": to,
-            "type": "text",
-            "text": {"preview_url": False, "body": body},
-        }
+        return self._send(
+            credentials,
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": to,
+                "type": "text",
+                "text": {"preview_url": False, "body": body},
+            },
+        )
+
+    def send_template(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        name: str,
+        language: str,
+        params: list[str],
+    ) -> SendResult:
+        template: dict[str, Any] = {"name": name, "language": {"code": language}}
+        if params:
+            template["components"] = [
+                {"type": "body", "parameters": [{"type": "text", "text": p} for p in params]}
+            ]
+        return self._send(
+            credentials,
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": to,
+                "type": "template",
+                "template": template,
+            },
+        )
+
+    def _send(self, credentials: Credentials, payload: dict[str, Any]) -> SendResult:
         try:
             response = self._client.post(
                 self._url(credentials.phone_number_id),

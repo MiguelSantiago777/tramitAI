@@ -7,7 +7,7 @@ from apps.clientes.models import Client
 from apps.core.serializers import TenantScopedPrimaryKeyRelatedField
 from apps.core.tenancy import get_current_tenant_id
 from apps.processos.cnj import is_valid_cnj, normalize_cnj
-from apps.processos.models import CaseClient, LegalCase
+from apps.processos.models import CaseClient, CaseMovement, LegalCase
 from apps.processos.selectors import cnj_in_use
 
 
@@ -39,6 +39,7 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     responsible_id = TenantMemberField(source="responsible", required=False, allow_null=True)
     responsible_name = serializers.SerializerMethodField()
     clients = CaseClientSerializer(many=True, source="case_clients", required=False)
+    pending_movements = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalCase
@@ -56,12 +57,30 @@ class LegalCaseSerializer(serializers.ModelSerializer):
             "monitoring_enabled",
             "last_checked_at",
             "last_movement_at",
+            "sync_status",
+            "sync_error",
+            "pending_movements",
             "notes",
             "clients",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "last_checked_at", "last_movement_at", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "last_checked_at",
+            "last_movement_at",
+            "sync_status",
+            "sync_error",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_pending_movements(self, obj: LegalCase) -> int:
+        """Andamentos novos ainda sem aviso ao cliente (anotado na listagem)."""
+        annotated = getattr(obj, "pending_movement_count", None)
+        if annotated is not None:
+            return int(annotated)
+        return obj.movements.filter(notification=CaseMovement.Notification.PENDING).count()
 
     def get_responsible_name(self, obj: LegalCase) -> str:
         user = obj.responsible
@@ -91,3 +110,10 @@ class CaseFilterSerializer(serializers.Serializer):
         choices=LegalCase.Status.choices, required=False, allow_blank=True, default=""
     )
     client_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+
+class CaseMovementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CaseMovement
+        fields = ["id", "name", "code", "complements", "grau", "occurred_at", "notification"]
+        read_only_fields = fields

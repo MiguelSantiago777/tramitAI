@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.aprovacoes.models import OutboundDraft
 from apps.core.models import AuditEvent
+from apps.processos.models import CaseMovement
 from apps.whatsapp.services import MAX_TEXT_LENGTH, window_open
 
 
@@ -23,6 +24,13 @@ class AuditEventSerializer(serializers.ModelSerializer):
         return _user_name(obj.actor_user)
 
 
+class MovementBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CaseMovement
+        fields = ["id", "name", "complements", "occurred_at"]
+        read_only_fields = fields
+
+
 class DraftSerializer(serializers.ModelSerializer):
     conversation_id = serializers.UUIDField(read_only=True)
     contact_name = serializers.CharField(source="conversation.contact_name", read_only=True)
@@ -36,6 +44,17 @@ class DraftSerializer(serializers.ModelSerializer):
         source="sent_message.status", read_only=True, default=""
     )
     original_ai_text = serializers.SerializerMethodField()
+    legal_case_id = serializers.UUIDField(read_only=True, allow_null=True)
+    case_number = serializers.CharField(
+        source="legal_case.cnj_formatted", read_only=True, default=""
+    )
+    movements = serializers.SerializerMethodField()
+    template_text = serializers.CharField(
+        source="template_message.body", read_only=True, default=""
+    )
+    template_status = serializers.CharField(
+        source="template_message.status", read_only=True, default=""
+    )
 
     class Meta:
         model = OutboundDraft
@@ -63,9 +82,22 @@ class DraftSerializer(serializers.ModelSerializer):
             "rejection_reason",
             "failure_detail",
             "sent_message_status",
+            "legal_case_id",
+            "case_number",
+            "movements",
+            "client_relevant",
+            "template_text",
+            "template_status",
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_movements(self, obj: OutboundDraft) -> list[dict[str, Any]]:
+        """Andamentos que o aviso cobre (só origem MOVEMENT_UPDATE)."""
+        if not obj.movement_ids:
+            return []
+        qs = CaseMovement.objects.filter(pk__in=obj.movement_ids).order_by("occurred_at")
+        return list(MovementBriefSerializer(qs, many=True).data)
 
     def get_phone(self, obj: OutboundDraft) -> str:
         return f"+{obj.conversation.wa_id}"
@@ -81,7 +113,7 @@ class DraftSerializer(serializers.ModelSerializer):
         if not obj.guardrail_flags or obj.generation is None:
             return ""
         data = obj.generation.output_data or {}
-        return str(data.get("reply", ""))
+        return str(data.get("reply") or data.get("message") or "")
 
 
 class DraftDetailSerializer(DraftSerializer):

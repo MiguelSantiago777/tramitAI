@@ -1,0 +1,20 @@
+import uuid
+from typing import Any
+
+from celery import shared_task
+
+from . import monitoring
+
+
+@shared_task(bind=True, max_retries=4, acks_late=True)
+def sync_case_task(self: Any, tenant_id: str, case_id: str) -> str:
+    """Consulta o andamento de um processo. Idempotente (dedupe por fingerprint + lock)."""
+    try:
+        return monitoring.sync_case(uuid.UUID(tenant_id), uuid.UUID(case_id))
+    except monitoring.RetryableSyncError as exc:
+        raise self.retry(exc=exc, countdown=min(60 * 2**self.request.retries, 1800)) from exc
+
+
+@shared_task
+def schedule_case_checks() -> int:
+    return monitoring.schedule_due_checks()

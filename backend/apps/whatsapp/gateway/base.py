@@ -32,3 +32,13 @@ class GatewayError(Exception):
 
 class WhatsAppGateway(Protocol):
     def send_text(self, credentials: Credentials, *, to: str, body: str) -> SendResult: ...
+
+    def send_template(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        name: str,
+        language: str,
+        params: list[str],
+    ) -> SendResult: ...
