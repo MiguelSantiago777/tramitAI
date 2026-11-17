@@ -17,7 +17,10 @@ from .base import env
 
 DATABASE_OWNER = env.db("DATABASE_OWNER_URL")
 
-REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_THROTTLE_RATES": {"login": "10000/min"}}  # noqa: F405
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa: F405
+    "DEFAULT_THROTTLE_RATES": {"login": "10000/min", "password_reset": "10000/min"},
+}
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
@@ -32,3 +35,9 @@ WHATSAPP_BRIDGE_URL = "http://bridge.test"
 LLM_PROVIDER = "fake"
 PROCESS_SOURCE = "fake"
 TRIAGE_DEBOUNCE_SECONDS = 0
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+FRONTEND_URL = "https://app.tramitai.test"

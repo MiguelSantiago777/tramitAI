@@ -25,6 +25,10 @@ def _build(provider: str) -> LlmClient:
         from .anthropic_client import AnthropicLlmClient
 
         return AnthropicLlmClient()
+    if provider == "gemini":
+        from .gemini_client import GeminiLlmClient
+
+        return GeminiLlmClient()
     raise ImproperlyConfigured(f"LLM_PROVIDER desconhecido: {provider}")
 
 

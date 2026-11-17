@@ -5,16 +5,19 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { TenantOption } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
+import { AuthLayout } from '../auth-layout/auth-layout';
 
 @Component({
   selector: 'app-login',
   imports: [
+    AuthLayout,
+    RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -23,7 +26,7 @@ import { toApiError } from '../../../core/http/api-error';
     MatSelectModule,
   ],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
+  styleUrls: ['./login.scss', '../auth-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Login {

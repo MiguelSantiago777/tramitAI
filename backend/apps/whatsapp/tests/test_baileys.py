@@ -285,3 +285,16 @@ def test_bridge_down_is_reported(tenant_a, baileys_a, login, api_client, monkeyp
     monkeypatch.setattr(bridge_module, "session_info", down)
     login(tenant_a.owner.email)
     assert api_client.get(CONNECTION).json()["status"] == "bridge_down"
+
+
+def test_logged_out_emails_the_owner(tenant_a, baileys_a, post_bridge):
+    from django.core import mail
+
+    post_bridge({"session_id": baileys_a.phone_number_id, "event": "connection", "status": "open"})
+    post_bridge(
+        {"session_id": baileys_a.phone_number_id, "event": "connection", "status": "logged_out"}
+    )
+    [email] = mail.outbox
+    assert email.to == [tenant_a.owner.email]
+    assert "desconectado" in email.subject
+    assert "https://app.tramitai.test/configuracoes/whatsapp" in email.body

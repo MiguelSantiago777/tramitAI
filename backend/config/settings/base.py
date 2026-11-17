@@ -12,6 +12,7 @@ env = environ.Env()
 SECRET_KEY: str = env("DJANGO_SECRET_KEY")
 DEBUG: bool = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS: list[str] = env.list("DJANGO_ALLOWED_HOSTS", default=[])
+CSRF_TRUSTED_ORIGINS: list[str] = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -36,6 +37,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Estáticos do admin servidos pelo próprio Django (sem nginx só para isso).
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -92,6 +95,21 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+# --------------------------------------------------------------------------- e-mail
+# Em dev, o e-mail aparece no log do backend. Em produção: EMAIL_URL=smtp+tls://user:senha@host:587
+EMAIL_CONFIG = env.email_url("EMAIL_URL", default="consolemail://")
+vars().update(EMAIL_CONFIG)
+DEFAULT_FROM_EMAIL: str = env(
+    "DEFAULT_FROM_EMAIL", default="TramitAI <nao-responda@tramitai.local>"
+)
+# Endereço público do app, para links nos e-mails (ex.: redefinir senha).
+FRONTEND_URL: str = env("FRONTEND_URL", default="http://localhost:4200")
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 2  # 2 horas
 
 # --------------------------------------------------------------------------- DRF
 REST_FRAMEWORK = {
@@ -101,7 +119,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardPagination",
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_THROTTLE_RATES": {"login": env("LOGIN_THROTTLE_RATE", default="10/min")},
+    "DEFAULT_THROTTLE_RATES": {
+        "login": env("LOGIN_THROTTLE_RATE", default="10/min"),
+        "password_reset": env("PASSWORD_RESET_THROTTLE_RATE", default="5/hour"),
+    },
 }
 
 SIMPLE_JWT = {
@@ -182,7 +203,9 @@ WEBHOOK_EVENT_RETENTION_DAYS: int = env.int("WEBHOOK_EVENT_RETENTION_DAYS", defa
 # --------------------------------------------------------------------------- IA
 # "fake" (dev/testes, determinístico, não sai da máquina) ou "anthropic".
 LLM_PROVIDER: str = env("LLM_PROVIDER", default="fake")
-LLM_MODEL: str = env("LLM_MODEL", default="claude-opus-5-5")
+_DEFAULT_MODELS = {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-2.5-flash"}
+LLM_MODEL: str = env("LLM_MODEL", default=_DEFAULT_MODELS.get(LLM_PROVIDER, "fake"))
+GEMINI_API_KEY: str = env("GEMINI_API_KEY", default="")
 LLM_EFFORT: str = env("LLM_EFFORT", default="medium")
 LLM_MAX_TOKENS: int = env.int("LLM_MAX_TOKENS", default=16000)
 LLM_TIMEOUT_SECONDS: float = env.float("LLM_TIMEOUT_SECONDS", default=90.0)

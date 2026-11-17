@@ -1,0 +1,51 @@
+// Estilos comuns dos formulários de entrada (login, esqueci a senha, nova senha).
+h1 {
+  margin: 0;
+  font:
+    650 28px / 1.2 Inter,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  margin: 6px 0 24px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.auth-submit {
+  height: 44px;
+  margin-top: 8px;
+}
+
+.auth-error,
+.auth-ok {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font: var(--mat-sys-body-small);
+}
+
+.auth-error {
+  background: var(--tm-danger-soft);
+  color: var(--tm-danger);
+}
+
+.auth-ok {
+  background: var(--tm-success-soft);
+  color: var(--tm-success);
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  font: var(--mat-sys-body-small);
+}

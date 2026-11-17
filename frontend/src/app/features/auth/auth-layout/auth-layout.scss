@@ -1,0 +1,135 @@
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+// ---------------------------------------------------------------- painel da marca
+
+.auth__brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 56px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 15% 20%, rgb(255 255 255 / 12%), transparent 40%),
+    radial-gradient(circle at 85% 85%, rgb(14 116 144 / 55%), transparent 45%),
+    linear-gradient(150deg, #312e81 0%, #4f46e5 50%, #6d28d9 100%);
+  overflow: hidden;
+}
+
+.auth__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font:
+    700 20px / 1 Inter,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.auth__mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 18%);
+  border: 1px solid rgb(255 255 255 / 30%);
+  font-size: 18px;
+}
+
+.auth__pitch {
+  max-width: 460px;
+
+  h2 {
+    margin: 0 0 28px;
+    font:
+      650 32px / 1.2 Inter,
+      system-ui,
+      sans-serif;
+    letter-spacing: -0.025em;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font:
+      15px / 1.45 Inter,
+      system-ui,
+      sans-serif;
+    color: rgb(255 255 255 / 88%);
+  }
+
+  .icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgb(255 255 255 / 14%);
+  }
+}
+
+.auth__foot {
+  margin: 0;
+  font:
+    13px / 1 Inter,
+    system-ui,
+    sans-serif;
+  color: rgb(255 255 255 / 65%);
+}
+
+// ---------------------------------------------------------------- formulário
+
+.auth__panel {
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+.auth__box {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth__logo--mobile {
+  display: none;
+  margin-bottom: 32px;
+  color: var(--mat-sys-on-surface);
+
+  .auth__mark {
+    background: var(--tm-brand-gradient);
+    border: 0;
+    color: #fff;
+  }
+}
+
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .auth__brand {
+    display: none;
+  }
+
+  .auth__logo--mobile {
+    display: flex;
+  }
+}

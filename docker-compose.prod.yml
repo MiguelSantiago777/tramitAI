@@ -1,0 +1,146 @@
+# Produção (um servidor). Uso: ./infra/deploy.sh   (ver README, seção "Deploy").
+# Só o serviço `web` (Caddy) tem portas públicas: 80 e 443. O resto fica na rede interna.
+name: tramitai
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app: &app
+  build:
+    context: ./backend
+    target: prod
+  image: tramitai-backend:prod
+  env_file: ${ENV_FILE:-.env}
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  postgres:
+    image: postgres:16
+    env_file: ${ENV_FILE:-.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    logging: *logging
+
+  # Migrations como tramitai_owner; a aplicação nunca usa esse role.
+  migrate:
+    <<: *app
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    environment:
+      DATABASE_URL: ${DATABASE_OWNER_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    <<: *app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "2"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  beat:
+    <<: *app
+    command: ["celery", "-A", "config", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # Ponte WhatsApp (Baileys). As sessões pareadas ficam em bridge_data: é segredo.
+  bridge:
+    build: ./bridge
+    environment:
+      WHATSAPP_BRIDGE_SECRET: ${WHATSAPP_BRIDGE_SECRET}
+      BACKEND_WEBHOOK_URL: http://backend:8000/api/webhooks/bridge/
+      DATA_DIR: /data
+    volumes:
+      - bridge_data:/data
+    restart: unless-stopped
+    logging: *logging
+
+  # Site + HTTPS automático + proxy para o backend.
+  web:
+    build: ./frontend
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    restart: unless-stopped
+    logging: *logging
+
+  backup:
+    build: ./infra/backup
+    env_file: ${ENV_FILE:-.env}
+    volumes:
+      - backups:/backups
+      - bridge_data:/bridge:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  bridge_data:
+  caddy_data:
+  caddy_config:
+  backups:

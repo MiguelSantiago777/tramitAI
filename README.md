@@ -60,9 +60,14 @@ Cada escritório conecta o próprio número lendo um QR Code, como no WhatsApp W
 ## IA (Lia)
 
 - `LLM_PROVIDER=fake` (padrão): respostas determinísticas locais, nada sai da máquina.
+- `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (Google AI Studio). Modelo em `LLM_MODEL`
+  (padrão `gemini-2.5-flash`; confira na documentação do Google o modelo Flash atual).
+  **Plano gratuito do Gemini: o Google pode usar o conteúdo enviado para melhorar os produtos.**
+  Para mensagens reais de clientes (sigilo/LGPD), use uma chave com faturamento ativo.
 - `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`: API da Anthropic. Modelo e esforço em
-  `LLM_MODEL` / `LLM_EFFORT`. Prompts versionados em `backend/apps/ia/prompts/` (versão ativa em
-  `manifest.json`; nunca edite uma versão já usada, crie `v2.md`).
+  `LLM_MODEL` / `LLM_EFFORT` (padrão `claude-sonnet-5-5`).
+- Prompts versionados em `backend/apps/ia/prompts/` (versão ativa em `manifest.json`; nunca edite
+  uma versão já usada, crie `v2.md`). Toda chamada fica em `AiGeneration` com tokens e modelo.
 
 Fluxo: primeiro contato → rascunho com o termo de ciência (sem IA) → advogado aprova → cliente
 responde ACEITO → a partir daí cada mensagem passa pela triagem e vira rascunho na fila
@@ -96,6 +101,45 @@ Simular um andamento em dev (passa pelo mesmo caminho da consulta real):
 docker compose exec backend uv run python manage.py simulate_movement \
   --tenant escritorio-demo --cnj 0004242-57.2024.8.19.0001 --name "Conclusão"
 ```
+
+## Deploy (produção, um servidor)
+
+Pré-requisitos: VPS Ubuntu 24.04 (2 vCPU / 4 GB), um domínio com registro **A** apontando para o
+IP do servidor, e acesso SSH.
+
+```bash
+# 1. No servidor: Docker e firewall
+curl -fsSL https://get.docker.com | sh
+sudo ufw allow OpenSSH && sudo ufw allow 80 && sudo ufw allow 443/tcp && sudo ufw allow 443/udp
+sudo ufw enable
+
+# 2. Código e configuração
+git clone <url-do-repositório> tramitai && cd tramitai
+python3 infra/init_env.py        # cria o .env com todos os segredos gerados
+nano .env                        # preencha as linhas marcadas PREENCHER (domínio, e-mail, chaves)
+
+# 3. Subir (e para atualizar depois: o mesmo comando)
+./infra/deploy.sh
+
+# 4. Criar o primeiro escritório (pede a senha do titular no terminal)
+docker compose -f docker-compose.prod.yml exec backend   python manage.py create_tenant --name "Nome do Escritório" --owner-email titular@exemplo.com
+```
+
+Depois: entre em `https://SEU_DOMINIO`, abra **WhatsApp** e leia o QR Code.
+
+- **HTTPS**: automático (Caddy + Let's Encrypt). Só as portas 80/443 ficam abertas.
+- **Backup**: todo dia às `BACKUP_HOUR` UTC (padrão 6 = 3h de Brasília), banco + sessões do
+  WhatsApp, criptografados com `BACKUP_PASSPHRASE`, guardados por `BACKUP_KEEP_DAYS` dias.
+  **Guarde a `BACKUP_PASSPHRASE` fora do servidor** e configure `BACKUP_RCLONE_REMOTE` para
+  copiar para fora (Cloudflare R2, Backblaze B2...). Backup manual:
+  `docker compose -f docker-compose.prod.yml exec backup backup.sh`.
+  Restaurar (pare backend/worker/beat/bridge antes):
+  `docker compose -f docker-compose.prod.yml exec backup restore.sh /backups/db-<data>.dump.enc`.
+- **Monitoramento**: cadastre `https://SEU_DOMINIO/api/health/` num monitor gratuito
+  (UptimeRobot, Better Stack). Se o WhatsApp de um escritório desconectar, o titular recebe
+  e-mail (precisa de `EMAIL_URL`).
+- **Logs**: `docker compose -f docker-compose.prod.yml logs -f backend worker bridge`
+  (rotacionados, 50 MB por serviço). Sem conteúdo de mensagem.
 
 ## Testes e lint
 

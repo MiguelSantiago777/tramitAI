@@ -10,6 +10,20 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
+    path: 'esqueci-senha',
+    canMatch: [guestGuard],
+    title: 'Esqueci minha senha · TramitAI',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'redefinir-senha',
+    canMatch: [guestGuard],
+    title: 'Criar senha nova · TramitAI',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
     path: '',
     canMatch: [authGuard],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.Shell),

@@ -1,0 +1,39 @@
+# Caddy: HTTPS automático (Let's Encrypt) para {$DOMAIN}.
+# Sem log de acesso de propósito: URLs podem carregar tokens (ex.: link de redefinir senha).
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# A ponte do WhatsApp fala com o backend pela rede interna. De fora, esse caminho não existe.
+	# (handle e não respond: no Caddy, handle roda antes de respond.)
+	@bridge path /api/webhooks/bridge*
+	handle @bridge {
+		respond 404
+	}
+
+	@backend path /api/* /admin/* /static/*
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		root * /srv
+		@assets path *.js *.css *.woff2 *.png *.svg *.ico
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+}

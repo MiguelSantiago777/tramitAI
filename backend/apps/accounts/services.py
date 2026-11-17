@@ -72,3 +72,56 @@ def can_approve_drafts(membership: Membership) -> bool:
         return True
     settings = TenantSettings.objects.first()
     return bool(settings and settings.staff_can_approve)
+
+
+# ---------------------------------------------------------------- redefinição de senha
+
+
+def request_password_reset(email: str) -> None:
+    """Agenda o e-mail com o link, se houver usuário ativo. Nunca revela se o e-mail existe."""
+    from django.db import transaction
+
+    from .tasks import send_password_reset_email
+
+    user = User.objects.filter(email__iexact=email.strip(), is_active=True).first()
+    if user is None:
+        return
+    user_id = str(user.pk)
+    transaction.on_commit(lambda: send_password_reset_email.delay(user_id))
+
+
+def password_reset_link(user: User) -> str:
+    from django.conf import settings
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    return f"{settings.FRONTEND_URL.rstrip('/')}/redefinir-senha?uid={uid}&token={token}"
+
+
+def confirm_password_reset(*, uid: str, token: str, password: str) -> User:
+    from django.contrib.auth.password_validation import validate_password
+    from django.contrib.auth.tokens import default_token_generator
+    from django.core.exceptions import ValidationError
+    from django.utils.encoding import force_str
+    from django.utils.http import urlsafe_base64_decode
+
+    invalid = ApiError("Link inválido ou expirado. Peça um novo.", code="invalid_reset_link")
+    try:
+        user = User.objects.get(pk=force_str(urlsafe_base64_decode(uid)), is_active=True)
+    except (User.DoesNotExist, ValueError, TypeError, OverflowError, ValidationError) as exc:
+        raise invalid from exc
+    if not default_token_generator.check_token(user, token):
+        raise invalid
+    try:
+        validate_password(password, user)
+    except ValidationError as exc:
+        raise ApiError(
+            " ".join(exc.messages), code="weak_password", details={"password": exc.messages}
+        ) from exc
+    # Trocar a senha invalida o token (ele depende do hash da senha): link de uso único.
+    user.set_password(password)
+    user.save(update_fields=["password"])
+    return user

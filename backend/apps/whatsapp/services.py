@@ -134,6 +134,11 @@ def apply_connection(update: ConnectionUpdate) -> None:
         actor_type=audit.Actor.SYSTEM,
         data={"connection": new},
     )
+    if new == WhatsAppAccount.Connection.LOGGED_OUT:
+        from .tasks import alert_whatsapp_disconnected
+
+        tenant_id = str(account.tenant_id)
+        transaction.on_commit(lambda: alert_whatsapp_disconnected.delay(tenant_id))
 
 
 # ============================================================================ webhook (entrada)

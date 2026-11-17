@@ -15,7 +15,9 @@ dependencies = [
     "cryptography>=45",
     "httpx>=0.28",
     "anthropic>=2.9,<3",
+    "google-genai>=1.40",
     "gunicorn>=23",
+    "whitenoise>=6.9",
 ]
 
 [dependency-groups]
@@ -80,3 +82,5 @@ django_settings_module = "config.settings.test"
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 addopts = "-ra --strict-markers --ds=config.settings.test"
+# WhiteNoise: em teste não existe collectstatic.
+filterwarnings = ["ignore:No directory at:UserWarning"]

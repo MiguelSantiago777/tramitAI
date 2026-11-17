@@ -49,3 +49,42 @@ def purge_processed_webhook_events() -> int:
 @shared_task
 def fail_stuck_outbound_messages() -> int:
     return services.fail_stuck_sending()
+
+
+@shared_task(bind=True, max_retries=3, acks_late=True)
+def alert_whatsapp_disconnected(self: Any, tenant_id: str) -> int:
+    """Avisa os titulares por e-mail: o WhatsApp foi desconectado e precisa de novo QR."""
+    from django.conf import settings
+    from django.core.mail import send_mail
+
+    from apps.accounts.models import Membership
+    from apps.tenants.models import Tenant
+
+    tenant = Tenant.objects.filter(pk=tenant_id).first()
+    if tenant is None:
+        return 0
+    emails = list(
+        Membership.objects.filter(
+            tenant_id=tenant_id, role=Membership.Role.OWNER, is_active=True, user__is_active=True
+        ).values_list("user__email", flat=True)
+    )
+    if not emails:
+        return 0
+    link = f"{settings.FRONTEND_URL.rstrip('/')}/configuracoes/whatsapp"
+    try:
+        send_mail(
+            subject="TramitAI: o WhatsApp do escritório foi desconectado",
+            message=(
+                f"O WhatsApp do {tenant.name} foi desconectado do TramitAI (pelo celular ou pelo "
+                "próprio WhatsApp). Enquanto isso, as mensagens dos clientes não chegam ao "
+                "sistema.\n\n"
+                f"Para conectar de novo, abra {link} e leia o QR Code com o celular do "
+                "escritório.\n"
+            ),
+            from_email=None,
+            recipient_list=emails,
+        )
+    except Exception as exc:
+        logger.warning("alerta whatsapp: falha no envio (%s)", type(exc).__name__)
+        raise self.retry(exc=exc, countdown=120) from exc
+    return len(emails)
