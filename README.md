@@ -25,6 +25,21 @@ Criar um escritório com usuário titular (onboarding manual do piloto):
 docker compose exec backend python manage.py create_tenant --name "Escritório Exemplo" --owner-email voce@exemplo.com
 ```
 
+## WhatsApp em desenvolvimento
+
+Com `WHATSAPP_GATEWAY=fake` nada sai para a Meta. Para ver o fluxo completo localmente:
+
+```bash
+# 1) cadastrar um número para o escritório (o token vem do env ou é pedido no terminal)
+docker compose exec -e WHATSAPP_ACCESS_TOKEN=qualquer backend   python manage.py register_whatsapp_account --tenant-slug escritorio-exemplo   --phone-number-id 100000001 --waba-id waba-dev --display-phone "+55 21 3000-0000"
+
+# 2) simular uma mensagem recebida (passa pelo webhook real, com assinatura)
+docker compose exec backend python manage.py simulate_inbound   --phone-number-id 100000001 --from 5521998765432 --name "Maria" --text "Bom dia"
+```
+
+Depois abra **Conversas** no app e responda. Em produção, o webhook da Meta aponta para
+`/api/webhooks/whatsapp/` (verify token = `WHATSAPP_VERIFY_TOKEN`, assinatura com `WHATSAPP_APP_SECRET`).
+
 ## Testes e lint
 
 ```bash
