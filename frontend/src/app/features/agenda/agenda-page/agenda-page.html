@@ -1,0 +1,84 @@
+<header class="page-header">
+  <div>
+    <h1>Agenda</h1>
+    <p>Audiências, reuniões e atendimentos do escritório.</p>
+  </div>
+  <button mat-flat-button type="button" (click)="create()">
+    <span class="icon btn-icon">add</span>Novo compromisso
+  </button>
+</header>
+
+<div class="week-nav">
+  <button mat-icon-button type="button" (click)="move(-1)" aria-label="Semana anterior">
+    <span class="icon">chevron_left</span>
+  </button>
+  <strong>
+    {{ weekStart() | date: "d 'de' MMM" }} – {{ weekEnd() | date: "d 'de' MMM 'de' y" }}
+  </strong>
+  <button mat-icon-button type="button" (click)="move(1)" aria-label="Próxima semana">
+    <span class="icon">chevron_right</span>
+  </button>
+  @if (!isCurrentWeek()) {
+    <button mat-stroked-button type="button" (click)="goToday()">Hoje</button>
+  }
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+<div class="week">
+  @for (day of days(); track day.iso) {
+    <section class="day card" [class.day--today]="day.isToday">
+      <header class="day__header">
+        <span class="day__name">{{ day.date | date: 'EEE' }}</span>
+        <span class="day__num">{{ day.date | date: 'dd/MM' }}</span>
+        <button
+          mat-icon-button
+          type="button"
+          class="day__add"
+          (click)="create(day.iso)"
+          matTooltip="Novo compromisso neste dia"
+          [attr.aria-label]="'Novo compromisso em ' + (day.date | date: 'dd/MM')"
+        >
+          <span class="icon">add</span>
+        </button>
+      </header>
+      <div class="day__events">
+        @for (e of day.events; track e.id) {
+          <button
+            type="button"
+            class="event"
+            [attr.data-kind]="e.kind"
+            [class.event--done]="e.status === 'DONE'"
+            (click)="open(e)"
+          >
+            <span class="event__time">{{ e.starts_at | date: 'HH:mm' }}</span>
+            <span class="event__title">{{ e.title }}</span>
+            <span class="event__meta"
+              >{{ kindLabel(e) }}{{ e.client_name ? ' · ' + e.client_name : '' }}</span
+            >
+            @if (e.location) {
+              <span class="event__meta"><span class="icon">place</span>{{ e.location }}</span>
+            }
+            @if (e.remind_client) {
+              <span class="event__meta">
+                <span class="icon">notifications</span>
+                {{ e.client_reminded_at ? 'Lembrete criado' : 'Lembrete na véspera' }}
+              </span>
+            }
+          </button>
+        } @empty {
+          <span class="day__empty">Livre</span>
+        }
+      </div>
+    </section>
+  }
+</div>
+
+<p class="muted small hint">
+  Lembretes para o cliente viram rascunho em <a routerLink="/aprovacoes">Aprovações</a> na véspera.
+</p>

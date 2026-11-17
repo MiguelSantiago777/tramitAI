@@ -43,7 +43,9 @@ export class Shell {
   readonly main: NavLink[] = [
     { path: '/', label: 'Início', icon: 'space_dashboard' },
     { path: '/inbox', label: 'Conversas', icon: 'forum' },
-    { path: '/aprovacoes', label: 'Aprovações', icon: 'task_alt' },
+    { path: '/aprovacoes', label: 'Aprovações', icon: 'mark_chat_read' },
+    { path: '/tarefas', label: 'Tarefas e prazos', icon: 'task_alt' },
+    { path: '/agenda', label: 'Agenda', icon: 'calendar_month' },
   ];
   readonly records: NavLink[] = [
     { path: '/clientes', label: 'Clientes', icon: 'group' },
@@ -51,6 +53,8 @@ export class Shell {
   ];
   readonly settings: NavLink[] = [
     { path: '/configuracoes/whatsapp', label: 'WhatsApp', icon: 'smartphone' },
+    { path: '/configuracoes/equipe', label: 'Equipe', icon: 'badge' },
+    { path: '/configuracoes/escritorio', label: 'Configurações', icon: 'settings' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
   ];
 

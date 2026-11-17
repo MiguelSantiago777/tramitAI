@@ -20,6 +20,26 @@ export interface TermVersion {
   created_by_name: string;
 }
 
+export interface TeamMember {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: Role;
+  is_active: boolean;
+  pending: boolean;
+  is_me: boolean;
+}
+
+export interface OfficeSettings {
+  id: string;
+  tenant_name: string;
+  auto_send_simple_replies: boolean;
+  staff_can_approve: boolean;
+  ai_triage_enabled: boolean;
+  updated_at: string;
+}
+
 export interface RecentMovement {
   id: string;
   case_id: string;
@@ -66,5 +86,29 @@ export class TenantService {
 
   publishTerm(body: string): Observable<TermVersion> {
     return this.http.post<TermVersion>('/api/v1/tenant/term/', { body });
+  }
+
+  team(): Observable<TeamMember[]> {
+    return this.http.get<TeamMember[]>('/api/v1/tenant/team/');
+  }
+
+  invite(body: { email: string; full_name: string; role: Role }): Observable<TeamMember> {
+    return this.http.post<TeamMember>('/api/v1/tenant/team/', body);
+  }
+
+  updateMember(id: string, body: { role?: Role; is_active?: boolean }): Observable<TeamMember> {
+    return this.http.patch<TeamMember>(`/api/v1/tenant/team/${id}/`, body);
+  }
+
+  resendInvite(id: string): Observable<void> {
+    return this.http.post<void>(`/api/v1/tenant/team/${id}/resend-invite/`, {});
+  }
+
+  settings(): Observable<OfficeSettings> {
+    return this.http.get<OfficeSettings>('/api/v1/tenant/settings/');
+  }
+
+  updateSettings(body: Partial<OfficeSettings>): Observable<OfficeSettings> {
+    return this.http.patch<OfficeSettings>('/api/v1/tenant/settings/', body);
   }
 }

@@ -26,6 +26,7 @@ import {
   ClientStatus,
 } from '../client.models';
 import { ClientsService } from '../clients.service';
+import { ClientTimeline } from '../client-timeline/client-timeline';
 import { TermAcceptances } from '../term-acceptances/term-acceptances';
 
 @Component({
@@ -40,6 +41,7 @@ import { TermAcceptances } from '../term-acceptances/term-acceptances';
     MatProgressBarModule,
     MatSelectModule,
     TermAcceptances,
+    ClientTimeline,
   ],
   templateUrl: './client-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

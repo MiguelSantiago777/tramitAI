@@ -85,5 +85,6 @@
 </form>
 
 @if (client(); as current) {
+  <app-client-timeline [clientId]="current.id" [clientName]="current.name" />
   <app-term-acceptances [clientId]="current.id" />
 }

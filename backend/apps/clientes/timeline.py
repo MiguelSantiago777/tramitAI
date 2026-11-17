@@ -128,7 +128,6 @@ def client_timeline(
                 type="case",
                 at=c.created_at,
                 title="Processo cadastrado",
-                body=c.cnj_formatted,
                 meta={"case_id": str(c.pk), "case_number": c.cnj_formatted},
             )
         )

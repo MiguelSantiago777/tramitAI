@@ -60,6 +60,31 @@ export const routes: Routes = [
           import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
       },
       {
+        path: 'tarefas',
+        title: 'Tarefas · TramitAI',
+        loadComponent: () =>
+          import('./features/agenda/tasks-page/tasks-page').then((m) => m.TasksPage),
+      },
+      {
+        path: 'agenda',
+        title: 'Agenda · TramitAI',
+        loadComponent: () =>
+          import('./features/agenda/agenda-page/agenda-page').then((m) => m.AgendaPage),
+      },
+      {
+        path: 'configuracoes/equipe',
+        title: 'Equipe · TramitAI',
+        loadComponent: () => import('./features/configuracoes/team/team').then((m) => m.Team),
+      },
+      {
+        path: 'configuracoes/escritorio',
+        title: 'Configurações · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/office-settings/office-settings').then(
+            (m) => m.OfficeSettingsPage,
+          ),
+      },
+      {
         path: 'configuracoes/whatsapp',
         title: 'WhatsApp · TramitAI',
         loadComponent: () =>

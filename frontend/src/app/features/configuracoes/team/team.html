@@ -1,0 +1,108 @@
+<header class="page-header">
+  <div>
+    <h1>Equipe</h1>
+    <p>Quem trabalha no escritório e o que cada um pode fazer.</p>
+  </div>
+  @if (isOwner() && !inviting()) {
+    <button mat-flat-button type="button" (click)="inviting.set(true)">
+      <span class="icon btn-icon">person_add</span>Convidar
+    </button>
+  }
+</header>
+
+@if (inviting()) {
+  <form class="card invite" [formGroup]="form" (ngSubmit)="invite()">
+    <h2 class="section-title">Convidar pessoa</h2>
+    <div class="invite__grid">
+      <mat-form-field appearance="outline">
+        <mat-label>E-mail</mat-label>
+        <input matInput type="email" formControlName="email" />
+        @if (form.controls.email.hasError('email')) {
+          <mat-error>E-mail inválido.</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="full_name" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Papel</mat-label>
+        <mat-select formControlName="role">
+          @for (r of roles; track r[0]) {
+            <mat-option [value]="r[0]">{{ r[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <p class="muted small">
+      A pessoa recebe um e-mail para criar a senha (vale 3 dias).
+      <strong>Titular</strong> faz tudo, inclusive equipe e configurações.
+      <strong>Advogado(a)</strong> aprova mensagens. <strong>Equipe</strong> atende e cadastra, mas
+      só aprova se você liberar em Configurações.
+    </p>
+    <div class="form-actions">
+      <button mat-button type="button" (click)="inviting.set(false)">Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="busy()">Enviar convite</button>
+    </div>
+  </form>
+}
+
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+<section class="card members">
+  @for (m of active(); track m.id) {
+    <div class="member">
+      <span class="avatar">{{ initials(m) }}</span>
+      <div class="member__who">
+        <strong>{{ m.full_name || m.email }}{{ m.is_me ? ' (você)' : '' }}</strong>
+        <span class="muted small">{{ m.email }}</span>
+      </div>
+      @if (m.pending) {
+        <span class="badge" data-status="DRAFT">Convite pendente</span>
+      }
+      <span class="badge" [attr.data-status]="m.role === 'OWNER' ? 'NEWS' : ''">
+        {{ roleLabels[m.role] }}
+      </span>
+      @if (isOwner() && !m.is_me) {
+        <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="Opções">
+          <span class="icon">more_vert</span>
+        </button>
+        <mat-menu #menu="matMenu">
+          @for (r of roles; track r[0]) {
+            @if (r[0] !== m.role) {
+              <button mat-menu-item type="button" (click)="setRole(m, r[0])">
+                Tornar {{ r[1].toLowerCase() }}
+              </button>
+            }
+          }
+          @if (m.pending) {
+            <button mat-menu-item type="button" (click)="resend(m)">Reenviar convite</button>
+          }
+          <button mat-menu-item type="button" class="danger" (click)="setActive(m, false)">
+            Remover acesso
+          </button>
+        </mat-menu>
+      }
+    </div>
+  }
+</section>
+
+@if (inactive().length > 0) {
+  <h2 class="section-title inactive-title">Sem acesso</h2>
+  <section class="card members">
+    @for (m of inactive(); track m.id) {
+      <div class="member member--inactive">
+        <span class="avatar">{{ initials(m) }}</span>
+        <div class="member__who">
+          <strong>{{ m.full_name || m.email }}</strong>
+          <span class="muted small">{{ m.email }}</span>
+        </div>
+        @if (isOwner()) {
+          <button mat-stroked-button type="button" (click)="setActive(m, true)">Reativar</button>
+        }
+      </div>
+    }
+  </section>
+}

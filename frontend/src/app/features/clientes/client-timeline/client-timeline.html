@@ -1,0 +1,101 @@
+<section class="card ficha">
+  <header class="ficha__header">
+    <h2 class="section-title"><span class="icon">history</span> Histórico do cliente</h2>
+    <span class="ficha__spacer"></span>
+    <button mat-stroked-button type="button" (click)="newTask()">
+      <span class="icon btn-icon">add_task</span>Tarefa
+    </button>
+    <button mat-stroked-button type="button" (click)="newEvent()">
+      <span class="icon btn-icon">event</span>Compromisso
+    </button>
+  </header>
+
+  <div class="composer">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="composer__kind">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="kind">
+        @for (k of kinds; track k[0]) {
+          <mat-option [value]="k[0]">{{ k[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="composer__text">
+      <mat-label>Registrar atendimento</mat-label>
+      <textarea
+        matInput
+        [formControl]="body"
+        rows="2"
+        placeholder="Ex.: Liguei e expliquei que o processo foi para o juiz."
+      ></textarea>
+    </mat-form-field>
+    <button
+      mat-flat-button
+      type="button"
+      class="composer__save"
+      [disabled]="saving()"
+      (click)="addNote()"
+    >
+      Registrar
+    </button>
+  </div>
+
+  @if (error(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+  @if (loading() && items().length === 0) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <ol class="timeline">
+    @for (item of items(); track item.type + item.id) {
+      <li class="item" [attr.data-type]="item.type">
+        <span class="item__icon"
+          ><span class="icon">{{ icon(item) }}</span></span
+        >
+        <div class="item__content">
+          <div class="item__top">
+            <strong class="item__title">{{ item.title }}</strong>
+            <span class="item__when">{{ item.at | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          @if (item.body) {
+            <p class="item__body">{{ item.body }}</p>
+          }
+          <div class="item__meta">
+            @if (item.meta['author']) {
+              <span>por {{ item.meta['author'] }}</span>
+            }
+            @if (item.meta['by']) {
+              <span>por {{ item.meta['by'] }}</span>
+            }
+            @if (item.meta['assignee']) {
+              <span>responsável: {{ item.meta['assignee'] }}</span>
+            }
+            @if (item.meta['case_number'] && item.meta['case_id']) {
+              <a [routerLink]="['/processos', item.meta['case_id']]" class="mono">{{
+                item.meta['case_number']
+              }}</a>
+            } @else if (item.meta['case_number']) {
+              <span class="mono">{{ item.meta['case_number'] }}</span>
+            }
+            @if (item.type === 'message' && item.meta['conversation_id']) {
+              <a [routerLink]="['/inbox', item.meta['conversation_id']]">Abrir conversa</a>
+            }
+          </div>
+        </div>
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="empty-state">
+          <span class="icon">history</span>
+          Nada registrado ainda. Anote o primeiro atendimento acima.
+        </li>
+      }
+    }
+  </ol>
+
+  @if (nextBefore()) {
+    <button mat-button type="button" [disabled]="loading()" (click)="more()">
+      Ver mais antigos
+    </button>
+  }
+</section>

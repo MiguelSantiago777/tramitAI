@@ -1,0 +1,164 @@
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  strong {
+    font:
+      600 15px / 1.3 Inter,
+      system-ui,
+      sans-serif;
+    min-width: 220px;
+    text-align: center;
+  }
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  padding: 10px;
+
+  @media (max-width: 1100px) {
+    min-height: 0;
+  }
+}
+
+.day--today {
+  border-color: var(--mat-sys-primary);
+  box-shadow: 0 0 0 1px var(--mat-sys-primary);
+
+  .day__num {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.day__header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.day__name {
+  font:
+    600 12px / 1 Inter,
+    system-ui,
+    sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.day__num {
+  font:
+    650 16px / 1 Inter,
+    system-ui,
+    sans-serif;
+}
+
+.day__add {
+  margin-left: auto;
+  transform: scale(0.8);
+}
+
+.day__events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.day__empty {
+  font:
+    12px / 1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: #94a3b8;
+}
+
+.event {
+  --tone: #4f46e5;
+  --tone-soft: #eef2ff;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border: 0;
+  border-left: 3px solid var(--tone);
+  border-radius: 8px;
+  background: var(--tone-soft);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+
+  &[data-kind='HEARING'] {
+    --tone: #b91c1c;
+    --tone-soft: #fef2f2;
+  }
+
+  &[data-kind='CONSULT'] {
+    --tone: #0e7490;
+    --tone-soft: #ecfeff;
+  }
+
+  &[data-kind='OTHER'] {
+    --tone: #475569;
+    --tone-soft: #f1f5f9;
+  }
+}
+
+.event--done {
+  opacity: 0.55;
+}
+
+.event__time {
+  font:
+    650 12px / 1 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--tone);
+}
+
+.event__title {
+  font:
+    600 13px / 1.3 Inter,
+    system-ui,
+    sans-serif;
+}
+
+.event__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font:
+    11.5px / 1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--mat-sys-on-surface-variant);
+
+  .icon {
+    font-size: 14px;
+  }
+}
+
+.hint {
+  margin-top: 16px;
+}

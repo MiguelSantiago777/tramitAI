@@ -7,8 +7,11 @@ import {
   AcceptanceChannel,
   Client,
   ClientInput,
+  ClientNote,
   ClientStatus,
+  NoteKind,
   TermAcceptance,
+  Timeline,
 } from './client.models';
 
 const URL = '/api/v1/clients/';
@@ -49,5 +52,15 @@ export class ClientsService {
     body: { channel: AcceptanceChannel; evidence: string },
   ): Observable<TermAcceptance> {
     return this.http.post<TermAcceptance>(`${URL}${id}/term-acceptances/`, body);
+  }
+
+  timeline(id: string, before?: string | null): Observable<Timeline> {
+    return this.http.get<Timeline>(`${URL}${id}/timeline/`, {
+      params: before ? { before, limit: 30 } : { limit: 30 },
+    });
+  }
+
+  addNote(id: string, body: { kind: NoteKind; body: string }): Observable<ClientNote> {
+    return this.http.post<ClientNote>(`${URL}${id}/notes/`, body);
   }
 }

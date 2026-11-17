@@ -31,6 +31,60 @@
   }
 </section>
 
+<section class="card panel desk" aria-label="Minha mesa">
+  <header class="panel__header">
+    <h2 class="section-title"><span class="icon">today</span> Minha mesa</h2>
+    <a mat-button routerLink="/tarefas">Todas as tarefas</a>
+  </header>
+  <div class="desk__grid">
+    <div class="desk__col">
+      <h3 class="desk__label">Compromissos de hoje</h3>
+      @for (e of desk()?.events_today ?? []; track e.id) {
+        <a class="desk__event" routerLink="/agenda" [attr.data-kind]="e.kind">
+          <span class="desk__time">{{ e.starts_at | date: 'HH:mm' }}</span>
+          <span>
+            <strong>{{ e.title }}</strong>
+            <span class="muted small">
+              {{ eventKind(e) }}{{ e.client_name ? ' · ' + e.client_name : ''
+              }}{{ e.location ? ' · ' + e.location : '' }}
+            </span>
+          </span>
+        </a>
+      } @empty {
+        <p class="muted small desk__none">Nada marcado para hoje.</p>
+      }
+      @if ((desk()?.events_upcoming ?? []).length > 0) {
+        <a routerLink="/agenda" class="small desk__more">
+          + {{ desk()!.events_upcoming.length }} nos próximos dias
+        </a>
+      }
+    </div>
+    <div class="desk__col">
+      <h3 class="desk__label">
+        Para fazer
+        @if ((desk()?.overdue ?? []).length > 0) {
+          <span class="badge" data-status="URGENT">{{ desk()!.overdue.length }} atrasada(s)</span>
+        }
+      </h3>
+      @for (t of deskTasks(); track t.id) {
+        <app-task-item
+          [task]="t"
+          [showAssignee]="false"
+          (changed)="loadDesk()"
+          (edit)="editTask($event)"
+        />
+      } @empty {
+        <p class="muted small desk__none">Nenhuma tarefa para hoje. 🎉</p>
+      }
+      @if ((desk()?.upcoming ?? []).length > 0) {
+        <a routerLink="/tarefas" class="small desk__more">
+          + {{ desk()!.upcoming.length }} nos próximos 7 dias
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
 <div class="columns">
   <section class="card panel">
     <header class="panel__header">

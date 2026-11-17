@@ -246,3 +246,89 @@
     box-shadow: 0 0 0 4px #dcfce7;
   }
 }
+
+// ---------------------------------------------------------------- minha mesa
+
+.desk {
+  margin-bottom: 16px;
+}
+
+.desk__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 8px 24px;
+  padding: 0 12px 8px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.desk__col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.desk__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font:
+    600 12px / 1 Inter,
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.desk__event {
+  --tone: #4f46e5;
+  --tone-soft: #eef2ff;
+
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--tone);
+  border-radius: 8px;
+  background: var(--tone-soft);
+  color: inherit;
+  text-decoration: none;
+
+  > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &[data-kind='HEARING'] {
+    --tone: #b91c1c;
+    --tone-soft: #fef2f2;
+  }
+
+  &[data-kind='CONSULT'] {
+    --tone: #0e7490;
+    --tone-soft: #ecfeff;
+  }
+}
+
+.desk__time {
+  font:
+    650 14px / 1.4 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--tone);
+}
+
+.desk__none {
+  margin: 4px 0;
+}
+
+.desk__more {
+  margin-top: 4px;
+  text-decoration: none;
+}

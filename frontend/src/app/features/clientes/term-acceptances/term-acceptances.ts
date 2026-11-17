@@ -66,8 +66,8 @@ import { ClientsService } from '../clients.service';
         <button mat-stroked-button type="submit" [disabled]="saving()">Registrar aceite</button>
       </form>
       <p class="muted small">
-        Registra o aceite da versão vigente do termo, com data e hora de agora. Pelo WhatsApp, o
-        registro será automático (Etapa 3).
+        Para aceite feito pessoalmente ou por outro meio. Pelo WhatsApp, o aceite é registrado
+        sozinho quando o cliente responde ACEITO.
       </p>
       @if (error(); as message) {
         <p class="error-text" role="alert">{{ message }}</p>

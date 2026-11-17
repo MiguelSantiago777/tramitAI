@@ -44,3 +44,38 @@ export const CHANNEL_LABELS: Record<AcceptanceChannel, string> = {
   EMAIL: 'E-mail',
   OTHER: 'Outro',
 };
+
+export type NoteKind = 'NOTE' | 'CALL' | 'MEETING' | 'VISIT';
+
+export const NOTE_KIND_LABELS: Record<NoteKind, string> = {
+  NOTE: 'Anotação',
+  CALL: 'Ligação',
+  MEETING: 'Reunião',
+  VISIT: 'Atendimento presencial',
+};
+
+export interface ClientNote {
+  id: string;
+  kind: NoteKind;
+  body: string;
+  legal_case_id: string | null;
+  author_name: string;
+  created_at: string;
+}
+
+export type TimelineType =
+  'note' | 'task' | 'task_done' | 'event' | 'message' | 'case' | 'movement' | 'term';
+
+export interface TimelineItem {
+  id: string;
+  type: TimelineType;
+  at: string;
+  title: string;
+  body: string;
+  meta: Record<string, string | null>;
+}
+
+export interface Timeline {
+  results: TimelineItem[];
+  next_before: string | null;
+}
