@@ -8,6 +8,7 @@
 from typing import Any
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.db import IntegrityError
 from django.http import Http404
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -48,6 +49,9 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response |
         exc = exceptions.NotFound()
     elif isinstance(exc, DjangoPermissionDenied):
         exc = exceptions.PermissionDenied()
+    elif isinstance(exc, IntegrityError):
+        # Corrida que passou pela validação (ex.: dois cadastros simultâneos do mesmo CPF).
+        exc = ApiError("Conflito com um registro existente.", code="conflict", status_code=409)
 
     response = exception_handler(exc, context)
     if response is None:

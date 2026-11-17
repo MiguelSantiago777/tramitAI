@@ -44,3 +44,30 @@ class TenantSettings(TenantModel):
         constraints = [
             models.UniqueConstraint(fields=["tenant"], name="tenant_settings_one_per_tenant"),
         ]
+
+
+class ClientTermVersion(TenantModel):
+    """Termo de ciência de uso de IA para o cliente final do escritório.
+
+    Editar = publicar nova versão. Versões antigas nunca mudam, porque os aceites apontam
+    para a versão exata que o cliente viu.
+    """
+
+    version = models.PositiveIntegerField()
+    body = models.TextField("texto")
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = "versão do termo de ciência"
+        ordering = ["-version"]
+        constraints = [
+            models.UniqueConstraint(fields=["tenant", "version"], name="term_version_unique"),
+            models.UniqueConstraint(
+                fields=["tenant"],
+                condition=models.Q(is_active=True),
+                name="term_one_active_per_tenant",
+            ),
+        ]

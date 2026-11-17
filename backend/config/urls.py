@@ -11,6 +11,8 @@ handler500 = "apps.core.views.server_error"
 api_v1 = [
     path("auth/", include("apps.accounts.api.urls")),
     path("tenant/", include("apps.tenants.api.urls")),
+    path("", include("apps.clientes.api.urls")),
+    path("", include("apps.processos.api.urls")),
 ]
 
 urlpatterns = [
