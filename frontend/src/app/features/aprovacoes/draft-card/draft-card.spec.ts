@@ -30,6 +30,12 @@ const base: Draft = {
   rejection_reason: '',
   failure_detail: '',
   sent_message_status: '',
+  legal_case_id: null,
+  case_number: '',
+  movements: [],
+  client_relevant: null,
+  template_text: '',
+  template_status: '',
   created_at: '2026-11-17T10:00:00Z',
 };
 
@@ -122,5 +128,50 @@ describe('DraftCard', () => {
     expect(text()).toContain('Enviada');
     expect(text()).toContain('Dra. Ana');
     expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
+  });
+
+  describe('aviso de andamento', () => {
+    const movement: Partial<Draft> = {
+      origin: 'MOVEMENT_UPDATE',
+      source_text: '',
+      legal_case_id: 'p1',
+      case_number: '0801234-39.2024.8.19.0001',
+      movements: [
+        {
+          id: 'm1',
+          name: 'Conclusão',
+          complements: [],
+          occurred_at: '2026-11-16T15:00:00Z',
+        },
+      ],
+      client_relevant: false,
+      generated_body: 'Olá, Maria! Seu processo foi enviado ao juiz.',
+    };
+
+    it('mostra o processo e os andamentos que o aviso cobre', async () => {
+      await setup(movement);
+      expect(text()).toContain('Processo 0801234-39.2024.8.19.0001');
+      expect(text()).toContain('Conclusão');
+      expect(text()).toContain('A Lia acha que é rotina');
+    });
+
+    it('com a janela fechada, deixa aprovar e explica que sai o modelo da Meta', async () => {
+      await setup({ ...movement, window_open: false });
+      expect(text()).toContain('só aceita o modelo aprovado pela Meta');
+      expect(text()).toContain('Olá, Maria! Há uma atualização no seu processo nº 0801234-39');
+      expect(text()).not.toContain('este texto não pode ser enviado');
+      expect(button('Aprovar e enviar')!.disabled).toBe(false);
+    });
+
+    it('aguardando resposta mostra o modelo que já saiu', async () => {
+      await setup({
+        ...movement,
+        status: 'AWAITING',
+        final_body: 'Olá, Maria! Seu processo foi enviado ao juiz.',
+        template_text: 'Olá, Maria! Há uma atualização no seu processo.',
+      });
+      expect(text()).toContain('aguardando o cliente responder');
+      expect(text()).toContain('Modelo enviado antes');
+    });
   });
 });

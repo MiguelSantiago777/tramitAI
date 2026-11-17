@@ -134,3 +134,7 @@
     <button mat-flat-button type="submit" [disabled]="saving()">Salvar</button>
   </div>
 </form>
+
+@if (current(); as legalCase) {
+  <app-case-movements [legalCase]="legalCase" (refresh)="refreshCase()" />
+}

@@ -32,6 +32,7 @@ import { PendingDraftsCounter } from '../pending-counter';
 
     <mat-button-toggle-group [formControl]="status" aria-label="Situação" class="approvals__tabs">
       <mat-button-toggle value="DRAFT">Pendentes</mat-button-toggle>
+      <mat-button-toggle value="AWAITING">Aguardando cliente</mat-button-toggle>
       <mat-button-toggle value="SENT">Enviadas</mat-button-toggle>
       <mat-button-toggle value="REJECTED">Rejeitadas</mat-button-toggle>
       <mat-button-toggle value="FAILED">Com falha</mat-button-toggle>
@@ -106,10 +107,7 @@ export class Approvals {
   }
 
   onDecided(updated: Draft): void {
-    const sent = updated.status === 'APPROVED' || updated.status === 'SENT';
-    this.snackBar.open(sent ? 'Mensagem aprovada e enviada.' : 'Rascunho rejeitado.', undefined, {
-      duration: 3000,
-    });
+    this.snackBar.open(decisionMessage(updated), undefined, { duration: 4000 });
     if (this.status.value === 'DRAFT') {
       this.drafts.update((list) => list.filter((d) => d.id !== updated.id));
       this.total.update((n) => Math.max(0, n - 1));
@@ -131,5 +129,17 @@ export class Approvals {
         this.loading.set(false);
       },
     });
+  }
+}
+
+function decisionMessage(draft: Draft): string {
+  switch (draft.status) {
+    case 'AWAITING':
+      return 'Aviso enviado pelo modelo da Meta. O texto sai quando o cliente responder.';
+    case 'APPROVED':
+    case 'SENT':
+      return 'Mensagem aprovada e enviada.';
+    default:
+      return 'Rascunho rejeitado.';
   }
 }

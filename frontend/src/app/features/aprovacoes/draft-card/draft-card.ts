@@ -61,6 +61,19 @@ export class DraftCard {
   readonly error = signal<string | null>(null);
 
   readonly pending = computed(() => this.draft().status === 'DRAFT');
+  readonly isMovement = computed(() => this.draft().origin === 'MOVEMENT_UPDATE');
+  /** Aviso de andamento com a janela fechada sai por modelo da Meta; o texto vai depois. */
+  readonly viaTemplate = computed(() => this.isMovement() && !this.draft().window_open);
+  readonly canSend = computed(() => this.draft().window_open || this.isMovement());
+  /** Mesmo texto de apps/whatsapp/templates.py (MOVEMENT_UPDATE). */
+  readonly templatePreview = computed(() => {
+    const d = this.draft();
+    const firstName = (d.client_name || d.contact_name).split(' ')[0] || 'tudo bem';
+    return (
+      `Olá, ${firstName}! Há uma atualização no seu processo nº ${d.case_number}. ` +
+      'Responda esta mensagem para receber os detalhes.'
+    );
+  });
   readonly flags = computed(() => this.draft().guardrail_flags.map((f) => FLAG_LABELS[f] ?? f));
   readonly originLabel = computed(() => ORIGIN_LABELS[this.draft().origin]);
   readonly statusLabel = computed(() => DRAFT_STATUS_LABELS[this.draft().status]);

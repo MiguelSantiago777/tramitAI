@@ -173,7 +173,8 @@ body {
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
 
-  &[data-status='LEAD'] {
+  &[data-status='LEAD'],
+  &[data-status='NEWS'] {
     background: var(--mat-sys-tertiary-container);
     color: var(--mat-sys-on-tertiary-container);
   }

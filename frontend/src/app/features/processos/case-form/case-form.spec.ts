@@ -22,6 +22,9 @@ const existing: LegalCase = {
   monitoring_enabled: true,
   last_checked_at: null,
   last_movement_at: null,
+  sync_status: 'NEVER',
+  sync_error: '',
+  pending_movements: 0,
   notes: '',
   clients: [{ client_id: 'c1', client_name: 'Maria da Silva', role: 'AUTHOR' }],
   created_at: '',
@@ -34,10 +37,18 @@ describe('CaseForm', () => {
     get: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    movements: ReturnType<typeof vi.fn>;
+    check: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
-    cases = { get: vi.fn(), create: vi.fn(), update: vi.fn() };
+    cases = {
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      movements: vi.fn(() => of({ count: 0, next: null, previous: null, results: [] })),
+      check: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [CaseForm],
       providers: [

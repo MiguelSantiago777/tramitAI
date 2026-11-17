@@ -13,6 +13,10 @@
   border-left-color: var(--mat-sys-error);
 }
 
+.draft[data-status='AWAITING'] {
+  border-left-color: var(--mat-sys-tertiary);
+}
+
 .draft[data-status='REJECTED'],
 .draft[data-status='SENT'] {
   border-left-color: var(--mat-sys-outline);
@@ -73,4 +77,17 @@
   margin: 4px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.draft__movements {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.draft__notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
 }

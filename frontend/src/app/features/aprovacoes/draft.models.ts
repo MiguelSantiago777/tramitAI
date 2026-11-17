@@ -1,5 +1,5 @@
 export type DraftOrigin = 'AI_REPLY' | 'TERM_REQUEST' | 'MOVEMENT_UPDATE';
-export type DraftStatus = 'DRAFT' | 'APPROVED' | 'SENT' | 'REJECTED' | 'FAILED';
+export type DraftStatus = 'DRAFT' | 'APPROVED' | 'AWAITING' | 'SENT' | 'REJECTED' | 'FAILED';
 export type Urgency = 'low' | 'normal' | 'high' | '';
 
 export interface AuditEntry {
@@ -8,6 +8,13 @@ export interface AuditEntry {
   actor_name: string;
   data: Record<string, unknown>;
   created_at: string;
+}
+
+export interface DraftMovement {
+  id: string;
+  name: string;
+  complements: string[];
+  occurred_at: string;
 }
 
 export interface Draft {
@@ -34,6 +41,12 @@ export interface Draft {
   rejection_reason: string;
   failure_detail: string;
   sent_message_status: string;
+  legal_case_id: string | null;
+  case_number: string;
+  movements: DraftMovement[];
+  client_relevant: boolean | null;
+  template_text: string;
+  template_status: string;
   created_at: string;
   history?: AuditEntry[];
 }
@@ -47,6 +60,7 @@ export const ORIGIN_LABELS: Record<DraftOrigin, string> = {
 export const DRAFT_STATUS_LABELS: Record<DraftStatus, string> = {
   DRAFT: 'Aguardando aprovação',
   APPROVED: 'Aprovada, enviando…',
+  AWAITING: 'Aviso enviado, aguardando o cliente responder',
   SENT: 'Enviada',
   REJECTED: 'Rejeitada',
   FAILED: 'Falhou no envio',

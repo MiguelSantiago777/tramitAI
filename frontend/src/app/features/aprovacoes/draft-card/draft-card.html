@@ -18,6 +18,27 @@
     </p>
   }
 
+  @if (isMovement() && draft().case_number) {
+    <div class="draft__source">
+      <span class="muted small"
+        >Processo {{ draft().case_number }}: o que o tribunal registrou</span
+      >
+      <ul class="draft__movements">
+        @for (m of draft().movements; track m.id) {
+          <li>
+            <strong>{{ m.occurred_at | date: 'dd/MM/yyyy' }}</strong> {{ m.name }}
+            @if (m.complements.length > 0) {
+              <span class="muted small">({{ m.complements.join('; ') }})</span>
+            }
+          </li>
+        }
+      </ul>
+      @if (draft().client_relevant === false) {
+        <span class="muted small">A Lia acha que é rotina do processo; avisar é opcional.</span>
+      }
+    </div>
+  }
+
   @if (draft().source_text) {
     <blockquote class="draft__source">
       <span class="muted small">Cliente escreveu:</span>
@@ -52,7 +73,13 @@
       <textarea matInput [formControl]="body" rows="5"></textarea>
     </mat-form-field>
 
-    @if (!draft().window_open) {
+    @if (viaTemplate()) {
+      <p class="draft__notice small">
+        O cliente não escreve há mais de 24h, então o WhatsApp só aceita o modelo aprovado pela
+        Meta. Ao aprovar, sai agora: <em>“{{ templatePreview() }}”</em>. O texto acima é enviado
+        quando o cliente responder.
+      </p>
+    } @else if (!draft().window_open) {
       <p class="error-text small">
         A janela de 24h está fechada: este texto não pode ser enviado. Rejeite ou aguarde o cliente
         escrever de novo.
@@ -78,7 +105,7 @@
         <button
           mat-flat-button
           type="button"
-          [disabled]="busy() || body.invalid || !draft().window_open"
+          [disabled]="busy() || body.invalid || !canSend()"
           (click)="approve()"
         >
           Aprovar e enviar
@@ -104,6 +131,9 @@
         · {{ draft().failure_detail }}
       }
     </p>
+    @if (draft().template_text) {
+      <p class="muted small">Modelo enviado antes: “{{ draft().template_text }}”</p>
+    }
   }
 
   @if (error(); as message) {

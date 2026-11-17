@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { Page, listParams } from '../../core/http/page';
-import { CaseStatus, LegalCase, LegalCaseInput } from './case.models';
+import { CaseMovement, CaseStatus, LegalCase, LegalCaseInput } from './case.models';
 
 const URL = '/api/v1/cases/';
 
@@ -33,5 +33,16 @@ export class CasesService {
 
   update(id: string, input: Partial<LegalCaseInput>): Observable<LegalCase> {
     return this.http.patch<LegalCase>(`${URL}${id}/`, input);
+  }
+
+  movements(id: string, pageIndex = 0, pageSize = 20): Observable<Page<CaseMovement>> {
+    return this.http.get<Page<CaseMovement>>(`${URL}${id}/movements/`, {
+      params: listParams({}, pageIndex, pageSize),
+    });
+  }
+
+  /** Pede a consulta ao DataJud agora (assíncrona: 202). */
+  check(id: string): Observable<void> {
+    return this.http.post<void>(`${URL}${id}/check/`, {});
   }
 }

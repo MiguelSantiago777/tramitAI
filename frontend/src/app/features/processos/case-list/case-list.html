@@ -51,6 +51,11 @@
         @if (!c.monitoring_enabled) {
           <span class="muted small"> · sem monitoramento</span>
         }
+        @if (c.pending_movements > 0) {
+          <span class="badge" data-status="NEWS"
+            >{{ c.pending_movements }} andamento(s) novo(s)</span
+          >
+        }
       </td>
     </ng-container>
 

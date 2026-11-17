@@ -1,0 +1,63 @@
+<section class="movements" aria-labelledby="movements-title">
+  <header class="movements__header">
+    <h2 id="movements-title">Andamentos</h2>
+    <span class="movements__spacer"></span>
+    @if (monitored()) {
+      <button mat-stroked-button type="button" [disabled]="checking()" (click)="checkNow()">
+        Verificar agora
+      </button>
+    }
+  </header>
+
+  <p class="muted small movements__status">
+    Fonte: DataJud (CNJ) · {{ syncLabel() }}
+    @if (legalCase().last_checked_at; as checked) {
+      · última consulta {{ checked | date: 'dd/MM/yyyy HH:mm' }}
+    }
+    @if (!monitored()) {
+      · monitoramento desligado
+    }
+  </p>
+  @if (legalCase().sync_status === 'NOT_FOUND') {
+    <p class="small">
+      O DataJud não tem este número. Processos muito novos ou em segredo de justiça podem não
+      aparecer.
+    </p>
+  }
+  @if (legalCase().pending_movements > 0) {
+    <p class="small">
+      {{ legalCase().pending_movements }} andamento(s) novo(s) com aviso para o cliente aguardando
+      <a routerLink="/aprovacoes">aprovação</a>.
+    </p>
+  }
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (error(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+
+  <ol class="movements__list">
+    @for (m of movements(); track m.id) {
+      <li class="movements__item" [attr.data-notification]="m.notification">
+        <span class="movements__date">{{ m.occurred_at | date: 'dd/MM/yyyy' }}</span>
+        <div>
+          <strong>{{ m.name }}</strong>
+          @if (m.complements.length > 0) {
+            <span class="muted small"> ({{ m.complements.join('; ') }})</span>
+          }
+          <div class="muted small">{{ notificationLabel(m) }}</div>
+        </div>
+      </li>
+    } @empty {
+      @if (!loading()) {
+        <li class="muted">Nenhum andamento ainda.</li>
+      }
+    }
+  </ol>
+
+  @if (hasMore()) {
+    <button mat-button type="button" [disabled]="loading()" (click)="more()">Ver mais</button>
+  }
+</section>

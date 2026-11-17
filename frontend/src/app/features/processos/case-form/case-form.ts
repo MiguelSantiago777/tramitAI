@@ -36,6 +36,7 @@ import {
   LegalCase,
   LegalCaseInput,
 } from '../case.models';
+import { CaseMovements } from '../case-movements/case-movements';
 import { CasesService } from '../cases.service';
 
 type ClientRowGroup = FormGroup<{
@@ -57,6 +58,7 @@ type ClientRowGroup = FormGroup<{
     MatProgressBarModule,
     MatSelectModule,
     MatSlideToggleModule,
+    CaseMovements,
   ],
   templateUrl: './case-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -193,6 +195,18 @@ export class CaseForm {
         const leftovers = applyServerErrors(this.form, toApiError(err));
         this.error.set(leftovers.length ? leftovers.join(' ') : null);
       },
+    });
+  }
+
+  /** Depois de uma consulta ao DataJud: atualiza status e, se o form não foi mexido, os dados. */
+  refreshCase(): void {
+    const id = this.id();
+    if (!id) {
+      return;
+    }
+    this.cases.get(id).subscribe({
+      next: (found) => (this.form.dirty ? this.current.set(found) : this.patchForm(found)),
+      error: () => undefined,
     });
   }
 
