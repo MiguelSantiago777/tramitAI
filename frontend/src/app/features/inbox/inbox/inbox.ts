@@ -22,6 +22,7 @@ import { toApiError } from '../../../core/http/api-error';
 import { formatPhone } from '../../../shared/br';
 import { Conversation } from '../inbox.models';
 import { InboxService } from '../inbox.service';
+import { initialsOf } from '../../../shared/initials';
 import { Thread } from '../thread/thread';
 
 /** Intervalo de atualização da lista (sem websocket por enquanto). */
@@ -85,6 +86,10 @@ export class Inbox {
           this.conversations.set(page.results);
         }
       });
+  }
+
+  initials(c: Conversation): string {
+    return initialsOf(c.client_name || c.contact_name || '');
   }
 
   title(c: Conversation): string {

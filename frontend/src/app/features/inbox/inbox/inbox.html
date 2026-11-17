@@ -23,32 +23,35 @@
           [class.inbox__item--active]="c.id === id()"
           [routerLink]="['/inbox', c.id]"
         >
-          <div class="inbox__item-top">
-            <span class="inbox__name">{{ title(c) }}</span>
-            <span class="muted small">{{ c.last_message_at | date: 'dd/MM HH:mm' }}</span>
-          </div>
-          <div class="inbox__item-bottom">
-            <span class="inbox__preview">
-              @if (c.last_message?.direction === 'OUT') {
-                <span class="muted">Você: </span>
-              }
-              {{ c.last_message?.preview }}
-            </span>
-            @if (c.unread_count > 0) {
-              <span class="inbox__badge" [attr.aria-label]="c.unread_count + ' não lidas'">
-                {{ c.unread_count }}
+          <span class="avatar" [attr.data-linked]="!!c.client_id">{{ initials(c) }}</span>
+          <div class="inbox__item-body">
+            <div class="inbox__item-top">
+              <span class="inbox__name">{{ title(c) }}</span>
+              <span class="muted small">{{ c.last_message_at | date: 'dd/MM HH:mm' }}</span>
+            </div>
+            <div class="inbox__item-bottom">
+              <span class="inbox__preview">
+                @if (c.last_message?.direction === 'OUT') {
+                  <span class="muted">Você: </span>
+                }
+                {{ c.last_message?.preview }}
               </span>
+              @if (c.unread_count > 0) {
+                <span class="inbox__badge" [attr.aria-label]="c.unread_count + ' não lidas'">
+                  {{ c.unread_count }}
+                </span>
+              }
+            </div>
+            @if (c.pending_drafts > 0) {
+              <span class="inbox__tag inbox__tag--draft">Rascunho aguardando aprovação</span>
+            }
+            @if (!c.client_id) {
+              <span class="inbox__tag">Sem cliente vinculado</span>
             }
           </div>
-          @if (c.pending_drafts > 0) {
-            <span class="inbox__tag inbox__tag--draft">Rascunho aguardando aprovação</span>
-          }
-          @if (!c.client_id) {
-            <span class="inbox__tag">Sem cliente vinculado</span>
-          }
         </a>
       } @empty {
-        <p class="muted inbox__empty">Nenhuma conversa.</p>
+        <p class="empty-state"><span class="icon">chat_bubble</span>Nenhuma conversa.</p>
       }
     </nav>
   </aside>
@@ -57,7 +60,11 @@
     @if (id(); as conversationId) {
       <app-thread [conversationId]="conversationId" (changed)="onThreadChanged()" />
     } @else {
-      <p class="muted inbox__empty">Escolha uma conversa.</p>
+      <div class="empty-state inbox__placeholder">
+        <span class="icon">forum</span>
+        <strong>Escolha uma conversa</strong>
+        <span>As mensagens do WhatsApp do escritório aparecem aqui.</span>
+      </div>
     }
   </section>
 </div>

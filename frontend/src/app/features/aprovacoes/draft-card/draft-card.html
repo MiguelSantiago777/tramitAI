@@ -4,7 +4,7 @@
     @if (draft().urgency === 'high') {
       <span class="badge draft__urgent">Urgente</span>
     }
-    @if (intentLabel()) {
+    @if (intentLabel() && !isMovement()) {
       <span class="muted small">{{ intentLabel() }}</span>
     }
     <span class="draft__spacer"></span>

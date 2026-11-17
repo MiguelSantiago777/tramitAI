@@ -1,0 +1,78 @@
+<div class="shell" [class.shell--menu-open]="menuOpen()">
+  <aside class="sidebar" aria-label="Menu principal">
+    <a class="brand" routerLink="/">
+      <span class="brand__mark" aria-hidden="true">T</span>
+      <span class="brand__name">TramitAI</span>
+    </a>
+
+    <nav class="nav">
+      @for (link of main; track link.path) {
+        <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: link }" />
+      }
+      <span class="nav__group">Cadastros</span>
+      @for (link of records; track link.path) {
+        <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: link }" />
+      }
+      <span class="nav__group">Escritório</span>
+      @for (link of settings; track link.path) {
+        <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: link }" />
+      }
+    </nav>
+
+    <div class="account">
+      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+      <div class="account__who">
+        <strong class="account__name">{{ userName() }}</strong>
+        <span class="account__meta">{{ session()?.tenant?.name }} · {{ roleLabel() }}</span>
+      </div>
+      <button
+        mat-icon-button
+        type="button"
+        class="account__logout"
+        (click)="logout()"
+        matTooltip="Sair"
+        aria-label="Sair"
+      >
+        <span class="icon">logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <button
+    type="button"
+    class="scrim"
+    aria-label="Fechar menu"
+    tabindex="-1"
+    (click)="menuOpen.set(false)"
+  ></button>
+
+  <div class="content">
+    <header class="topbar">
+      <button mat-icon-button type="button" (click)="menuOpen.set(true)" aria-label="Abrir menu">
+        <span class="icon">menu</span>
+      </button>
+      <a class="brand brand--compact" routerLink="/">
+        <span class="brand__mark" aria-hidden="true">T</span>
+        <span class="brand__name">TramitAI</span>
+      </a>
+    </header>
+    <main class="main">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<ng-template #item let-link>
+  <a
+    class="nav__link"
+    [routerLink]="link.path"
+    routerLinkActive="nav__link--active"
+    [routerLinkActiveOptions]="{ exact: link.path === '/' }"
+  >
+    <span class="icon">{{ link.icon }}</span>
+    <span class="nav__label">{{ link.label }}</span>
+    @if (link.path === '/aprovacoes' && pending() > 0) {
+      <span class="nav__badge" [attr.aria-label]="pending() + ' pendentes'">{{ pending() }}</span>
+    }
+  </a>
+</ng-template>

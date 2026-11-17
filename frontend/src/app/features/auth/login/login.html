@@ -1,14 +1,42 @@
 <main class="login">
-  <mat-card appearance="outlined" class="login__card">
-    @if (loading()) {
-      <mat-progress-bar mode="indeterminate" />
-    }
-    <mat-card-header>
-      <mat-card-title>TramitAI</mat-card-title>
-      <mat-card-subtitle>Secretária jurídica no WhatsApp</mat-card-subtitle>
-    </mat-card-header>
+  <section class="login__brand" aria-hidden="true">
+    <div class="login__logo">
+      <span class="login__mark">T</span>
+      <span>TramitAI</span>
+    </div>
+    <div class="login__pitch">
+      <h2>Seu escritório atendendo no WhatsApp, sem perder o controle.</h2>
+      <ul>
+        <li>
+          <span class="icon">forum</span>
+          A Lia faz a triagem das mensagens e escreve a resposta.
+        </li>
+        <li>
+          <span class="icon">gavel</span>
+          Andamentos do tribunal explicados em português simples.
+        </li>
+        <li>
+          <span class="icon">task_alt</span>
+          Nada sai para o cliente sem a aprovação do advogado.
+        </li>
+      </ul>
+    </div>
+    <p class="login__foot">Dados protegidos conforme a LGPD.</p>
+  </section>
 
-    <mat-card-content>
+  <section class="login__panel">
+    <div class="login__box">
+      <div class="login__logo login__logo--mobile">
+        <span class="login__mark">T</span>
+        <span>TramitAI</span>
+      </div>
+      <h1>Entrar</h1>
+      <p class="muted">Secretária jurídica no WhatsApp</p>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
       <form [formGroup]="form" (ngSubmit)="submit()" class="login__form" novalidate>
         <mat-form-field appearance="outline">
           <mat-label>E-mail</mat-label>
@@ -49,8 +77,10 @@
           <p class="login__error" role="alert">{{ message }}</p>
         }
 
-        <button mat-flat-button type="submit" [disabled]="loading()">Entrar</button>
+        <button mat-flat-button type="submit" class="login__submit" [disabled]="loading()">
+          Entrar
+        </button>
       </form>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </section>
 </main>

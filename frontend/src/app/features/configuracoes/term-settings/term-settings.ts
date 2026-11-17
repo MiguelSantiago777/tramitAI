@@ -24,12 +24,14 @@ import { TenantService, TermVersion } from '../../../core/tenant/tenant.service'
   ],
   template: `
     <header class="page-header">
-      <h1>Termo de ciência de IA</h1>
+      <div>
+        <h1>Termo de ciência de IA</h1>
+        <p>
+          Texto que o cliente aceita antes de conversar com a Lia. Editar publica uma nova versão;
+          os aceites antigos continuam ligados à versão que o cliente viu.
+        </p>
+      </div>
     </header>
-    <p class="muted">
-      Texto que o cliente do escritório aceita antes de conversar com a Lia. Editar publica uma nova
-      versão; os aceites antigos continuam ligados à versão que o cliente viu.
-    </p>
 
     @if (error(); as message) {
       <p class="error-text" role="alert">{{ message }}</p>

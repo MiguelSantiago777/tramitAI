@@ -144,9 +144,16 @@ def ingest_message(m: InboundMessage) -> Message | None:
     if Message.objects.filter(wa_message_id=m.wa_message_id).exists():
         return None
 
-    conversation, _ = Conversation.objects.get_or_create(
-        account=account, wa_id=m.wa_id, defaults={"contact_name": m.contact_name}
-    )
+    conversation = find_conversation(account, m.wa_id)
+    if conversation is None:
+        conversation, _ = Conversation.objects.get_or_create(
+            account=account, wa_id=m.wa_id, defaults={"contact_name": m.contact_name}
+        )
+    elif conversation.wa_id != m.wa_id:
+        # Conversa aberta por nós (aviso de andamento) com a outra forma do número: passa a
+        # usar a forma que a Meta manda, que é a que vale para responder.
+        Conversation.objects.filter(pk=conversation.pk).update(wa_id=m.wa_id)
+        conversation.wa_id = m.wa_id
     try:
         with transaction.atomic():
             message = Message.objects.create(
@@ -361,6 +368,21 @@ def queue_template(
     return message
 
 
+def wa_id_candidates(phone_or_wa_id: str) -> list[str]:
+    """Formas do wa_id (só dígitos) para um número, com e sem o nono dígito."""
+    return [c.lstrip("+") for c in whatsapp_phone_candidates(phone_or_wa_id)]
+
+
+def find_conversation(account: WhatsAppAccount, wa_id: str) -> Conversation | None:
+    """Conversa desse contato no número, aceitando a forma com ou sem o nono dígito.
+
+    A forma exata ganha (pode haver duas conversas antigas, uma de cada forma).
+    """
+    matches = list(Conversation.objects.filter(account=account, wa_id__in=wa_id_candidates(wa_id)))
+    matches.sort(key=lambda c: c.wa_id != wa_id)
+    return matches[0] if matches else None
+
+
 def conversation_for_client(client: Client) -> Conversation | None:
     """Conversa para falar com o cliente: a vinculada a ele, a do mesmo telefone ou uma nova.
 
@@ -377,9 +399,9 @@ def conversation_for_client(client: Client) -> Conversation | None:
         return existing
     if not client.phone_e164:
         return None
-    candidates = whatsapp_phone_candidates(client.phone_e164.lstrip("+"))
     by_phone = (
-        Conversation.objects.filter(wa_id__in=candidates, client__isnull=True)
+        Conversation.objects.filter(wa_id__in=wa_id_candidates(client.phone_e164))
+        .filter(client__isnull=True)
         .select_related("account")
         .first()
     )
@@ -390,12 +412,13 @@ def conversation_for_client(client: Client) -> Conversation | None:
     account = WhatsAppAccount.objects.filter(status=WhatsAppAccount.Status.ACTIVE).first()
     if account is None:
         return None
-    conversation, _ = Conversation.objects.get_or_create(
-        account=account,
-        wa_id=client.phone_e164.lstrip("+"),
-        defaults={"client": client, "contact_name": client.name[:200]},
+    wa_id = client.phone_e164.lstrip("+")
+    existing_contact = find_conversation(account, wa_id)
+    if existing_contact is not None:
+        return existing_contact  # mesmo telefone, já vinculado a outra pessoa (ex.: família)
+    return Conversation.objects.create(
+        account=account, wa_id=wa_id, client=client, contact_name=client.name[:200]
     )
-    return conversation
 
 
 def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:

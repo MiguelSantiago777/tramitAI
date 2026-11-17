@@ -1,0 +1,98 @@
+<header class="page-header">
+  <div>
+    <p class="home__date">{{ today | date: "EEEE, d 'de' MMMM" }}</p>
+    <h1>{{ greeting() }}{{ firstName() ? ', ' + firstName() : '' }}</h1>
+    <p>Este é o resumo do {{ session()?.tenant?.name }} hoje.</p>
+  </div>
+  <a mat-flat-button routerLink="/aprovacoes">
+    <span class="icon">task_alt</span>
+    Revisar fila
+  </a>
+</header>
+
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+<section class="stats" aria-label="Resumo">
+  @for (stat of stats(); track stat.label) {
+    <a class="stat card" [routerLink]="stat.link" [attr.data-tone]="stat.tone">
+      <span class="stat__icon"
+        ><span class="icon">{{ stat.icon }}</span></span
+      >
+      <span class="stat__value">{{ stat.value }}</span>
+      <span class="stat__label">{{ stat.label }}</span>
+      <span class="stat__hint">{{ stat.hint }}</span>
+    </a>
+  } @empty {
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="stat card stat--loading" aria-hidden="true"></div>
+    }
+  }
+</section>
+
+<div class="columns">
+  <section class="card panel">
+    <header class="panel__header">
+      <h2 class="section-title"><span class="icon">inbox</span> Fila de aprovação</h2>
+      <a mat-button routerLink="/aprovacoes">Ver tudo</a>
+    </header>
+    <ul class="list">
+      @for (d of queue(); track d.id) {
+        <li>
+          <a class="list__item" routerLink="/aprovacoes">
+            <span class="avatar">{{ who(d).slice(0, 1).toUpperCase() }}</span>
+            <span class="list__text">
+              <strong>{{ who(d) }}</strong>
+              <span class="muted">{{ d.summary || d.generated_body }}</span>
+            </span>
+            <span class="list__side">
+              @if (d.urgency === 'high') {
+                <span class="badge" data-status="URGENT">Urgente</span>
+              } @else {
+                <span class="badge" data-status="DRAFT">{{ originLabel(d) }}</span>
+              }
+              <span class="muted small">{{ d.created_at | date: 'dd/MM HH:mm' }}</span>
+            </span>
+          </a>
+        </li>
+      } @empty {
+        <li class="empty-state">
+          <span class="icon">celebration</span>
+          Tudo em dia. Nenhuma mensagem esperando você.
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="card panel">
+    <header class="panel__header">
+      <h2 class="section-title"><span class="icon">timeline</span> Andamentos recentes</h2>
+      <a mat-button routerLink="/processos">Processos</a>
+    </header>
+    <ul class="list">
+      @for (m of data()?.recent_movements ?? []; track m.id) {
+        <li>
+          <a class="list__item" [routerLink]="['/processos', m.case_id]">
+            <span class="timeline-dot" [attr.data-notification]="m.notification"></span>
+            <span class="list__text">
+              <strong>{{ m.name }}</strong>
+              <span class="muted mono">{{ m.case_number }}</span>
+            </span>
+            <span class="list__side">
+              <span class="badge" [attr.data-status]="m.notification">{{
+                notificationLabel(m.notification)
+              }}</span>
+              <span class="muted small">{{ m.occurred_at | date: 'dd/MM/yyyy' }}</span>
+            </span>
+          </a>
+        </li>
+      } @empty {
+        <li class="empty-state">
+          <span class="icon">hourglass_empty</span>
+          Nenhum andamento novo. Os processos são consultados no DataJud a cada 12 horas.
+        </li>
+      }
+    </ul>
+  </section>
+</div>

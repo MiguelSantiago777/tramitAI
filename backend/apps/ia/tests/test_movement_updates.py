@@ -288,3 +288,37 @@ def test_draft_api_shows_case_and_movements(
     assert [m["name"] for m in item["movements"]] == ["Conclusão"]
     assert item["template_status"] == "SENT"
     assert "Responda esta mensagem" in item["template_text"]
+
+
+def test_reply_from_wa_id_without_ninth_digit_releases_waiting_text(
+    tenant_a, baseline, sync, drafts, approve, fake_gateway, inbound
+):
+    """A conversa do aviso nasce com o 9; a Meta pode mandar a resposta sem ele."""
+    sync(baseline, movement("Conclusão"))
+    [draft] = _updates(drafts)
+    approve(draft)
+
+    inbound("Oi, pode mandar", wa_id="552198765432")
+
+    [draft] = _updates(drafts)
+    assert draft.status == OutboundDraft.Status.SENT
+    assert fake_gateway.sent[-1].to == "552198765432"
+    with tenant_context(tenant_a.tenant.id):
+        from apps.whatsapp.models import Conversation
+
+        assert Conversation.objects.count() == 1
+
+
+def test_existing_conversation_without_ninth_digit_is_reused_for_updates(
+    tenant_a, baseline, sync, drafts, inbound
+):
+    inbound("Bom dia", wa_id="552198765432")
+    sync(baseline, movement("Conclusão"))
+
+    [draft] = _updates(drafts)
+    with tenant_context(tenant_a.tenant.id):
+        from apps.whatsapp.models import Conversation
+
+        [only] = Conversation.objects.all()
+    assert only.wa_id == "552198765432"
+    assert draft.conversation_id == only.pk

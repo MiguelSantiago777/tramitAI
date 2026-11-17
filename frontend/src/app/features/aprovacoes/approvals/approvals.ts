@@ -24,11 +24,11 @@ import { PendingDraftsCounter } from '../pending-counter';
   ],
   template: `
     <header class="page-header">
-      <h1>Aprovações</h1>
+      <div>
+        <h1>Aprovações</h1>
+        <p>Nada sai para o cliente sem a sua aprovação. Revise, edite se precisar e aprove.</p>
+      </div>
     </header>
-    <p class="muted">
-      Nada sai para o cliente sem a sua aprovação. Revise, edite se precisar e aprove.
-    </p>
 
     <mat-button-toggle-group [formControl]="status" aria-label="Situação" class="approvals__tabs">
       <mat-button-toggle value="DRAFT">Pendentes</mat-button-toggle>
@@ -50,7 +50,14 @@ import { PendingDraftsCounter } from '../pending-counter';
         <app-draft-card [draft]="d" [canDecide]="canDecide()" (decided)="onDecided($event)" />
       } @empty {
         @if (!loading()) {
-          <p class="muted">Nada por aqui.</p>
+          <div class="card empty-state">
+            <span class="icon">inbox</span>
+            {{
+              status.value === 'DRAFT'
+                ? 'Tudo em dia. Nenhuma mensagem esperando aprovação.'
+                : 'Nada por aqui.'
+            }}
+          </div>
         }
       }
     </div>
