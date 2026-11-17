@@ -17,6 +17,10 @@ export interface Conversation {
   contact_name: string;
   client_id: string | null;
   client_name: string;
+  suggested_client_id: string | null;
+  suggested_client_name: string;
+  pending_drafts: number;
+  ai_consent_version: number | null;
   status: ConversationStatus;
   last_inbound_at: string | null;
   last_message_at: string | null;

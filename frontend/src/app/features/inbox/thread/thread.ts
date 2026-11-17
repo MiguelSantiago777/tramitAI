@@ -31,10 +31,15 @@ import {
   switchMap,
 } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
 import { formatPhone } from '../../../shared/br';
 import { Client } from '../../clientes/client.models';
 import { ClientsService } from '../../clientes/clients.service';
+import { DraftCard } from '../../aprovacoes/draft-card/draft-card';
+import { Draft } from '../../aprovacoes/draft.models';
+import { DraftsService } from '../../aprovacoes/drafts.service';
+import { PendingDraftsCounter } from '../../aprovacoes/pending-counter';
 import { Conversation, MEDIA_LABELS, Message, OUTBOUND_STATUS_LABELS } from '../inbox.models';
 import { InboxService } from '../inbox.service';
 
@@ -50,6 +55,7 @@ export const THREAD_POLL_MS = 5_000;
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    DraftCard,
   ],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
@@ -58,6 +64,9 @@ export const THREAD_POLL_MS = 5_000;
 export class Thread {
   private readonly inbox = inject(InboxService);
   private readonly clientsApi = inject(ClientsService);
+  private readonly draftsApi = inject(DraftsService);
+  private readonly counter = inject(PendingDraftsCounter);
+  private readonly auth = inject(AuthService);
 
   readonly conversationId = input.required<string>();
   /** Avisa o inbox para atualizar a lista. */
@@ -69,6 +78,9 @@ export class Thread {
   readonly hasOlder = signal(false);
   readonly error = signal<string | null>(null);
   readonly sending = signal(false);
+  /** Rascunhos aguardando aprovação nesta conversa. */
+  readonly pendingDrafts = signal<Draft[]>([]);
+  readonly canDecide = computed(() => this.auth.session()?.can_approve ?? false);
   private olderPage = 1;
 
   readonly draft = new FormControl('', {
@@ -111,7 +123,11 @@ export class Thread {
           return interval(THREAD_POLL_MS).pipe(
             startWith(0),
             switchMap(() =>
-              forkJoin([this.inbox.get(id), this.inbox.messages(id)]).pipe(
+              forkJoin([
+                this.inbox.get(id),
+                this.inbox.messages(id),
+                this.draftsApi.list({ status: 'DRAFT', conversation_id: id }, 0, 10),
+              ]).pipe(
                 catchError((err: unknown) => {
                   this.error.set(toApiError(err).message);
                   return of(null);
@@ -126,8 +142,9 @@ export class Thread {
         if (!result) {
           return;
         }
-        const [conversation, page] = result;
+        const [conversation, page, drafts] = result;
         this.conversation.set(conversation);
+        this.pendingDrafts.set(drafts.results);
         this.mergeLatest(page.results);
         if (this.olderPage === 1) {
           this.hasOlder.set(page.next !== null);
@@ -191,6 +208,25 @@ export class Thread {
     this.clientSearch.setValue('');
   }
 
+  linkSuggested(): void {
+    const suggested = this.conversation()?.suggested_client_id;
+    if (suggested) {
+      this.updateConversation({ client_id: suggested });
+    }
+  }
+
+  onDraftDecided(updated: Draft): void {
+    this.pendingDrafts.update((list) => list.filter((d) => d.id !== updated.id));
+    this.counter.refresh();
+    this.changed.emit();
+    if (updated.status === 'APPROVED' || updated.status === 'SENT') {
+      this.inbox.messages(this.conversationId()).subscribe({
+        next: (page) => this.mergeLatest(page.results),
+        error: () => undefined,
+      });
+    }
+  }
+
   unlinkClient(): void {
     this.updateConversation({ client_id: null });
   }
@@ -215,6 +251,7 @@ export class Thread {
   private reset(): void {
     this.conversation.set(null);
     this.messages.set([]);
+    this.pendingDrafts.set([]);
     this.hasOlder.set(false);
     this.error.set(null);
     this.olderPage = 1;

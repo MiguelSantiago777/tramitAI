@@ -3,6 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
+import { signal } from '@angular/core';
+
+import { AuthService } from '../../../core/auth/auth.service';
+import { DraftsService } from '../../aprovacoes/drafts.service';
 import { ClientsService } from '../../clientes/clients.service';
 import { Conversation, Message } from '../inbox.models';
 import { InboxService } from '../inbox.service';
@@ -15,6 +19,10 @@ const conversation: Conversation = {
   contact_name: 'Maria',
   client_id: null,
   client_name: '',
+  suggested_client_id: null,
+  suggested_client_name: '',
+  pending_drafts: 0,
+  ai_consent_version: null,
   status: 'OPEN',
   last_inbound_at: '2026-11-17T10:00:00Z',
   last_message_at: '2026-11-17T10:05:00Z',
@@ -61,6 +69,13 @@ describe('Thread', () => {
         provideRouter([]),
         { provide: InboxService, useValue: inbox },
         { provide: ClientsService, useValue: { list: vi.fn(() => of({ results: [] })) } },
+        {
+          provide: DraftsService,
+          useValue: {
+            list: vi.fn(() => of({ count: 0, next: null, previous: null, results: [] })),
+          },
+        },
+        { provide: AuthService, useValue: { session: signal({ can_approve: true }) } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(Thread);

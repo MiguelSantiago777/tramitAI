@@ -30,6 +30,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/inbox/inbox/inbox').then((m) => m.Inbox),
       },
       {
+        path: 'aprovacoes',
+        title: 'Aprovações · TramitAI',
+        loadComponent: () =>
+          import('./features/aprovacoes/approvals/approvals').then((m) => m.Approvals),
+      },
+      {
         path: 'clientes',
         loadChildren: () =>
           import('./features/clientes/clientes.routes').then((m) => m.CLIENTES_ROUTES),

@@ -22,6 +22,13 @@
       </span>
       <button mat-button type="button" (click)="unlinkClient()">Desvincular</button>
     } @else {
+      @if (c.suggested_client_id) {
+        <div class="thread__suggestion" role="status">
+          O contato informou o CPF de <strong>{{ c.suggested_client_name }}</strong>. CPF não prova
+          identidade: confirme antes de vincular.
+          <button mat-stroked-button type="button" (click)="linkSuggested()">Vincular</button>
+        </div>
+      }
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
         <mat-label>Vincular a um cliente</mat-label>
         <input
@@ -75,6 +82,19 @@
     <p class="muted">Sem mensagens.</p>
   }
 </div>
+
+@if (pendingDrafts().length > 0) {
+  <section class="thread__drafts" aria-label="Rascunhos aguardando aprovação">
+    @for (d of pendingDrafts(); track d.id) {
+      <app-draft-card
+        [draft]="d"
+        [canDecide]="canDecide()"
+        [showContact]="false"
+        (decided)="onDraftDecided($event)"
+      />
+    }
+  </section>
+}
 
 @if (error(); as message) {
   <p class="error-text thread__error" role="alert">{{ message }}</p>

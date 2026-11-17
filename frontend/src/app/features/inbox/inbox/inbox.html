@@ -40,6 +40,9 @@
               </span>
             }
           </div>
+          @if (c.pending_drafts > 0) {
+            <span class="inbox__tag inbox__tag--draft">Rascunho aguardando aprovação</span>
+          }
           @if (!c.client_id) {
             <span class="inbox__tag">Sem cliente vinculado</span>
           }

@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { ROLE_LABELS } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
+import { PendingDraftsCounter } from '../../features/aprovacoes/pending-counter';
+import { interval, startWith } from 'rxjs';
 
 @Component({
   selector: 'app-shell',
@@ -19,8 +22,13 @@ import { AuthService } from '../../core/auth/auth.service';
             [routerLink]="link.path"
             routerLinkActive="shell__nav--active"
             [routerLinkActiveOptions]="{ exact: link.path === '/' }"
-            >{{ link.label }}</a
-          >
+            >{{ link.label }}
+            @if (link.path === '/aprovacoes' && pending() > 0) {
+              <span class="shell__badge" [attr.aria-label]="pending() + ' pendentes'">{{
+                pending()
+              }}</span>
+            }
+          </a>
         }
       </nav>
       <span class="shell__spacer"></span>
@@ -51,6 +59,14 @@ import { AuthService } from '../../core/auth/auth.service';
     .shell__nav--active {
       background: var(--mat-sys-secondary-container);
     }
+    .shell__badge {
+      margin-left: 4px;
+      padding: 0 6px;
+      border-radius: 999px;
+      font: var(--mat-sys-label-small);
+      background: var(--mat-sys-error);
+      color: var(--mat-sys-on-error);
+    }
     .shell__spacer {
       flex: 1;
     }
@@ -79,11 +95,20 @@ export class Shell {
   readonly links = [
     { path: '/', label: 'Início' },
     { path: '/inbox', label: 'Conversas' },
+    { path: '/aprovacoes', label: 'Aprovações' },
     { path: '/clientes', label: 'Clientes' },
     { path: '/processos', label: 'Processos' },
     { path: '/configuracoes/termo', label: 'Termo de IA' },
   ];
   readonly session = this.auth.session;
+  private readonly counter = inject(PendingDraftsCounter);
+  readonly pending = this.counter.count;
+
+  constructor() {
+    interval(30_000)
+      .pipe(startWith(0), takeUntilDestroyed())
+      .subscribe(() => this.counter.refresh());
+  }
   readonly roleLabel = computed(() => {
     const role = this.session()?.role;
     return role ? ROLE_LABELS[role] : '';

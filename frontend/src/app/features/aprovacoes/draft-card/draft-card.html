@@ -1,0 +1,112 @@
+<article class="draft" [attr.data-status]="draft().status" [attr.data-urgency]="draft().urgency">
+  <header class="draft__header">
+    <span class="badge">{{ originLabel() }}</span>
+    @if (draft().urgency === 'high') {
+      <span class="badge draft__urgent">Urgente</span>
+    }
+    @if (intentLabel()) {
+      <span class="muted small">{{ intentLabel() }}</span>
+    }
+    <span class="draft__spacer"></span>
+    <span class="muted small">{{ draft().created_at | date: 'dd/MM HH:mm' }}</span>
+  </header>
+
+  @if (showContact()) {
+    <p class="draft__contact">
+      <strong>{{ contact() }}</strong>
+      <a mat-button [routerLink]="['/inbox', draft().conversation_id]">Abrir conversa</a>
+    </p>
+  }
+
+  @if (draft().source_text) {
+    <blockquote class="draft__source">
+      <span class="muted small">Cliente escreveu:</span>
+      {{ draft().source_text }}
+    </blockquote>
+  }
+
+  @if (draft().summary) {
+    <p class="draft__summary">
+      <span class="muted small">Para o advogado:</span> {{ draft().summary }}
+      @if (draft().needs_lawyer) {
+        <strong class="draft__needs-lawyer">Precisa de análise do advogado.</strong>
+      }
+    </p>
+  }
+
+  @if (flags().length > 0) {
+    <div class="draft__warning" role="alert">
+      A Lia {{ flags().join(', ') }}. O texto foi trocado por uma resposta segura.
+      @if (draft().original_ai_text) {
+        <details>
+          <summary>Ver o que a IA tinha escrito</summary>
+          <p class="draft__original">{{ draft().original_ai_text }}</p>
+        </details>
+      }
+    </div>
+  }
+
+  @if (pending()) {
+    <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
+      <mat-label>Mensagem para o cliente</mat-label>
+      <textarea matInput [formControl]="body" rows="5"></textarea>
+    </mat-form-field>
+
+    @if (!draft().window_open) {
+      <p class="error-text small">
+        A janela de 24h está fechada: este texto não pode ser enviado. Rejeite ou aguarde o cliente
+        escrever de novo.
+      </p>
+    }
+
+    @if (rejecting()) {
+      <div class="inline-form">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+          <mat-label>Motivo (opcional)</mat-label>
+          <input matInput [formControl]="reason" />
+        </mat-form-field>
+        <button mat-button type="button" (click)="rejecting.set(false)">Cancelar</button>
+        <button mat-stroked-button type="button" [disabled]="busy()" (click)="confirmReject()">
+          Confirmar rejeição
+        </button>
+      </div>
+    } @else if (canDecide()) {
+      <div class="form-actions">
+        <button mat-button type="button" [disabled]="busy()" (click)="rejecting.set(true)">
+          Rejeitar
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="busy() || body.invalid || !draft().window_open"
+          (click)="approve()"
+        >
+          Aprovar e enviar
+        </button>
+      </div>
+    } @else {
+      <p class="muted small">Só advogados podem aprovar mensagens neste escritório.</p>
+    }
+  } @else {
+    <p class="draft__final">{{ draft().final_body || draft().generated_body }}</p>
+    <p class="muted small">
+      {{ statusLabel() }}
+      @if (draft().decided_by_name) {
+        por {{ draft().decided_by_name }}
+      }
+      @if (draft().decided_at) {
+        em {{ draft().decided_at | date: 'dd/MM HH:mm' }}
+      }
+      @if (draft().rejection_reason) {
+        · {{ draft().rejection_reason }}
+      }
+      @if (draft().failure_detail) {
+        · {{ draft().failure_detail }}
+      }
+    </p>
+  }
+
+  @if (error(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+</article>

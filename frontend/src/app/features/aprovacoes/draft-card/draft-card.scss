@@ -1,0 +1,76 @@
+.draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-left: 4px solid var(--mat-sys-primary);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+.draft[data-urgency='high'] {
+  border-left-color: var(--mat-sys-error);
+}
+
+.draft[data-status='REJECTED'],
+.draft[data-status='SENT'] {
+  border-left-color: var(--mat-sys-outline);
+}
+
+.draft__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.draft__spacer {
+  flex: 1;
+}
+
+.draft__urgent {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.draft__contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.draft__source {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.draft__summary {
+  margin: 0;
+}
+
+.draft__needs-lawyer {
+  display: block;
+  color: var(--mat-sys-tertiary);
+  font: var(--mat-sys-label-large);
+}
+
+.draft__warning {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font: var(--mat-sys-body-small);
+}
+
+.draft__original,
+.draft__final {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -13,6 +13,10 @@ const base: Conversation = {
   contact_name: 'Maria (perfil)',
   client_id: 'cl1',
   client_name: 'Maria da Silva',
+  suggested_client_id: null,
+  suggested_client_name: '',
+  pending_drafts: 1,
+  ai_consent_version: 1,
   status: 'OPEN',
   last_inbound_at: null,
   last_message_at: '2026-11-17T10:00:00Z',
@@ -58,6 +62,7 @@ describe('Inbox', () => {
     expect(items[0].querySelector('.inbox__badge')?.textContent?.trim()).toBe('2');
     expect(items[1].textContent).toContain('(21) 91111-2222');
     expect(items[1].textContent).toContain('Sem cliente vinculado');
+    expect(items[0].textContent).toContain('Rascunho aguardando aprovação');
 
     fixture.componentInstance.filter.setValue('unread');
     expect(list).toHaveBeenLastCalledWith({ q: '', unread: true, status: 'OPEN' });

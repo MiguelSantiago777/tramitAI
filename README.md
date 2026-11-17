@@ -40,6 +40,18 @@ docker compose exec backend python manage.py simulate_inbound   --phone-number-i
 Depois abra **Conversas** no app e responda. Em produção, o webhook da Meta aponta para
 `/api/webhooks/whatsapp/` (verify token = `WHATSAPP_VERIFY_TOKEN`, assinatura com `WHATSAPP_APP_SECRET`).
 
+## IA (Lia)
+
+- `LLM_PROVIDER=fake` (padrão): respostas determinísticas locais, nada sai da máquina.
+- `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`: API da Anthropic. Modelo e esforço em
+  `LLM_MODEL` / `LLM_EFFORT`. Prompts versionados em `backend/apps/ia/prompts/` (versão ativa em
+  `manifest.json`; nunca edite uma versão já usada, crie `v2.md`).
+
+Fluxo: primeiro contato → rascunho com o termo de ciência (sem IA) → advogado aprova → cliente
+responde ACEITO → a partir daí cada mensagem passa pela triagem e vira rascunho na fila
+**Aprovações**. Nada é enviado sem aprovação humana; tudo fica em `core_auditevent`
+(append-only).
+
 ## Testes e lint
 
 ```bash
