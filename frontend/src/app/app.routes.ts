@@ -19,6 +19,24 @@ export const routes: Routes = [
         title: 'Início · TramitAI',
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
       },
+      {
+        path: 'clientes',
+        loadChildren: () =>
+          import('./features/clientes/clientes.routes').then((m) => m.CLIENTES_ROUTES),
+      },
+      {
+        path: 'processos',
+        loadChildren: () =>
+          import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
+      },
+      {
+        path: 'configuracoes/termo',
+        title: 'Termo de ciência · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/term-settings/term-settings').then(
+            (m) => m.TermSettings,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

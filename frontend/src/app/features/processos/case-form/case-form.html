@@ -1,0 +1,136 @@
+<header class="page-header">
+  <h1>{{ id() ? current()?.cnj_formatted || 'Processo' : 'Novo processo' }}</h1>
+  <a mat-button routerLink="/processos">Voltar</a>
+</header>
+
+@if (loading() || saving()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="form-card" novalidate>
+  <div class="form-grid">
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Número do processo (CNJ)</mat-label>
+      <input
+        matInput
+        formControlName="cnj_number"
+        class="mono"
+        placeholder="0000000-00.0000.0.00.0000"
+        (blur)="formatCnjField()"
+      />
+      @if (current()?.tribunal; as tribunal) {
+        <mat-hint>Tribunal: {{ tribunal }}</mat-hint>
+      }
+      @if (form.controls.cnj_number.hasError('required')) {
+        <mat-error>Informe o número do processo.</mat-error>
+      } @else if (form.controls.cnj_number.hasError('cnj')) {
+        <mat-error>Número inválido. Confira os 20 dígitos.</mat-error>
+      } @else if (form.controls.cnj_number.hasError('server')) {
+        <mat-error>{{ form.controls.cnj_number.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Classe</mat-label>
+      <input matInput formControlName="classe" placeholder="Ex.: Procedimento Comum Cível" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Assunto</mat-label>
+      <input matInput formControlName="assunto" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Órgão julgador</mat-label>
+      <input
+        matInput
+        formControlName="orgao_julgador"
+        placeholder="Ex.: 2ª Vara Cível de Nova Iguaçu"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Responsável</mat-label>
+      <mat-select formControlName="responsible_id">
+        <mat-option [value]="null">Ninguém</mat-option>
+        @for (m of members(); track m.user_id) {
+          <mat-option [value]="m.user_id">{{ m.full_name || m.email }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.responsible_id.hasError('server')) {
+        <mat-error>{{ form.controls.responsible_id.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Situação</mat-label>
+      <mat-select formControlName="status">
+        @for (option of statusOptions; track option[0]) {
+          <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="toggle-field">
+      <mat-slide-toggle formControlName="monitoring_enabled">Monitorar andamento</mat-slide-toggle>
+      @if (current()?.last_checked_at; as checked) {
+        <span class="muted small">Última consulta: {{ checked | date: 'dd/MM/yyyy HH:mm' }}</span>
+      }
+    </div>
+
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Observações</mat-label>
+      <textarea matInput formControlName="notes" rows="3"></textarea>
+    </mat-form-field>
+  </div>
+
+  <h2>Clientes no processo</h2>
+  @if (form.controls.clients.hasError('server')) {
+    <p class="error-text" role="alert">{{ form.controls.clients.getError('server') }}</p>
+  }
+  <div formArrayName="clients" class="client-rows">
+    @for (row of clientRows.controls; track row; let i = $index) {
+      <div [formGroupName]="i" class="client-row">
+        <span class="grow">{{ row.value.client_name }}</span>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Papel</mat-label>
+          <mat-select formControlName="role">
+            @for (option of roleOptions; track option[0]) {
+              <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <button mat-button type="button" (click)="removeClient(i)">Remover</button>
+      </div>
+    } @empty {
+      <p class="muted">Nenhum cliente vinculado.</p>
+    }
+  </div>
+
+  <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
+    <mat-label>Adicionar cliente</mat-label>
+    <input
+      matInput
+      [formControl]="clientSearch"
+      [matAutocomplete]="clientAuto"
+      placeholder="Digite o nome ou CPF"
+    />
+    <mat-autocomplete
+      #clientAuto="matAutocomplete"
+      [displayWith]="displayClient"
+      (optionSelected)="addClient($event)"
+    >
+      @for (option of clientOptions(); track option.id) {
+        <mat-option [value]="option">{{ option.name }}</mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  @if (error(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+
+  <div class="form-actions">
+    <button mat-flat-button type="submit" [disabled]="saving()">Salvar</button>
+  </div>
+</form>

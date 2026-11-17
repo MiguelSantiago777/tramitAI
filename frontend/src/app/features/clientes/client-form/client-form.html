@@ -1,0 +1,89 @@
+<header class="page-header">
+  <h1>{{ id() ? client()?.name || 'Cliente' : 'Novo cliente' }}</h1>
+  <a mat-button routerLink="/clientes">Voltar</a>
+</header>
+
+@if (loading() || saving()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="form-card" novalidate>
+  <mat-button-toggle-group formControlName="kind" aria-label="Tipo de pessoa">
+    @for (option of kindOptions; track option[0]) {
+      <mat-button-toggle [value]="option[0]">{{ option[1] }}</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>{{
+        form.controls.kind.value === 'PF' ? 'Nome completo' : 'Razão social'
+      }}</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Informe o nome.</mat-error>
+      } @else if (form.controls.name.hasError('server')) {
+        <mat-error>{{ form.controls.name.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ form.controls.kind.value === 'PF' ? 'CPF' : 'CNPJ' }}</mat-label>
+      <input matInput formControlName="cpf_cnpj" (blur)="formatDocumentField()" />
+      @if (form.controls.cpf_cnpj.hasError('cpf')) {
+        <mat-error>CPF inválido.</mat-error>
+      } @else if (form.controls.cpf_cnpj.hasError('cnpj')) {
+        <mat-error>CNPJ inválido.</mat-error>
+      } @else if (form.controls.cpf_cnpj.hasError('server')) {
+        <mat-error>{{ form.controls.cpf_cnpj.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Telefone (WhatsApp)</mat-label>
+      <input matInput formControlName="phone" placeholder="(21) 99999-9999" inputmode="tel" />
+      @if (form.controls.phone.hasError('phone')) {
+        <mat-error>Telefone inválido. Use DDD + número.</mat-error>
+      } @else if (form.controls.phone.hasError('server')) {
+        <mat-error>{{ form.controls.phone.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>E-mail</mat-label>
+      <input matInput type="email" formControlName="email" />
+      @if (form.controls.email.hasError('email')) {
+        <mat-error>E-mail inválido.</mat-error>
+      } @else if (form.controls.email.hasError('server')) {
+        <mat-error>{{ form.controls.email.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Situação</mat-label>
+      <mat-select formControlName="status">
+        @for (option of statusOptions; track option[0]) {
+          <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Observações</mat-label>
+      <textarea matInput formControlName="notes" rows="3"></textarea>
+      <mat-hint>Evite dados sensíveis desnecessários (LGPD).</mat-hint>
+    </mat-form-field>
+  </div>
+
+  @if (error(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+
+  <div class="form-actions">
+    <button mat-flat-button type="submit" [disabled]="saving()">Salvar</button>
+  </div>
+</form>
+
+@if (client(); as current) {
+  <app-term-acceptances [clientId]="current.id" />
+}
