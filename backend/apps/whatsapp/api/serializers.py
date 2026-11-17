@@ -24,6 +24,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         model=Client, source="client", required=False, allow_null=True
     )
     client_name = serializers.CharField(source="client.name", read_only=True, default="")
+    suggested_client_id = serializers.UUIDField(read_only=True, allow_null=True)
+    suggested_client_name = serializers.CharField(
+        source="suggested_client.name", read_only=True, default=""
+    )
+    pending_drafts = serializers.IntegerField(read_only=True, default=0)
     window_open = serializers.SerializerMethodField()
     window_expires_at = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
@@ -37,6 +42,10 @@ class ConversationSerializer(serializers.ModelSerializer):
             "contact_name",
             "client_id",
             "client_name",
+            "suggested_client_id",
+            "suggested_client_name",
+            "pending_drafts",
+            "ai_consent_version",
             "status",
             "last_inbound_at",
             "last_message_at",
@@ -52,6 +61,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "last_inbound_at",
             "last_message_at",
             "unread_count",
+            "ai_consent_version",
         ]
 
     def get_phone(self, obj: Conversation) -> str:

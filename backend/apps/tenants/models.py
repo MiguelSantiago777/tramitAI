@@ -34,6 +34,8 @@ class TenantSettings(TenantModel):
     auto_send_simple_replies = models.BooleanField(default=False)
     # Aprovação de rascunhos: OWNER e LAWYER sempre; STAFF só se ligado aqui.
     staff_can_approve = models.BooleanField(default=False)
+    # Desliga a triagem por IA do escritório (mensagens continuam chegando no inbox).
+    ai_triage_enabled = models.BooleanField(default=True)
     # Retenção (LGPD). Null = sem expurgo automático. Só a estrutura por enquanto.
     data_retention_days = models.PositiveIntegerField(null=True, blank=True)
     message_retention_days = models.PositiveIntegerField(null=True, blank=True)

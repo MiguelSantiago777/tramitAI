@@ -23,6 +23,15 @@ def grant_app_role(using: str = "default", **kwargs: Any) -> None:
             f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {role}"
         )
         cursor.execute(f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {role}")
+        # Tabelas append-only: a aplicação só lê e insere.
+        cursor.execute(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = ANY(%s)",
+            [list(settings.APPEND_ONLY_TABLES)],
+        )
+        for (table,) in cursor.fetchall():
+            cursor.execute(
+                f"REVOKE UPDATE, DELETE ON {connection.ops.quote_name(table)} FROM {role}"
+            )
 
 
 class CoreConfig(AppConfig):

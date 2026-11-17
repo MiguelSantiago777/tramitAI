@@ -122,6 +122,12 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "MembershipRoleEnum": "apps.accounts.models.Membership.Role",
         "CaseClientRoleEnum": "apps.processos.models.CaseClient.Role",
+        "ClientStatusEnum": "apps.clientes.models.Client.Status",
+        "CaseStatusEnum": "apps.processos.models.LegalCase.Status",
+        "ConversationStatusEnum": "apps.whatsapp.models.Conversation.Status",
+        "MessageStatusEnum": "apps.whatsapp.models.Message.Status",
+        "DraftStatusEnum": "apps.aprovacoes.models.OutboundDraft.Status",
+        "TenantStatusEnum": "apps.tenants.models.Tenant.Status",
     },
 }
 
@@ -160,6 +166,23 @@ WHATSAPP_GRAPH_VERSION: str = env("WHATSAPP_GRAPH_VERSION", default="v24.0")
 WHATSAPP_HTTP_TIMEOUT: float = env.float("WHATSAPP_HTTP_TIMEOUT", default=10.0)
 # Payload bruto do webhook contém mensagens: guardar só o necessário para reprocessar.
 WEBHOOK_EVENT_RETENTION_DAYS: int = env.int("WEBHOOK_EVENT_RETENTION_DAYS", default=7)
+
+# --------------------------------------------------------------------------- IA
+# "fake" (dev/testes, determinístico, não sai da máquina) ou "anthropic".
+LLM_PROVIDER: str = env("LLM_PROVIDER", default="fake")
+LLM_MODEL: str = env("LLM_MODEL", default="claude-opus-5-5")
+LLM_EFFORT: str = env("LLM_EFFORT", default="medium")
+LLM_MAX_TOKENS: int = env.int("LLM_MAX_TOKENS", default=16000)
+LLM_TIMEOUT_SECONDS: float = env.float("LLM_TIMEOUT_SECONDS", default=90.0)
+# Fallback automático do servidor quando o modelo recusa (só provedor anthropic).
+LLM_REFUSAL_FALLBACK: bool = env.bool("LLM_REFUSAL_FALLBACK", default=True)
+# Espera antes da triagem, para juntar mensagens enviadas em sequência.
+TRIAGE_DEBOUNCE_SECONDS: int = env.int("TRIAGE_DEBOUNCE_SECONDS", default=15)
+TRIAGE_HISTORY_MESSAGES: int = env.int("TRIAGE_HISTORY_MESSAGES", default=20)
+
+# Tabelas append-only: o role da aplicação perde UPDATE/DELETE e um trigger bloqueia
+# alterações para qualquer role.
+APPEND_ONLY_TABLES: list[str] = ["core_auditevent", "clientes_clienttermacceptance"]
 
 # --------------------------------------------------------------------------- logging
 # Regra: nunca logar conteúdo de mensagem, CPF, telefone ou payload de webhook.

@@ -7,6 +7,7 @@ Regras que valem aqui:
 """
 
 import logging
+import re
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -21,7 +22,8 @@ from rest_framework import status as http_status
 
 from apps.accounts.models import User
 from apps.clientes.models import Client
-from apps.core.br import whatsapp_phone_candidates
+from apps.core import audit
+from apps.core.br import is_valid_cpf, only_digits, whatsapp_phone_candidates
 from apps.core.crypto import decrypt_secret, encrypt_secret
 from apps.core.exceptions import ApiError
 from apps.core.tenancy import tenant_atomic, tenant_context
@@ -37,6 +39,7 @@ from .models import (
     PhoneNumberRoute,
     WhatsAppAccount,
 )
+from .signals import inbound_message_received, outbound_message_settled
 
 logger = logging.getLogger(__name__)
 
@@ -171,8 +174,34 @@ def ingest_message(m: InboundMessage) -> Message | None:
         client = match_client(m.wa_id)
         if client is not None:
             updates["client"] = client
+        else:
+            suggested = suggest_client_by_cpf(m.body)
+            if suggested is not None and suggested.pk != conversation.suggested_client_id:
+                updates["suggested_client"] = suggested
+                audit.record(
+                    "conversation.client_suggested",
+                    conversation,
+                    actor_type=audit.Actor.SYSTEM,
+                    data={"client_id": str(suggested.pk), "reason": "cpf"},
+                )
     Conversation.objects.filter(pk=conversation.pk).update(**updates)
+    conversation.refresh_from_db()
+    inbound_message_received.send(sender=Message, message=message, conversation=conversation)
     return message
+
+
+_CPF_PATTERN = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
+
+
+def suggest_client_by_cpf(text: str) -> Client | None:
+    """Procura um CPF válido no texto (regex local, nada vai para a IA) e o cliente com ele."""
+    for candidate in _CPF_PATTERN.findall(text or ""):
+        cpf = only_digits(candidate)
+        if is_valid_cpf(cpf):
+            client = Client.objects.filter(cpf_cnpj=cpf).first()
+            if client is not None:
+                return client
+    return None
 
 
 def _greatest(field: str, value: datetime) -> Greatest:
@@ -204,6 +233,7 @@ def apply_status(s: StatusUpdate) -> None:
             message.error_code = s.error_code
             message.error_detail = s.error_detail
             message.save(update_fields=["status", "error_code", "error_detail", "updated_at"])
+            outbound_message_settled.send(sender=Message, message=message)
         return
 
     new_status = {
@@ -244,7 +274,23 @@ def window_expires_at(conversation: Conversation) -> datetime | None:
 
 
 def send_text_reply(*, conversation: Conversation, body: str, user: User) -> Message:
-    """Resposta manual do escritório. Grava QUEUED e agenda o envio depois do commit."""
+    """Resposta manual (escrita por uma pessoa do escritório, sem IA)."""
+    message = queue_text(conversation=conversation, body=body, sent_by=user)
+    audit.record(
+        "message.manual_reply",
+        message,
+        actor_type=audit.Actor.USER,
+        actor_user=user,
+        data={"conversation_id": str(conversation.pk)},
+    )
+    return message
+
+
+def queue_text(*, conversation: Conversation, body: str, sent_by: User | None) -> Message:
+    """Grava uma mensagem de texto QUEUED e agenda o envio depois do commit.
+
+    Valida tamanho e a janela de 24h. Usado pela resposta manual e pela aprovação de rascunhos.
+    """
     from .tasks import send_message
 
     body = body.strip()
@@ -268,7 +314,7 @@ def send_text_reply(*, conversation: Conversation, body: str, user: User) -> Mes
         type=Message.Type.TEXT,
         body=body,
         status=Message.Status.QUEUED,
-        sent_by=user,
+        sent_by=sent_by,
     )
     Conversation.objects.filter(pk=conversation.pk).update(
         last_message_at=message.created_at, unread_count=0
@@ -307,6 +353,8 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
                 error_code=exc.code,
                 error_detail=_failure_text(exc),
             )
+            if not exc.retryable:
+                _settled(message_id)
         if exc.retryable:
             raise RetryableSendError(exc.code) from exc
         return
@@ -319,6 +367,13 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
             error_code="",
             error_detail="",
         )
+        _settled(message_id)
+
+
+def _settled(message_id: uuid.UUID) -> None:
+    message = Message.objects.filter(pk=message_id).first()
+    if message is not None:
+        outbound_message_settled.send(sender=Message, message=message)
 
 
 def _failure_text(exc: GatewayError) -> str:
@@ -329,10 +384,12 @@ def _failure_text(exc: GatewayError) -> str:
 
 def give_up_sending(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
     with tenant_atomic(tenant_id):
-        Message.objects.filter(pk=message_id, status=Message.Status.QUEUED).update(
+        updated = Message.objects.filter(pk=message_id, status=Message.Status.QUEUED).update(
             status=Message.Status.FAILED,
             error_detail="Não foi possível enviar depois de várias tentativas.",
         )
+        if updated:
+            _settled(message_id)
 
 
 def fail_stuck_sending() -> int:
@@ -341,13 +398,19 @@ def fail_stuck_sending() -> int:
     total = 0
     for tenant_id in Tenant.objects.values_list("id", flat=True):
         with tenant_atomic(tenant_id):
-            total += Message.objects.filter(
-                status=Message.Status.SENDING, updated_at__lt=limit
-            ).update(
+            stuck = list(
+                Message.objects.filter(
+                    status=Message.Status.SENDING, updated_at__lt=limit
+                ).values_list("id", flat=True)
+            )
+            Message.objects.filter(id__in=stuck).update(
                 status=Message.Status.FAILED,
                 error_code="uncertain",
                 error_detail="Envio não confirmado. Verifique no WhatsApp antes de reenviar.",
             )
+            for message_id in stuck:
+                _settled(message_id)
+            total += len(stuck)
     return total
 
 
@@ -359,3 +422,27 @@ def purge_processed_events() -> int:
 
 def mark_read(conversation: Conversation) -> None:
     Conversation.objects.filter(pk=conversation.pk).update(unread_count=0)
+
+
+def update_conversation(
+    conversation: Conversation, *, user: User, changes: dict[str, Any]
+) -> Conversation:
+    """Vincular/desvincular cliente e encerrar/reabrir. Vínculo limpa a sugestão por CPF."""
+    fields: list[str] = []
+    if "client" in changes and changes["client"] != conversation.client:
+        conversation.client = changes["client"]
+        conversation.suggested_client = None
+        fields += ["client", "suggested_client"]
+        audit.record(
+            "conversation.client_linked" if conversation.client else "conversation.client_unlinked",
+            conversation,
+            actor_type=audit.Actor.USER,
+            actor_user=user,
+            data={"client_id": str(conversation.client.pk) if conversation.client else None},
+        )
+    if "status" in changes and changes["status"] != conversation.status:
+        conversation.status = changes["status"]
+        fields.append("status")
+    if fields:
+        conversation.save(update_fields=[*fields, "updated_at"])
+    return conversation

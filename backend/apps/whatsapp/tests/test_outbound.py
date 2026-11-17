@@ -8,7 +8,7 @@ from apps.whatsapp import services
 from apps.whatsapp.gateway import GatewayError
 from apps.whatsapp.models import Conversation, Message
 
-from .conftest import NUMBER_A, TOKEN_A, status_payload
+from .fixtures import NUMBER_A, TOKEN_A, status_payload
 
 pytestmark = pytest.mark.django_db
 

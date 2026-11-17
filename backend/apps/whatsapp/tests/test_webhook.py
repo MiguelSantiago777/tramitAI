@@ -11,7 +11,7 @@ from apps.whatsapp.models import Conversation, InboundWebhookEvent, Message
 from apps.whatsapp.signature import sign
 from apps.whatsapp.tasks import process_inbound_event
 
-from .conftest import NUMBER_A, NUMBER_B, WEBHOOK
+from .fixtures import NUMBER_A, NUMBER_B, WEBHOOK
 
 pytestmark = pytest.mark.django_db
 

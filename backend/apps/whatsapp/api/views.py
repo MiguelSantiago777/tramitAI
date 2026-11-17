@@ -6,6 +6,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 
 from apps.accounts.models import User
 from apps.core.views_base import schema_safe_queryset
@@ -41,6 +42,13 @@ class ConversationViewSet(
             filters.is_valid(raise_exception=True)
             return selectors.search_conversations(**filters.validated_data)
         return selectors.conversations_with_preview()
+
+    def perform_update(self, serializer: BaseSerializer[Conversation]) -> None:
+        serializer.instance = services.update_conversation(
+            cast(Conversation, serializer.instance),
+            user=cast(User, self.request.user),
+            changes=dict(serializer.validated_data),
+        )
 
     @extend_schema(parameters=[ConversationFilterSerializer])
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:

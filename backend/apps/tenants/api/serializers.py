@@ -18,6 +18,7 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             "id",
             "auto_send_simple_replies",
             "staff_can_approve",
+            "ai_triage_enabled",
             "data_retention_days",
             "message_retention_days",
             "timezone",

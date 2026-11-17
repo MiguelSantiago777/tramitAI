@@ -44,3 +44,41 @@ class TenantModel(models.Model):
         elif self.tenant_id != current:
             raise TenantMismatch("Registro pertence a outro tenant.")
         super().save(*args, **kwargs)
+
+
+class AuditEvent(TenantModel):
+    """Trilha de auditoria append-only (trigger no banco + sem UPDATE/DELETE para a aplicação).
+
+    Guarda quem fez o quê e quando, com referências por id. Conteúdo de mensagem NÃO entra em
+    `data`: ele fica nas tabelas de origem (que podem ser anonimizadas por LGPD).
+    """
+
+    class ActorType(models.TextChoices):
+        USER = "USER", "Usuário"
+        SYSTEM = "SYSTEM", "Sistema"
+        AI = "AI", "IA"
+
+    actor_type = models.CharField(max_length=8, choices=ActorType.choices)
+    actor_user = models.ForeignKey(
+        "accounts.User", on_delete=models.PROTECT, null=True, blank=True, related_name="+"
+    )
+    action = models.CharField(max_length=64)
+    entity_type = models.CharField(max_length=64)
+    entity_id = models.UUIDField()
+    data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = "evento de auditoria"
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["tenant", "entity_type", "entity_id"], name="audit_entity_idx"),
+            models.Index(fields=["tenant", "-created_at"], name="audit_recent_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.action} {self.entity_type}:{self.entity_id}"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self._state.adding:
+            raise ValueError("Evento de auditoria é imutável.")
+        super().save(*args, **kwargs)

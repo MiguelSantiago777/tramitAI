@@ -90,6 +90,17 @@ class Conversation(TenantModel):
     last_inbound_at = models.DateTimeField(null=True, blank=True)
     last_message_at = models.DateTimeField(null=True, blank=True)
     unread_count = models.PositiveIntegerField(default=0)
+    # Cliente encontrado pelo CPF digitado na conversa. Só sugestão: CPF não prova identidade,
+    # então o vínculo depende de confirmação humana.
+    suggested_client = models.ForeignKey(
+        "clientes.Client",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    # Versão do termo de ciência oferecida nesta conversa (rascunho criado).
+    ai_consent_version = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = "conversa"
