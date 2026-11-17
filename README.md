@@ -40,6 +40,23 @@ docker compose exec backend python manage.py simulate_inbound   --phone-number-i
 Depois abra **Conversas** no app e responda. Em produção, o webhook da Meta aponta para
 `/api/webhooks/whatsapp/` (verify token = `WHATSAPP_VERIFY_TOKEN`, assinatura com `WHATSAPP_APP_SECRET`).
 
+## WhatsApp via Baileys (padrão)
+
+Cada escritório conecta o próprio número lendo um QR Code, como no WhatsApp Web:
+**WhatsApp** no menu → **Conectar** → no celular, *Aparelhos conectados → Conectar um aparelho*.
+
+- O serviço `bridge/` (Node + [Baileys](https://github.com/WhiskeySockets/Baileys)) mantém uma
+  sessão por escritório e só conversa com o backend: comandos por HTTP com
+  `Authorization: Bearer $WHATSAPP_BRIDGE_SECRET`; eventos (mensagens, status, conexão) voltam para
+  `/api/webhooks/bridge/` assinados com HMAC-SHA256. A ponte não tem porta publicada.
+- As sessões pareadas ficam no volume `bridge_data`. **É segredo**: quem tiver a pasta controla o
+  WhatsApp do escritório. Disco e backup criptografados.
+- Sem janela de 24h e sem templates: avisos de andamento saem como texto depois da aprovação.
+- Envio com ritmo humano (digitando…, intervalo mínimo de 2s por número) para reduzir risco de
+  bloqueio. **Não é a API oficial**: o WhatsApp pode bloquear números que mandam muita mensagem
+  para contatos novos. Use número dedicado ao escritório.
+- A Cloud API oficial continua suportada (conta `CLOUD_API`); um escritório usa um dos dois.
+
 ## IA (Lia)
 
 - `LLM_PROVIDER=fake` (padrão): respostas determinísticas locais, nada sai da máquina.

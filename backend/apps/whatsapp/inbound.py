@@ -105,3 +105,72 @@ def parse_payload(payload: dict[str, Any]) -> tuple[list[InboundMessage], list[S
                     )
                 )
     return messages, statuses
+
+
+# ---------------------------------------------------------------- ponte Baileys
+
+_BRIDGE_TYPES = {"text", "image", "audio", "video", "document", "sticker", "location", "other"}
+_BRIDGE_STATUSES = {"sent", "delivered", "read", "failed"}
+
+
+@dataclass(frozen=True)
+class ConnectionUpdate:
+    phone_number_id: str  # id da sessão na ponte
+    status: str  # open | connecting | logged_out
+    phone: str
+
+
+def parse_bridge_payload(
+    payload: dict[str, Any],
+) -> tuple[list[InboundMessage], list[StatusUpdate], list[ConnectionUpdate]]:
+    """Evento da ponte → mesmas estruturas do webhook da Meta (+ estado da conexão)."""
+    from .gateway.bridge import message_id
+
+    session = str(payload.get("session_id") or "")
+    messages: list[InboundMessage] = []
+    statuses: list[StatusUpdate] = []
+    connections: list[ConnectionUpdate] = []
+    if not session:
+        return messages, statuses, connections
+
+    event = payload.get("event")
+    if event == "messages":
+        for raw in payload.get("messages") or []:
+            if not isinstance(raw, dict) or not raw.get("id") or not raw.get("from"):
+                continue
+            kind = str(raw.get("type") or "other")
+            messages.append(
+                InboundMessage(
+                    phone_number_id=session,
+                    wa_id=str(raw["from"])[:32],
+                    contact_name=str(raw.get("name") or "")[:200],
+                    wa_message_id=message_id(str(raw["id"])),
+                    type=kind if kind in _BRIDGE_TYPES else "other",
+                    body=str(raw.get("text") or ""),
+                    media_id="",
+                    timestamp=_ts(raw.get("timestamp")),
+                )
+            )
+    elif event == "statuses":
+        for raw in payload.get("statuses") or []:
+            if not isinstance(raw, dict) or raw.get("status") not in _BRIDGE_STATUSES:
+                continue
+            statuses.append(
+                StatusUpdate(
+                    phone_number_id=session,
+                    wa_message_id=message_id(str(raw.get("id"))),
+                    status=str(raw["status"]),
+                    timestamp=_ts(raw.get("timestamp")),
+                    error_code="",
+                    error_detail="",
+                )
+            )
+    elif event == "connection":
+        connections.append(
+            ConnectionUpdate(
+                phone_number_id=session,
+                status=str(payload.get("status") or ""),
+                phone=str(payload.get("phone") or ""),
+            )
+        )
+    return messages, statuses, connections

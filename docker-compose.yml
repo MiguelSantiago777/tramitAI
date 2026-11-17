@@ -71,6 +71,17 @@ services:
       redis:
         condition: service_healthy
 
+  # Ponte WhatsApp (Baileys). Sem porta publicada: só o backend fala com ela.
+  bridge:
+    build: ./bridge
+    environment:
+      WHATSAPP_BRIDGE_SECRET: ${WHATSAPP_BRIDGE_SECRET}
+      BACKEND_WEBHOOK_URL: http://backend:8000/api/webhooks/bridge/
+      DATA_DIR: /data
+    volumes:
+      - bridge_data:/data
+    restart: unless-stopped
+
   frontend:
     image: node:24-bookworm-slim
     working_dir: /app
@@ -87,4 +98,5 @@ services:
 
 volumes:
   pgdata:
+  bridge_data:
   frontend_node_modules:

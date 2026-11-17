@@ -1,0 +1,149 @@
+<header class="page-header">
+  <div>
+    <h1>WhatsApp do escritório</h1>
+    <p>O número que a Lia usa para conversar com os clientes.</p>
+  </div>
+</header>
+
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+<section class="card wa">
+  @switch (status()) {
+    @case (null) {
+      <div class="wa__center"><mat-spinner diameter="32" /></div>
+    }
+
+    @case ('connected') {
+      <div class="wa__state">
+        <span class="wa__icon wa__icon--ok"
+          ><span class="icon icon--filled">check_circle</span></span
+        >
+        <div>
+          <h2>Conectado</h2>
+          <p class="muted">
+            {{ phone() || 'Número conectado' }}
+            @if (state()?.provider === 'CLOUD_API') {
+              · API oficial da Meta
+            } @else {
+              · WhatsApp Web
+            }
+          </p>
+        </div>
+        <span class="wa__spacer"></span>
+        @if (canManage() && state()?.provider === 'BAILEYS') {
+          @if (confirmDisconnect()) {
+            <span class="small">Desconectar o WhatsApp do sistema?</span>
+            <button mat-button type="button" (click)="confirmDisconnect.set(false)">
+              Cancelar
+            </button>
+            <button mat-flat-button type="button" class="wa__danger" (click)="disconnect()">
+              Desconectar
+            </button>
+          } @else {
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="busy()"
+              (click)="confirmDisconnect.set(true)"
+            >
+              Desconectar
+            </button>
+          }
+        }
+      </div>
+    }
+
+    @case ('qr') {
+      <div class="wa__pair">
+        <div class="wa__steps">
+          <h2>Conecte o WhatsApp do escritório</h2>
+          <ol>
+            <li>Abra o WhatsApp no celular do escritório.</li>
+            <li>
+              Toque em <strong>Configurações</strong> (ou nos três pontinhos) e depois em
+              <strong>Aparelhos conectados</strong>.
+            </li>
+            <li>Toque em <strong>Conectar um aparelho</strong> e aponte a câmera para o código.</li>
+          </ol>
+          <p class="muted small">
+            O código muda sozinho a cada poucos segundos. Esta tela atualiza sozinha.
+          </p>
+        </div>
+        <div class="wa__qr">
+          @if (state()?.qr; as qr) {
+            <img [src]="qr" alt="QR Code para conectar o WhatsApp" width="264" height="264" />
+          } @else {
+            <p class="muted small">Só o titular do escritório vê o código.</p>
+          }
+        </div>
+      </div>
+    }
+
+    @case ('connecting') {
+      <div class="wa__state">
+        <span class="wa__icon"><mat-spinner diameter="28" /></span>
+        <div>
+          <h2>Conectando…</h2>
+          <p class="muted">
+            Isso leva alguns segundos. Se demorar, confira se o celular tem internet.
+          </p>
+        </div>
+      </div>
+    }
+
+    @case ('bridge_down') {
+      <div class="wa__state">
+        <span class="wa__icon wa__icon--error"><span class="icon">cloud_off</span></span>
+        <div>
+          <h2>Serviço do WhatsApp fora do ar</h2>
+          <p class="muted">
+            As mensagens não estão sendo recebidas nem enviadas. Tente de novo em instantes.
+          </p>
+        </div>
+        <span class="wa__spacer"></span>
+        <button mat-stroked-button type="button" (click)="refresh()">Tentar de novo</button>
+      </div>
+    }
+
+    @default {
+      <div class="wa__state">
+        <span class="wa__icon wa__icon--idle"><span class="icon">smartphone</span></span>
+        <div>
+          <h2>
+            {{
+              status() === 'disconnected' ? 'WhatsApp desconectado' : 'Nenhum WhatsApp conectado'
+            }}
+          </h2>
+          <p class="muted">
+            Conecte o número do escritório lendo um QR Code, como no WhatsApp Web. As conversas
+            passam a aparecer em Conversas.
+          </p>
+        </div>
+        <span class="wa__spacer"></span>
+        @if (canManage()) {
+          <button mat-flat-button type="button" [disabled]="busy()" (click)="connect()">
+            <span class="icon btn-icon">qr_code_2</span>Conectar
+          </button>
+        } @else {
+          <span class="muted small">Só o titular pode conectar.</span>
+        }
+      </div>
+    }
+  }
+</section>
+
+@if (state()?.provider === 'BAILEYS') {
+  <section class="card wa__notes">
+    <h2 class="section-title"><span class="icon">info</span> Bom saber</h2>
+    <ul class="plain-list">
+      <li>Use um número dedicado ao escritório. Não use o WhatsApp pessoal.</li>
+      <li>O celular precisa ficar com internet pelo menos uma vez a cada 14 dias.</li>
+      <li>
+        Esta conexão usa o WhatsApp Web, que não é a API oficial da Meta. Envios em massa ou para
+        muitos números novos podem fazer o WhatsApp bloquear o número.
+      </li>
+    </ul>
+  </section>
+}

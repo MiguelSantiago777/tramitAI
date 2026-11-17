@@ -26,6 +26,9 @@ FIELD_ENCRYPTION_KEYS = ["dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktMTIzNDU="]
 WHATSAPP_APP_SECRET = "test-app-secret"
 WHATSAPP_VERIFY_TOKEN = "test-verify-token"
 WHATSAPP_GATEWAY = "fake"
+WHATSAPP_BAILEYS_GATEWAY = "fake"
+WHATSAPP_BRIDGE_SECRET = "test-bridge-secret-with-at-least-32-chars"
+WHATSAPP_BRIDGE_URL = "http://bridge.test"
 LLM_PROVIDER = "fake"
 PROCESS_SOURCE = "fake"
 TRIAGE_DEBOUNCE_SECONDS = 0

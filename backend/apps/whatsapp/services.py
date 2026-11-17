@@ -30,7 +30,13 @@ from apps.core.tenancy import tenant_atomic, tenant_context
 from apps.tenants.models import Tenant
 
 from .gateway import Credentials, GatewayError, get_gateway
-from .inbound import InboundMessage, StatusUpdate, parse_payload
+from .inbound import (
+    ConnectionUpdate,
+    InboundMessage,
+    StatusUpdate,
+    parse_bridge_payload,
+    parse_payload,
+)
 from .models import (
     OUTBOUND_STATUS_RANK,
     Conversation,
@@ -76,14 +82,70 @@ def register_account(
     return account
 
 
+def baileys_account() -> WhatsAppAccount | None:
+    """Número Baileys do escritório ativo (no máximo um por escritório)."""
+    return WhatsAppAccount.objects.filter(provider=WhatsAppAccount.Provider.BAILEYS).first()
+
+
+def ensure_baileys_account(*, tenant_id: uuid.UUID, user: User) -> WhatsAppAccount:
+    """Cria (uma vez) a conta Baileys do escritório e a rota da sessão. Tenant ativo."""
+    existing = WhatsAppAccount.objects.exclude(status=WhatsAppAccount.Status.DISABLED).first()
+    if existing is not None and existing.provider != WhatsAppAccount.Provider.BAILEYS:
+        raise ApiError(
+            "Este escritório já usa a API oficial do WhatsApp.",
+            code="cloud_api_in_use",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
+    if existing is not None:
+        return existing
+    session_id = f"bl-{uuid.uuid4().hex[:24]}"
+    account = WhatsAppAccount.objects.create(
+        provider=WhatsAppAccount.Provider.BAILEYS,
+        connection=WhatsAppAccount.Connection.PENDING,
+        phone_number_id=session_id,
+    )
+    PhoneNumberRoute.objects.create(phone_number_id=session_id, tenant_id=tenant_id)
+    audit.record("whatsapp.baileys_created", account, actor_type=audit.Actor.USER, actor_user=user)
+    return account
+
+
+_CONNECTION_FROM_BRIDGE = {
+    "open": WhatsAppAccount.Connection.CONNECTED,
+    "connecting": WhatsAppAccount.Connection.RECONNECTING,
+    "logged_out": WhatsAppAccount.Connection.LOGGED_OUT,
+}
+
+
+def apply_connection(update: ConnectionUpdate) -> None:
+    """Estado da sessão informado pela ponte (tenant ativo)."""
+    new = _CONNECTION_FROM_BRIDGE.get(update.status)
+    account = WhatsAppAccount.objects.filter(phone_number_id=update.phone_number_id).first()
+    if account is None or new is None or account.connection == new:
+        return
+    fields = ["connection", "updated_at"]
+    account.connection = new
+    if update.phone:
+        account.display_phone = f"+{update.phone}"[:32]
+        fields.append("display_phone")
+    account.save(update_fields=fields)
+    audit.record(
+        "whatsapp.connection_changed",
+        account,
+        actor_type=audit.Actor.SYSTEM,
+        data={"connection": new},
+    )
+
+
 # ============================================================================ webhook (entrada)
 
 
-def store_inbound_event(payload: dict[str, Any]) -> InboundWebhookEvent:
+def store_inbound_event(
+    payload: dict[str, Any], source: str = InboundWebhookEvent.Source.META
+) -> InboundWebhookEvent:
     """Grava o payload bruto e agenda o processamento para depois do commit."""
     from .tasks import process_inbound_event
 
-    event = InboundWebhookEvent.objects.create(payload=payload)
+    event = InboundWebhookEvent.objects.create(payload=payload, source=source)
     transaction.on_commit(lambda: process_inbound_event.delay(event.id))
     return event
 
@@ -96,21 +158,29 @@ def process_event(event_id: int) -> None:
         if event is None or event.processed_at is not None:
             return
 
-        messages, statuses = parse_payload(event.payload)
-        by_number: dict[str, tuple[list[InboundMessage], list[StatusUpdate]]] = defaultdict(
-            lambda: ([], [])
-        )
+        connections: list[ConnectionUpdate] = []
+        if event.source == InboundWebhookEvent.Source.BRIDGE:
+            messages, statuses, connections = parse_bridge_payload(event.payload)
+        else:
+            messages, statuses = parse_payload(event.payload)
+        by_number: dict[
+            str, tuple[list[InboundMessage], list[StatusUpdate], list[ConnectionUpdate]]
+        ] = defaultdict(lambda: ([], [], []))
         for m in messages:
             by_number[m.phone_number_id][0].append(m)
         for s in statuses:
             by_number[s.phone_number_id][1].append(s)
+        for c in connections:
+            by_number[c.phone_number_id][2].append(c)
 
-        for phone_number_id, (msgs, sts) in by_number.items():
+        for phone_number_id, (msgs, sts, conns) in by_number.items():
             route = PhoneNumberRoute.objects.filter(phone_number_id=phone_number_id).first()
             if route is None:
                 logger.warning("whatsapp webhook: phone_number_id sem rota (evento %s)", event_id)
                 continue
             with tenant_context(route.tenant_id):
+                for c in conns:
+                    apply_connection(c)
                 created = sum(1 for m in msgs if ingest_message(m) is not None)
                 for s in sts:
                     apply_status(s)
@@ -270,12 +340,18 @@ def apply_status(s: StatusUpdate) -> None:
 
 
 def window_open(conversation: Conversation, *, now: datetime | None = None) -> bool:
+    """Pode mandar texto livre? Na Cloud API, só até 24h depois da última mensagem do contato.
+    No Baileys (WhatsApp Web) não existe essa regra."""
+    if conversation.account.provider == WhatsAppAccount.Provider.BAILEYS:
+        return True
     if conversation.last_inbound_at is None:
         return False
     return (now or timezone.now()) - conversation.last_inbound_at < SERVICE_WINDOW
 
 
 def window_expires_at(conversation: Conversation) -> datetime | None:
+    if conversation.account.provider == WhatsAppAccount.Provider.BAILEYS:
+        return None
     if conversation.last_inbound_at is None:
         return None
     return conversation.last_inbound_at + SERVICE_WINDOW
@@ -435,9 +511,14 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
         message.status = Message.Status.SENDING
         message.save(update_fields=["status", "updated_at"])
         account = message.conversation.account
+        provider = account.provider
         credentials = Credentials(
             phone_number_id=account.phone_number_id,
-            access_token=decrypt_secret(account.access_token_encrypted),
+            access_token=(
+                decrypt_secret(account.access_token_encrypted)
+                if account.access_token_encrypted
+                else ""
+            ),
         )
         to, body = message.conversation.wa_id, message.body
         template = (
@@ -449,11 +530,11 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
     try:
         if template is not None:
             name, language, params = template
-            result = get_gateway().send_template(
+            result = get_gateway(provider).send_template(
                 credentials, to=to, name=name, language=language, params=params
             )
         else:
-            result = get_gateway().send_text(credentials, to=to, body=body)
+            result = get_gateway(provider).send_text(credentials, to=to, body=body)
     except GatewayError as exc:
         with tenant_atomic(tenant_id):
             Message.objects.filter(pk=message_id).update(

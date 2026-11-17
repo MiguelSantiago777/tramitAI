@@ -4,7 +4,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.core.views import HealthView
-from apps.whatsapp.webhook import WhatsAppWebhookView
+from apps.whatsapp.webhook import BridgeWebhookView, WhatsAppWebhookView
 
 handler404 = "apps.core.views.not_found"
 handler500 = "apps.core.views.server_error"
@@ -26,4 +26,5 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
     path("api/v1/", include(api_v1)),
     path("api/webhooks/whatsapp/", WhatsAppWebhookView.as_view(), name="whatsapp-webhook"),
+    path("api/webhooks/bridge/", BridgeWebhookView.as_view(), name="bridge-webhook"),
 ]

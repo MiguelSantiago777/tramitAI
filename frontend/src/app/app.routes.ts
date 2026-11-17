@@ -46,6 +46,14 @@ export const routes: Routes = [
           import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
       },
       {
+        path: 'configuracoes/whatsapp',
+        title: 'WhatsApp · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/whatsapp-connection/whatsapp-connection').then(
+            (m) => m.WhatsAppConnectionPage,
+          ),
+      },
+      {
         path: 'configuracoes/termo',
         title: 'Termo de ciência · TramitAI',
         loadComponent: () =>

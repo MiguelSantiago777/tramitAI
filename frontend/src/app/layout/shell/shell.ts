@@ -50,6 +50,7 @@ export class Shell {
     { path: '/processos', label: 'Processos', icon: 'gavel' },
   ];
   readonly settings: NavLink[] = [
+    { path: '/configuracoes/whatsapp', label: 'WhatsApp', icon: 'smartphone' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
   ];
 

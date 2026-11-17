@@ -8,17 +8,33 @@ from .fake import FakeGateway
 
 __all__ = ["Credentials", "FakeGateway", "GatewayError", "SendResult", "get_gateway"]
 
+CLOUD_API = "CLOUD_API"
+BAILEYS = "BAILEYS"
+
 
 @cache
 def _build(name: str) -> WhatsAppGateway:
     if name == "fake":
-        return FakeGateway()
+        return _fake()
     if name == "cloud_api":
         from .cloud_api import CloudApiGateway
 
         return CloudApiGateway()
-    raise ImproperlyConfigured(f"WHATSAPP_GATEWAY desconhecido: {name}")
+    if name == "bridge":
+        from .bridge import BridgeGateway
+
+        return BridgeGateway()
+    raise ImproperlyConfigured(f"gateway de WhatsApp desconhecido: {name}")
 
 
-def get_gateway() -> WhatsAppGateway:
+@cache
+def _fake() -> FakeGateway:
+    # Um só fake para os dois provedores: os testes inspecionam o que "saiu".
+    return FakeGateway()
+
+
+def get_gateway(provider: str = CLOUD_API) -> WhatsAppGateway:
+    """Gateway do provedor da conta (Cloud API da Meta ou ponte Baileys)."""
+    if provider == BAILEYS:
+        return _build(settings.WHATSAPP_BAILEYS_GATEWAY)
     return _build(settings.WHATSAPP_GATEWAY)

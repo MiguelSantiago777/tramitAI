@@ -1,0 +1,25 @@
+name: bridge
+
+on:
+  push:
+    paths: ["bridge/**", ".github/workflows/bridge.yml"]
+  pull_request:
+    paths: ["bridge/**", ".github/workflows/bridge.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bridge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: bridge/package-lock.json
+      # Scripts de instalação do baileys/protobufjs só checam versão.
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: node --check src/server.js

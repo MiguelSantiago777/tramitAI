@@ -170,6 +170,12 @@ WHATSAPP_GATEWAY: str = env("WHATSAPP_GATEWAY", default="fake")
 WHATSAPP_GRAPH_URL: str = env("WHATSAPP_GRAPH_URL", default="https://graph.facebook.com")
 WHATSAPP_GRAPH_VERSION: str = env("WHATSAPP_GRAPH_VERSION", default="v24.0")
 WHATSAPP_HTTP_TIMEOUT: float = env.float("WHATSAPP_HTTP_TIMEOUT", default=10.0)
+# Ponte Baileys (WhatsApp Web, não oficial). Uma sessão por escritório no serviço `bridge`.
+WHATSAPP_BRIDGE_URL: str = env("WHATSAPP_BRIDGE_URL", default="http://bridge:3100")
+WHATSAPP_BRIDGE_SECRET: str = env("WHATSAPP_BRIDGE_SECRET", default="")
+# "bridge" (ponte real) ou "fake" (testes).
+WHATSAPP_BAILEYS_GATEWAY: str = env("WHATSAPP_BAILEYS_GATEWAY", default="bridge")
+WHATSAPP_BRIDGE_TIMEOUT: float = env.float("WHATSAPP_BRIDGE_TIMEOUT", default=30.0)
 # Payload bruto do webhook contém mensagens: guardar só o necessário para reprocessar.
 WEBHOOK_EVENT_RETENTION_DAYS: int = env.int("WEBHOOK_EVENT_RETENTION_DAYS", default=7)
 

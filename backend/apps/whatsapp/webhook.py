@@ -11,6 +11,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from . import services
+from .models import InboundWebhookEvent
 from .signature import is_valid_signature
 
 logger = logging.getLogger(__name__)
@@ -46,4 +47,25 @@ class WhatsAppWebhookView(View):
 
         services.store_inbound_event(payload)
         # 200 rápido: a Meta reenvia se demorar ou falhar. Processamento é idempotente.
+        return HttpResponse(status=200)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class BridgeWebhookView(View):
+    """Eventos da ponte Baileys (mensagens, status, conexão). Assinados com HMAC-SHA256."""
+
+    http_method_names = ["post"]
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        signature = request.headers.get("X-Bridge-Signature")
+        if not is_valid_signature(request.body, signature, settings.WHATSAPP_BRIDGE_SECRET):
+            logger.warning("bridge webhook: assinatura inválida ou ausente")
+            return HttpResponse(status=401)
+        try:
+            payload = json.loads(request.body)
+        except ValueError:
+            return HttpResponse(status=400)
+        if not isinstance(payload, dict):
+            return HttpResponse(status=400)
+        services.store_inbound_event(payload, source=InboundWebhookEvent.Source.BRIDGE)
         return HttpResponse(status=200)

@@ -30,7 +30,12 @@ class InboundWebhookEvent(models.Model):
     Nunca logar `payload`.
     """
 
+    class Source(models.TextChoices):
+        META = "meta", "Meta (Cloud API)"
+        BRIDGE = "bridge", "Ponte Baileys"
+
     id = models.BigAutoField(primary_key=True)
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.META)
     payload = models.JSONField()
     received_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
@@ -51,17 +56,37 @@ class InboundWebhookEvent(models.Model):
 
 
 class WhatsAppAccount(TenantModel):
-    """Número de WhatsApp Business do escritório (onboarding manual no piloto)."""
+    """Número de WhatsApp do escritório.
+
+    Dois provedores: CLOUD_API (oficial da Meta, onboarding manual) e BAILEYS (WhatsApp Web
+    via ponte, pareado por QR Code). No Baileys, `phone_number_id` é o id da sessão na ponte.
+    """
 
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Ativo"
         DISABLED = "DISABLED", "Desativado"
 
+    class Provider(models.TextChoices):
+        CLOUD_API = "CLOUD_API", "WhatsApp Cloud API (Meta)"
+        BAILEYS = "BAILEYS", "WhatsApp Web (Baileys)"
+
+    class Connection(models.TextChoices):
+        PENDING = "PENDING", "Aguardando pareamento"
+        CONNECTED = "CONNECTED", "Conectado"
+        RECONNECTING = "RECONNECTING", "Reconectando"
+        LOGGED_OUT = "LOGGED_OUT", "Desconectado"
+
+    provider = models.CharField(max_length=10, choices=Provider.choices, default=Provider.CLOUD_API)
+    # Último estado informado pela ponte (Baileys). Cloud API fica sempre CONNECTED.
+    connection = models.CharField(
+        max_length=12, choices=Connection.choices, default=Connection.CONNECTED
+    )
     phone_number_id = models.CharField(max_length=64, unique=True)
-    waba_id = models.CharField(max_length=64)
-    display_phone = models.CharField(max_length=32)
+    waba_id = models.CharField(max_length=64, blank=True, default="")
+    display_phone = models.CharField(max_length=32, blank=True, default="")
     # Token da Cloud API cifrado com apps.core.crypto. Nunca sai pela API nem por log.
-    access_token_encrypted = models.TextField()
+    # Vazio no Baileys (o segredo da sessão fica no volume da ponte).
+    access_token_encrypted = models.TextField(blank=True, default="")
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     # Modelo (template) utility aprovado na WABA do escritório para avisar de andamento fora da
     # janela de 24h. Texto esperado em apps/whatsapp/templates.py (o README explica como criar).

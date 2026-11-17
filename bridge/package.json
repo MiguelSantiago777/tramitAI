@@ -1,0 +1,19 @@
+{
+  "name": "tramitai-whatsapp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ponte WhatsApp (Baileys) do TramitAI: uma sessão por escritório, fala com o backend por HTTP assinado.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "baileys": "7.0.0-rc14",
+    "pino": "10.4.0",
+    "qrcode": "1.5.4"
+  }
+}
