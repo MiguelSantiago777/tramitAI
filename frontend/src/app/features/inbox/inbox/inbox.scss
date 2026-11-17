@@ -1,0 +1,120 @@
+.inbox {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  height: calc(100vh - 64px - 48px);
+  min-height: 420px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+.inbox__list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  min-height: 0;
+}
+
+.inbox__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.inbox__toggle {
+  width: 100%;
+
+  mat-button-toggle {
+    flex: 1;
+  }
+}
+
+.inbox__items {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.inbox__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--mat-sys-surface-container);
+  }
+}
+
+.inbox__item--active {
+  background: var(--mat-sys-secondary-container);
+}
+
+.inbox__item-top,
+.inbox__item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.inbox__name {
+  font: var(--mat-sys-title-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox__preview {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox__badge {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  text-align: center;
+  font: var(--mat-sys-label-small);
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
+.inbox__tag {
+  font: var(--mat-sys-label-small);
+  color: var(--mat-sys-tertiary);
+}
+
+.inbox__thread {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.inbox__empty {
+  padding: 24px;
+}
+
+// Celular: uma coluna por vez.
+@media (max-width: 760px) {
+  .inbox {
+    grid-template-columns: 1fr;
+  }
+
+  .inbox--thread-open .inbox__list {
+    display: none;
+  }
+
+  .inbox:not(.inbox--thread-open) .inbox__thread {
+    display: none;
+  }
+}

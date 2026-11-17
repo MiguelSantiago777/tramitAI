@@ -1,0 +1,124 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.thread__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.thread__who {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.thread__back {
+  display: none;
+}
+
+.thread__client {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.thread__messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.thread__older {
+  align-self: center;
+}
+
+.bubble {
+  max-width: min(75%, 560px);
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.bubble--out {
+  align-self: flex-end;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  border-color: transparent;
+}
+
+.bubble[data-status='FAILED'] {
+  border: 1px solid var(--mat-sys-error);
+}
+
+.bubble__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bubble__media {
+  font: var(--mat-sys-label-medium);
+  opacity: 0.8;
+}
+
+.bubble__meta {
+  display: block;
+  margin-top: 4px;
+  font: var(--mat-sys-label-small);
+  opacity: 0.75;
+  text-align: right;
+}
+
+.bubble[data-status='READ'] .bubble__meta {
+  color: var(--mat-sys-primary);
+  opacity: 1;
+}
+
+.bubble__error {
+  display: block;
+  margin-top: 4px;
+  font: var(--mat-sys-label-small);
+  color: var(--mat-sys-error);
+}
+
+.thread__error {
+  padding: 0 12px;
+}
+
+.thread__composer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.thread__closed {
+  margin: 8px 0;
+}
+
+@media (max-width: 760px) {
+  .thread__back {
+    display: inline-flex;
+  }
+
+  .bubble {
+    max-width: 88%;
+  }
+}

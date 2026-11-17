@@ -20,6 +20,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
       },
       {
+        path: 'inbox',
+        title: 'Conversas · TramitAI',
+        loadComponent: () => import('./features/inbox/inbox/inbox').then((m) => m.Inbox),
+      },
+      {
+        path: 'inbox/:id',
+        title: 'Conversa · TramitAI',
+        loadComponent: () => import('./features/inbox/inbox/inbox').then((m) => m.Inbox),
+      },
+      {
         path: 'clientes',
         loadChildren: () =>
           import('./features/clientes/clientes.routes').then((m) => m.CLIENTES_ROUTES),

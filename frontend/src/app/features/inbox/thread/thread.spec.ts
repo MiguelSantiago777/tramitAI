@@ -1,0 +1,132 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of, throwError } from 'rxjs';
+
+import { ClientsService } from '../../clientes/clients.service';
+import { Conversation, Message } from '../inbox.models';
+import { InboxService } from '../inbox.service';
+import { Thread } from './thread';
+
+const conversation: Conversation = {
+  id: 'conv1',
+  wa_id: '5521998765432',
+  phone: '+5521998765432',
+  contact_name: 'Maria',
+  client_id: null,
+  client_name: '',
+  status: 'OPEN',
+  last_inbound_at: '2026-11-17T10:00:00Z',
+  last_message_at: '2026-11-17T10:05:00Z',
+  unread_count: 0,
+  window_open: true,
+  window_expires_at: '2026-11-18T10:00:00Z',
+  last_message: null,
+};
+
+function msg(id: string, direction: 'IN' | 'OUT', body: string, extra: Partial<Message> = {}) {
+  return {
+    id,
+    direction,
+    type: 'text',
+    body,
+    status: direction === 'IN' ? 'RECEIVED' : 'SENT',
+    error_detail: '',
+    sent_by_name: direction === 'OUT' ? 'Dra. Ana' : '',
+    wa_timestamp: null,
+    delivered_at: null,
+    read_at: null,
+    created_at: '2026-11-17T10:00:00Z',
+    ...extra,
+  } as Message;
+}
+
+describe('Thread', () => {
+  let fixture: ComponentFixture<Thread>;
+  let inbox: Record<string, ReturnType<typeof vi.fn>>;
+
+  async function setup(conv: Conversation, newestFirst: Message[]) {
+    inbox = {
+      get: vi.fn(() => of(conv)),
+      messages: vi.fn(() =>
+        of({ count: newestFirst.length, next: null, previous: null, results: newestFirst }),
+      ),
+      markRead: vi.fn(() => of(undefined)),
+      send: vi.fn(),
+      update: vi.fn(),
+    };
+    await TestBed.configureTestingModule({
+      imports: [Thread],
+      providers: [
+        provideRouter([]),
+        { provide: InboxService, useValue: inbox },
+        { provide: ClientsService, useValue: { list: vi.fn(() => of({ results: [] })) } },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(Thread);
+    fixture.componentRef.setInput('conversationId', conv.id);
+    await fixture.whenStable();
+  }
+
+  const el = () => fixture.nativeElement as HTMLElement;
+
+  afterEach(() => fixture?.destroy());
+
+  it('mostra as mensagens em ordem cronológica e marca como lida', async () => {
+    await setup(conversation, [msg('2', 'OUT', 'Vou verificar.'), msg('1', 'IN', 'Bom dia')]);
+
+    const bodies = [...el().querySelectorAll('.bubble__body')].map((b) => b.textContent);
+    expect(bodies).toEqual(['Bom dia', 'Vou verificar.']);
+    expect(el().textContent).toContain('Enviada ✓');
+    expect(inbox['markRead']).toHaveBeenCalledWith('conv1');
+  });
+
+  it('envia a resposta e acrescenta na conversa', async () => {
+    await setup(conversation, [msg('1', 'IN', 'Bom dia')]);
+    inbox['send'].mockReturnValue(of(msg('9', 'OUT', 'Olá!', { status: 'QUEUED' })));
+
+    fixture.componentInstance.draft.setValue('  Olá!  ');
+    fixture.componentInstance.send();
+    await fixture.whenStable();
+
+    expect(inbox['send']).toHaveBeenCalledWith('conv1', 'Olá!');
+    expect(fixture.componentInstance.messages().map((m) => m.id)).toEqual(['1', '9']);
+    expect(el().textContent).toContain('Enviando…');
+    expect(fixture.componentInstance.draft.value).toBe('');
+  });
+
+  it('esconde o campo de resposta quando a janela de 24h está fechada', async () => {
+    await setup({ ...conversation, window_open: false }, [msg('1', 'IN', 'Oi')]);
+    expect(el().querySelector('[data-testid="window-closed"]')).not.toBeNull();
+    expect(el().querySelector('textarea')).toBeNull();
+  });
+
+  it('mostra o erro do backend ao enviar', async () => {
+    await setup(conversation, []);
+    inbox['send'].mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: {
+              error: {
+                code: 'window_closed',
+                message: 'A janela de 24h do WhatsApp está fechada.',
+              },
+            },
+          }),
+      ),
+    );
+    fixture.componentInstance.draft.setValue('Oi');
+    fixture.componentInstance.send();
+    await fixture.whenStable();
+    expect(el().textContent).toContain('A janela de 24h do WhatsApp está fechada.');
+  });
+
+  it('mostra o motivo de falha do envio', async () => {
+    await setup(conversation, [
+      msg('2', 'OUT', 'Oi', { status: 'FAILED', error_detail: 'Número sem WhatsApp' }),
+    ]);
+    expect(el().querySelector('.bubble__error')?.textContent).toContain('Número sem WhatsApp');
+  });
+});

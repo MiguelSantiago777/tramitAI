@@ -1,0 +1,109 @@
+@if (conversation(); as c) {
+  <header class="thread__header">
+    <a mat-button routerLink="/inbox" class="thread__back">Voltar</a>
+    <div class="thread__who">
+      <strong>{{ title() }}</strong>
+      <span class="muted small">
+        {{ formatPhone(c.phone) }}
+        @if (c.contact_name && c.client_name) {
+          · perfil: {{ c.contact_name }}
+        }
+      </span>
+    </div>
+    <button mat-stroked-button type="button" (click)="toggleStatus()">
+      {{ c.status === 'OPEN' ? 'Encerrar' : 'Reabrir' }}
+    </button>
+  </header>
+
+  <div class="thread__client">
+    @if (c.client_id) {
+      <span>
+        Cliente: <a [routerLink]="['/clientes', c.client_id]">{{ c.client_name }}</a>
+      </span>
+      <button mat-button type="button" (click)="unlinkClient()">Desvincular</button>
+    } @else {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+        <mat-label>Vincular a um cliente</mat-label>
+        <input
+          matInput
+          [formControl]="clientSearch"
+          [matAutocomplete]="clientAuto"
+          placeholder="Digite o nome ou CPF"
+        />
+        <mat-autocomplete
+          #clientAuto="matAutocomplete"
+          [displayWith]="displayClient"
+          (optionSelected)="linkClient($event)"
+        >
+          @for (option of clientOptions(); track option.id) {
+            <mat-option [value]="option">{{ option.name }}</mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+    }
+  </div>
+}
+
+<div class="thread__messages" role="log" aria-live="polite">
+  @if (hasOlder()) {
+    <button mat-button type="button" class="thread__older" (click)="loadOlder()">
+      Carregar mensagens anteriores
+    </button>
+  }
+  @for (m of messages(); track m.id) {
+    <div class="bubble" [class.bubble--out]="m.direction === 'OUT'" [attr.data-status]="m.status">
+      @if (m.type !== 'text') {
+        <span class="bubble__media">[{{ mediaLabel(m) }}]</span>
+      }
+      @if (m.body) {
+        <p class="bubble__body">{{ m.body }}</p>
+      }
+      <span class="bubble__meta">
+        {{ m.wa_timestamp || m.created_at | date: 'dd/MM HH:mm' }}
+        @if (m.direction === 'OUT') {
+          @if (m.sent_by_name) {
+            · {{ m.sent_by_name }}
+          }
+          · {{ outboundLabels[m.status] }}
+        }
+      </span>
+      @if (m.status === 'FAILED' && m.error_detail) {
+        <span class="bubble__error" role="alert">{{ m.error_detail }}</span>
+      }
+    </div>
+  } @empty {
+    <p class="muted">Sem mensagens.</p>
+  }
+</div>
+
+@if (error(); as message) {
+  <p class="error-text thread__error" role="alert">{{ message }}</p>
+}
+
+<footer class="thread__composer">
+  @if (canReply()) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+      <mat-label>Responder</mat-label>
+      <textarea
+        matInput
+        [formControl]="draft"
+        rows="2"
+        (keydown)="onComposerKeydown($event)"
+        placeholder="Escreva a resposta (Ctrl+Enter envia)"
+      ></textarea>
+    </mat-form-field>
+    <button
+      mat-flat-button
+      type="button"
+      (click)="send()"
+      [disabled]="sending() || draft.invalid || !draft.value.trim()"
+    >
+      Enviar
+    </button>
+  } @else if (conversation()) {
+    <p class="muted small thread__closed" data-testid="window-closed">
+      A janela de 24h do WhatsApp está fechada: o cliente não manda mensagem há mais de 24 horas. Só
+      é possível enviar um modelo aprovado pela Meta (chega na etapa de andamentos).
+    </p>
+  }
+</footer>

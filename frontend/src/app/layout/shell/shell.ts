@@ -78,6 +78,7 @@ export class Shell {
 
   readonly links = [
     { path: '/', label: 'Início' },
+    { path: '/inbox', label: 'Conversas' },
     { path: '/clientes', label: 'Clientes' },
     { path: '/processos', label: 'Processos' },
     { path: '/configuracoes/termo', label: 'Termo de IA' },

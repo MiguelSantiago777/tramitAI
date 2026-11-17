@@ -1,0 +1,60 @@
+<div class="inbox" [class.inbox--thread-open]="!!id()">
+  <aside class="inbox__list" aria-label="Conversas">
+    <div class="inbox__filters">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full">
+        <mat-label>Buscar conversa</mat-label>
+        <input matInput [formControl]="search" placeholder="Nome ou telefone" />
+      </mat-form-field>
+      <mat-button-toggle-group [formControl]="filter" aria-label="Filtro" class="inbox__toggle">
+        <mat-button-toggle value="all">Abertas</mat-button-toggle>
+        <mat-button-toggle value="unread">Não lidas</mat-button-toggle>
+        <mat-button-toggle value="closed">Encerradas</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    @if (error(); as message) {
+      <p class="error-text" role="alert">{{ message }}</p>
+    }
+
+    <nav class="inbox__items">
+      @for (c of conversations(); track c.id) {
+        <a
+          class="inbox__item"
+          [class.inbox__item--active]="c.id === id()"
+          [routerLink]="['/inbox', c.id]"
+        >
+          <div class="inbox__item-top">
+            <span class="inbox__name">{{ title(c) }}</span>
+            <span class="muted small">{{ c.last_message_at | date: 'dd/MM HH:mm' }}</span>
+          </div>
+          <div class="inbox__item-bottom">
+            <span class="inbox__preview">
+              @if (c.last_message?.direction === 'OUT') {
+                <span class="muted">Você: </span>
+              }
+              {{ c.last_message?.preview }}
+            </span>
+            @if (c.unread_count > 0) {
+              <span class="inbox__badge" [attr.aria-label]="c.unread_count + ' não lidas'">
+                {{ c.unread_count }}
+              </span>
+            }
+          </div>
+          @if (!c.client_id) {
+            <span class="inbox__tag">Sem cliente vinculado</span>
+          }
+        </a>
+      } @empty {
+        <p class="muted inbox__empty">Nenhuma conversa.</p>
+      }
+    </nav>
+  </aside>
+
+  <section class="inbox__thread">
+    @if (id(); as conversationId) {
+      <app-thread [conversationId]="conversationId" (changed)="onThreadChanged()" />
+    } @else {
+      <p class="muted inbox__empty">Escolha uma conversa.</p>
+    }
+  </section>
+</div>
