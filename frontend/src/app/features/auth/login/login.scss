@@ -1,0 +1,25 @@
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.login__card {
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.login__error {
+  margin: 0;
+  color: var(--mat-sys-error);
+}
