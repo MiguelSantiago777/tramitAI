@@ -69,6 +69,28 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="span-2">
+      <mat-label>Etiquetas</mat-label>
+      <mat-select formControlName="tag_ids" multiple>
+        <mat-select-trigger>
+          <span class="tag-list">
+            @for (t of tags(); track t.id) {
+              @if (form.controls.tag_ids.value.includes(t.id)) {
+                <span class="tag-chip" [attr.data-color]="t.color">{{ t.name }}</span>
+              }
+            }
+          </span>
+        </mat-select-trigger>
+        @for (t of tags(); track t.id) {
+          <mat-option [value]="t.id">
+            <span class="tag-chip" [attr.data-color]="t.color">{{ t.name }}</span>
+          </mat-option>
+        } @empty {
+          <mat-option disabled>Nenhuma etiqueta. Crie em Configurações → Etiquetas.</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="span-2">
       <mat-label>Observações</mat-label>
       <textarea matInput formControlName="notes" rows="3"></textarea>
       <mat-hint>Evite dados sensíveis desnecessários (LGPD).</mat-hint>

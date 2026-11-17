@@ -1,0 +1,104 @@
+<header class="page-header">
+  <div>
+    <h1>Funil de novos clientes</h1>
+    <p>Do primeiro contato até contratar. Arraste os cartões entre as etapas.</p>
+  </div>
+  <button mat-flat-button type="button" (click)="create()">
+    <span class="icon btn-icon">add</span>Novo contato
+  </button>
+</header>
+
+@if (summary(); as s) {
+  <section class="kpis">
+    <div class="kpi card">
+      <span class="kpi__value">{{ s.open_count }}</span>
+      <span class="kpi__label">em negociação</span>
+    </div>
+    <div class="kpi card">
+      <span class="kpi__value">{{ money(s.open_value) }}</span>
+      <span class="kpi__label">em honorários estimados</span>
+    </div>
+    <div class="kpi card">
+      <span class="kpi__value">{{ conversion() }}</span>
+      <span class="kpi__label">fecharam contrato ({{ s.period_days }} dias)</span>
+    </div>
+    <div class="kpi card">
+      <span class="kpi__value">{{ s.won_count }}</span>
+      <span class="kpi__label">novos clientes · {{ money(s.won_value) }}</span>
+    </div>
+  </section>
+}
+
+<div class="filters">
+  <mat-button-toggle-group [formControl]="who" aria-label="De quem">
+    <mat-button-toggle value="">Todos</mat-button-toggle>
+    <mat-button-toggle value="me">Meus</mat-button-toggle>
+    <mat-button-toggle value="none">Sem responsável</mat-button-toggle>
+  </mat-button-toggle-group>
+  <mat-form-field appearance="outline" class="filters__search" subscriptSizing="dynamic">
+    <span matPrefix class="icon search-icon">search</span>
+    <mat-label>Buscar</mat-label>
+    <input matInput [formControl]="search" placeholder="Nome ou assunto" />
+  </mat-form-field>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+<div class="board" cdkDropListGroup>
+  @for (col of columns(); track col.id) {
+    <section class="column" [attr.data-stage]="col.id">
+      <header class="column__header">
+        <strong>{{ col.label }}</strong>
+        <span class="column__count">{{ col.items.length }}</span>
+        <span class="column__value">{{ columnValue(col) }}</span>
+      </header>
+      <p class="column__hint">{{ col.hint }}</p>
+      <div
+        class="column__list"
+        cdkDropList
+        [cdkDropListData]="col.items"
+        (cdkDropListDropped)="drop($event, col.id)"
+      >
+        @for (o of col.items; track o.id) {
+          <article class="opp" cdkDrag (click)="open(o)" (keydown.enter)="open(o)" tabindex="0">
+            <div class="opp__top">
+              <strong class="opp__name">{{ o.client_name }}</strong>
+              @if (o.owner_name) {
+                <span class="avatar opp__owner" [title]="o.owner_name">{{
+                  initials(o.owner_name)
+                }}</span>
+              }
+            </div>
+            <span class="opp__title">{{ o.title }}</span>
+            <div class="opp__meta">
+              @if (areaLabel(o)) {
+                <span class="tag-chip" data-color="slate">{{ areaLabel(o) }}</span>
+              }
+              @if (o.estimated_value) {
+                <span class="opp__value">{{ money(o.estimated_value) }}</span>
+              }
+            </div>
+            <div class="opp__foot">
+              <span [title]="sourceLabel(o)"
+                ><span class="icon">{{ sourceIcon(o) }}</span></span
+              >
+              @if (o.stage === 'LOST' && o.lost_reason) {
+                <span class="opp__lost">{{ o.lost_reason }}</span>
+              } @else {
+                <span>{{ daysInStage(o) === 0 ? 'hoje' : daysInStage(o) + 'd nesta etapa' }}</span>
+              }
+            </div>
+            <div class="opp__placeholder" *cdkDragPlaceholder></div>
+          </article>
+        } @empty {
+          <span class="column__empty">Arraste para cá</span>
+        }
+      </div>
+    </section>
+  }
+</div>

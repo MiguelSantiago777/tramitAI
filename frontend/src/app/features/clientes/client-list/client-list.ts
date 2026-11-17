@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,11 +9,11 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, merge } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, merge, of } from 'rxjs';
 
 import { toApiError } from '../../../core/http/api-error';
 import { formatDocument, formatPhone } from '../../../shared/br';
-import { CLIENT_STATUS_LABELS, Client, ClientStatus } from '../client.models';
+import { CLIENT_STATUS_LABELS, Client, ClientStatus, Tag } from '../client.models';
 import { ClientsService } from '../clients.service';
 
 @Component({
@@ -30,6 +30,15 @@ import { ClientsService } from '../clients.service';
     MatTableModule,
   ],
   templateUrl: './client-list.html',
+  styles: `
+    .client-name {
+      display: block;
+      font-weight: 550;
+    }
+    .tag-list {
+      margin-top: 4px;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientList {
@@ -44,6 +53,10 @@ export class ClientList {
 
   readonly search = new FormControl('', { nonNullable: true });
   readonly status = new FormControl<ClientStatus | ''>('', { nonNullable: true });
+  readonly tag = new FormControl('', { nonNullable: true });
+  readonly tags = toSignal(this.clients.tags().pipe(catchError(() => of([] as Tag[]))), {
+    initialValue: [] as Tag[],
+  });
 
   readonly rows = signal<Client[]>([]);
   readonly total = signal(0);
@@ -56,6 +69,7 @@ export class ClientList {
     merge(
       this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged()),
       this.status.valueChanges,
+      this.tag.valueChanges,
     )
       .pipe(takeUntilDestroyed(inject(DestroyRef)))
       .subscribe(() => {
@@ -83,7 +97,11 @@ export class ClientList {
     this.loading.set(true);
     this.error.set(null);
     this.clients
-      .list({ q: this.search.value, status: this.status.value }, this.pageIndex(), this.pageSize())
+      .list(
+        { q: this.search.value, status: this.status.value, tag_id: this.tag.value },
+        this.pageIndex(),
+        this.pageSize(),
+      )
       .subscribe({
         next: (page) => {
           this.rows.set(page.results);

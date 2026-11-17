@@ -7,6 +7,7 @@ import { signal } from '@angular/core';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { DraftsService } from '../../aprovacoes/drafts.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { ClientsService } from '../../clientes/clients.service';
 import { Conversation, Message } from '../inbox.models';
 import { InboxService } from '../inbox.service';
@@ -22,6 +23,8 @@ const conversation: Conversation = {
   suggested_client_id: null,
   suggested_client_name: '',
   pending_drafts: 0,
+  assignee_id: null,
+  assignee_name: '',
   ai_consent_version: null,
   status: 'OPEN',
   last_inbound_at: '2026-11-17T10:00:00Z',
@@ -68,6 +71,7 @@ describe('Thread', () => {
       providers: [
         provideRouter([]),
         { provide: InboxService, useValue: inbox },
+        { provide: TenantService, useValue: { members: () => of([]) } },
         { provide: ClientsService, useValue: { list: vi.fn(() => of({ results: [] })) } },
         {
           provide: DraftsService,

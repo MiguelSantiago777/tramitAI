@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { Page, listParams } from '../../core/http/page';
-import { Conversation, ConversationStatus, Message } from './inbox.models';
+import { Conversation, ConversationStatus, Message, QuickReply } from './inbox.models';
 
 const URL = '/api/v1/conversations/';
 
@@ -11,6 +11,7 @@ export interface ConversationFilters {
   q?: string;
   status?: ConversationStatus | '';
   unread?: boolean;
+  assignee?: '' | 'me' | 'none';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +21,12 @@ export class InboxService {
   list(filters: ConversationFilters = {}, pageSize = 50): Observable<Page<Conversation>> {
     return this.http.get<Page<Conversation>>(URL, {
       params: listParams(
-        { q: filters.q, status: filters.status, unread: filters.unread ? 'true' : '' },
+        {
+          q: filters.q,
+          status: filters.status,
+          unread: filters.unread ? 'true' : '',
+          assignee: filters.assignee,
+        },
         0,
         pageSize,
       ),
@@ -47,8 +53,28 @@ export class InboxService {
 
   update(
     id: string,
-    changes: { client_id?: string | null; status?: ConversationStatus },
+    changes: {
+      client_id?: string | null;
+      status?: ConversationStatus;
+      assignee_id?: string | null;
+    },
   ): Observable<Conversation> {
     return this.http.patch<Conversation>(`${URL}${id}/`, changes);
+  }
+
+  quickReplies(): Observable<QuickReply[]> {
+    return this.http.get<QuickReply[]>('/api/v1/quick-replies/');
+  }
+
+  createQuickReply(body: { title: string; body: string }): Observable<QuickReply> {
+    return this.http.post<QuickReply>('/api/v1/quick-replies/', body);
+  }
+
+  updateQuickReply(id: string, body: { title: string; body: string }): Observable<QuickReply> {
+    return this.http.patch<QuickReply>(`/api/v1/quick-replies/${id}/`, body);
+  }
+
+  deleteQuickReply(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/quick-replies/${id}/`);
   }
 }

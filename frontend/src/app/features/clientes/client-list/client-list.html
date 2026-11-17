@@ -23,6 +23,19 @@
       }
     </mat-select>
   </mat-form-field>
+  @if (tags().length > 0) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Etiqueta</mat-label>
+      <mat-select [formControl]="tag">
+        <mat-option value="">Todas</mat-option>
+        @for (t of tags(); track t.id) {
+          <mat-option [value]="t.id">
+            <span class="tag-chip" [attr.data-color]="t.color">{{ t.name }}</span>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
 </div>
 
 @if (loading()) {
@@ -36,7 +49,16 @@
   <table mat-table [dataSource]="rows()">
     <ng-container matColumnDef="name">
       <th mat-header-cell *matHeaderCellDef>Nome</th>
-      <td mat-cell *matCellDef="let c">{{ c.name }}</td>
+      <td mat-cell *matCellDef="let c">
+        <span class="client-name">{{ c.name }}</span>
+        @if (c.tags.length > 0) {
+          <span class="tag-list">
+            @for (t of c.tags; track t.id) {
+              <span class="tag-chip" [attr.data-color]="t.color">{{ t.name }}</span>
+            }
+          </span>
+        }
+      </td>
     </ng-container>
     <ng-container matColumnDef="cpf_cnpj">
       <th mat-header-cell *matHeaderCellDef>CPF/CNPJ</th>

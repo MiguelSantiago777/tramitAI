@@ -10,6 +10,8 @@ import {
   ClientNote,
   ClientStatus,
   NoteKind,
+  Tag,
+  TagColor,
   TermAcceptance,
   Timeline,
 } from './client.models';
@@ -19,6 +21,7 @@ const URL = '/api/v1/clients/';
 export interface ClientFilters {
   q?: string;
   status?: ClientStatus | '';
+  tag_id?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -62,5 +65,21 @@ export class ClientsService {
 
   addNote(id: string, body: { kind: NoteKind; body: string }): Observable<ClientNote> {
     return this.http.post<ClientNote>(`${URL}${id}/notes/`, body);
+  }
+
+  tags(): Observable<Tag[]> {
+    return this.http.get<Tag[]>('/api/v1/tags/');
+  }
+
+  createTag(body: { name: string; color: TagColor }): Observable<Tag> {
+    return this.http.post<Tag>('/api/v1/tags/', body);
+  }
+
+  updateTag(id: string, body: { name?: string; color?: TagColor }): Observable<Tag> {
+    return this.http.patch<Tag>(`/api/v1/tags/${id}/`, body);
+  }
+
+  deleteTag(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/tags/${id}/`);
   }
 }

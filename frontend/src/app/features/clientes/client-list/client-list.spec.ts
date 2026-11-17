@@ -22,6 +22,7 @@ describe('ClientList', () => {
             email: '',
             status: 'LEAD',
             notes: '',
+            tags: [],
             created_at: '',
             updated_at: '',
           },
@@ -30,7 +31,10 @@ describe('ClientList', () => {
     );
     await TestBed.configureTestingModule({
       imports: [ClientList],
-      providers: [provideRouter([]), { provide: ClientsService, useValue: { list } }],
+      providers: [
+        provideRouter([]),
+        { provide: ClientsService, useValue: { list, tags: vi.fn(() => of([])) } },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(ClientList);
@@ -43,6 +47,6 @@ describe('ClientList', () => {
     expect(text).toContain('Lead');
 
     fixture.componentInstance.status.setValue('ARCHIVED');
-    expect(list).toHaveBeenLastCalledWith({ q: '', status: 'ARCHIVED' }, 0, 25);
+    expect(list).toHaveBeenLastCalledWith({ q: '', status: 'ARCHIVED', tag_id: '' }, 0, 25);
   });
 });

@@ -16,6 +16,8 @@ const base: Conversation = {
   suggested_client_id: null,
   suggested_client_name: '',
   pending_drafts: 1,
+  assignee_id: null,
+  assignee_name: '',
   ai_consent_version: 1,
   status: 'OPEN',
   last_inbound_at: null,
@@ -65,7 +67,7 @@ describe('Inbox', () => {
     expect(items[0].textContent).toContain('Rascunho aguardando aprovação');
 
     fixture.componentInstance.filter.setValue('unread');
-    expect(list).toHaveBeenLastCalledWith({ q: '', unread: true, status: 'OPEN' });
+    expect(list).toHaveBeenLastCalledWith({ q: '', unread: true, status: 'OPEN', assignee: '' });
     fixture.destroy();
   });
 });

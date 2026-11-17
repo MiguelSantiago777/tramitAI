@@ -386,6 +386,70 @@ a {
   --mat-button-text-label-text-color: var(--tm-danger);
 }
 
+// ======================================================================== etiquetas
+
+.tag-chip {
+  --c: #4338ca;
+  --bg: #eef2ff;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 9px;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--c);
+  font:
+    550 12px / 20px Inter,
+    system-ui,
+    sans-serif;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+
+  &[data-color='green'] {
+    --c: #15803d;
+    --bg: #dcfce7;
+  }
+
+  &[data-color='amber'] {
+    --c: #b45309;
+    --bg: #fef3c7;
+  }
+
+  &[data-color='red'] {
+    --c: #b91c1c;
+    --bg: #fee2e2;
+  }
+
+  &[data-color='teal'] {
+    --c: #0e7490;
+    --bg: #cffafe;
+  }
+
+  &[data-color='pink'] {
+    --c: #be185d;
+    --bg: #fce7f3;
+  }
+
+  &[data-color='slate'] {
+    --c: #334155;
+    --bg: #f1f5f9;
+  }
+}
+
+.tag-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 // ======================================================================== badges
 
 .badge {

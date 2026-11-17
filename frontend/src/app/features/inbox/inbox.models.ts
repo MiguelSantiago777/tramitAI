@@ -20,6 +20,8 @@ export interface Conversation {
   suggested_client_id: string | null;
   suggested_client_name: string;
   pending_drafts: number;
+  assignee_id: string | null;
+  assignee_name: string;
   ai_consent_version: number | null;
   status: ConversationStatus;
   last_inbound_at: string | null;
@@ -62,3 +64,15 @@ export const OUTBOUND_STATUS_LABELS: Partial<Record<MessageStatus, string>> = {
   READ: 'Lida ✓✓',
   FAILED: 'Falhou',
 };
+
+export interface QuickReply {
+  id: string;
+  title: string;
+  body: string;
+}
+
+/** Troca {nome} pelo primeiro nome do cliente. */
+export function fillQuickReply(body: string, name: string): string {
+  const first = (name || '').trim().split(/\s+/)[0] ?? '';
+  return body.replace(/\{nome\}/g, first || 'tudo bem').trim();
+}

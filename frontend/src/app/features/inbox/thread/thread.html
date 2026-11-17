@@ -10,6 +10,15 @@
         }
       </span>
     </div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="thread__assignee">
+      <mat-label>Responsável</mat-label>
+      <mat-select [value]="c.assignee_id" (selectionChange)="assign($event.value)">
+        <mat-option [value]="null">Ninguém</mat-option>
+        @for (m of members(); track m.user_id) {
+          <mat-option [value]="m.user_id">{{ m.full_name || m.email }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
     <button mat-stroked-button type="button" (click)="toggleStatus()">
       {{ c.status === 'OPEN' ? 'Encerrar' : 'Reabrir' }}
     </button>
@@ -112,6 +121,25 @@
         placeholder="Escreva a resposta (Ctrl+Enter envia)"
       ></textarea>
     </mat-form-field>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="replies"
+      (menuOpened)="loadQuickReplies()"
+      matTooltip="Respostas prontas"
+      aria-label="Respostas prontas"
+    >
+      <span class="icon">bolt</span>
+    </button>
+    <mat-menu #replies="matMenu" class="quick-replies-menu">
+      @for (r of quickReplies(); track r.id) {
+        <button mat-menu-item type="button" (click)="useQuickReply(r)">{{ r.title }}</button>
+      } @empty {
+        <button mat-menu-item type="button" routerLink="/configuracoes/respostas">
+          Criar respostas prontas
+        </button>
+      }
+    </mat-menu>
     <button
       mat-flat-button
       type="button"

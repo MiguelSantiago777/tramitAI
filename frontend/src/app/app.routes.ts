@@ -60,6 +60,25 @@ export const routes: Routes = [
           import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
       },
       {
+        path: 'funil',
+        title: 'Funil · TramitAI',
+        loadComponent: () => import('./features/funil/board/board').then((m) => m.Board),
+      },
+      {
+        path: 'configuracoes/etiquetas',
+        title: 'Etiquetas · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/tags/tags-page').then((m) => m.TagsPage),
+      },
+      {
+        path: 'configuracoes/respostas',
+        title: 'Respostas prontas · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/quick-replies/quick-replies-page').then(
+            (m) => m.QuickRepliesPage,
+          ),
+      },
+      {
         path: 'tarefas',
         title: 'Tarefas · TramitAI',
         loadComponent: () =>

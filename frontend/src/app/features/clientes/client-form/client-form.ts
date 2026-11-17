@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   NonNullableFormBuilder,
@@ -13,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 
 import { toApiError } from '../../../core/http/api-error';
 import { applyServerErrors } from '../../../core/http/form-errors';
@@ -24,6 +26,7 @@ import {
   ClientInput,
   ClientKind,
   ClientStatus,
+  Tag,
 } from '../client.models';
 import { ClientsService } from '../clients.service';
 import { ClientTimeline } from '../client-timeline/client-timeline';
@@ -66,6 +69,10 @@ export class ClientForm {
     email: ['', Validators.email],
     status: ['ACTIVE' as ClientStatus],
     notes: [''],
+    tag_ids: [[] as string[]],
+  });
+  readonly tags = toSignal(this.clients.tags().pipe(catchError(() => of([] as Tag[]))), {
+    initialValue: [] as Tag[],
   });
 
   readonly loading = signal(false);
@@ -145,6 +152,7 @@ export class ClientForm {
       email: client.email,
       status: client.status,
       notes: client.notes,
+      tag_ids: client.tags.map((t) => t.id),
     });
   }
 }

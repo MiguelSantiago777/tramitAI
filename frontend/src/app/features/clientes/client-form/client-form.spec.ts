@@ -16,16 +16,21 @@ const saved: Client = {
   email: '',
   status: 'ACTIVE',
   notes: '',
+  tags: [],
   created_at: '',
   updated_at: '',
 };
 
 describe('ClientForm', () => {
   let fixture: ComponentFixture<ClientForm>;
-  let api: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let api: {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    tags: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    api = { create: vi.fn(), update: vi.fn() };
+    api = { create: vi.fn(), update: vi.fn(), tags: vi.fn(() => of([])) };
     await TestBed.configureTestingModule({
       imports: [ClientForm],
       providers: [provideRouter([]), { provide: ClientsService, useValue: api }],

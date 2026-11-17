@@ -17,6 +17,9 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import {
   catchError,
@@ -33,6 +36,7 @@ import {
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { formatPhone } from '../../../shared/br';
 import { Client } from '../../clientes/client.models';
 import { ClientsService } from '../../clientes/clients.service';
@@ -40,7 +44,14 @@ import { DraftCard } from '../../aprovacoes/draft-card/draft-card';
 import { Draft } from '../../aprovacoes/draft.models';
 import { DraftsService } from '../../aprovacoes/drafts.service';
 import { PendingDraftsCounter } from '../../aprovacoes/pending-counter';
-import { Conversation, MEDIA_LABELS, Message, OUTBOUND_STATUS_LABELS } from '../inbox.models';
+import {
+  Conversation,
+  MEDIA_LABELS,
+  Message,
+  OUTBOUND_STATUS_LABELS,
+  QuickReply,
+  fillQuickReply,
+} from '../inbox.models';
 import { InboxService } from '../inbox.service';
 
 export const THREAD_POLL_MS = 5_000;
@@ -55,6 +66,9 @@ export const THREAD_POLL_MS = 5_000;
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatMenuModule,
+    MatSelectModule,
+    MatTooltipModule,
     DraftCard,
   ],
   templateUrl: './thread.html',
@@ -112,6 +126,13 @@ export class Thread {
   });
   readonly canReply = computed(() => this.conversation()?.window_open ?? false);
   readonly outboundLabels = OUTBOUND_STATUS_LABELS;
+  readonly members = toSignal(
+    inject(TenantService)
+      .members()
+      .pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
+  readonly quickReplies = signal<QuickReply[]>([]);
   readonly formatPhone = formatPhone;
 
   constructor() {
@@ -225,6 +246,24 @@ export class Thread {
         error: () => undefined,
       });
     }
+  }
+
+  assign(userId: string | null): void {
+    this.updateConversation({ assignee_id: userId });
+  }
+
+  loadQuickReplies(): void {
+    this.inbox.quickReplies().subscribe({
+      next: (list) => this.quickReplies.set(list),
+      error: () => this.quickReplies.set([]),
+    });
+  }
+
+  useQuickReply(reply: QuickReply): void {
+    const c = this.conversation();
+    const text = fillQuickReply(reply.body, c?.client_name || c?.contact_name || '');
+    const current = this.draft.value.trim();
+    this.draft.setValue(current ? `${current}\n\n${text}` : text);
   }
 
   unlinkClient(): void {

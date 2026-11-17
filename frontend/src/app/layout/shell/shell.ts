@@ -44,6 +44,7 @@ export class Shell {
     { path: '/', label: 'Início', icon: 'space_dashboard' },
     { path: '/inbox', label: 'Conversas', icon: 'forum' },
     { path: '/aprovacoes', label: 'Aprovações', icon: 'mark_chat_read' },
+    { path: '/funil', label: 'Funil de clientes', icon: 'view_kanban' },
     { path: '/tarefas', label: 'Tarefas e prazos', icon: 'task_alt' },
     { path: '/agenda', label: 'Agenda', icon: 'calendar_month' },
   ];
@@ -54,6 +55,8 @@ export class Shell {
   readonly settings: NavLink[] = [
     { path: '/configuracoes/whatsapp', label: 'WhatsApp', icon: 'smartphone' },
     { path: '/configuracoes/equipe', label: 'Equipe', icon: 'badge' },
+    { path: '/configuracoes/etiquetas', label: 'Etiquetas', icon: 'sell' },
+    { path: '/configuracoes/respostas', label: 'Respostas prontas', icon: 'bolt' },
     { path: '/configuracoes/escritorio', label: 'Configurações', icon: 'settings' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
   ];

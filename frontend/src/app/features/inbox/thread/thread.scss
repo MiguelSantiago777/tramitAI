@@ -174,3 +174,11 @@
   padding: 8px 12px;
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
+
+.thread__assignee {
+  width: 200px;
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+}

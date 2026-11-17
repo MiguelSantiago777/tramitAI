@@ -11,11 +11,28 @@ export interface Client {
   email: string;
   status: ClientStatus;
   notes: string;
+  tags: TagRef[];
   created_at: string;
   updated_at: string;
 }
 
-export type ClientInput = Omit<Client, 'id' | 'created_at' | 'updated_at'>;
+export type ClientInput = Omit<Client, 'id' | 'created_at' | 'updated_at' | 'tags'> & {
+  tag_ids?: string[];
+};
+
+export type TagColor = 'indigo' | 'green' | 'amber' | 'red' | 'teal' | 'pink' | 'slate';
+
+export interface TagRef {
+  id: string;
+  name: string;
+  color: TagColor;
+}
+
+export interface Tag extends TagRef {
+  client_count: number;
+}
+
+export const TAG_COLORS: TagColor[] = ['indigo', 'green', 'amber', 'red', 'teal', 'pink', 'slate'];
 
 export interface TermAcceptance {
   id: string;

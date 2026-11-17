@@ -5,6 +5,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
 import {
   Subject,
@@ -37,6 +38,7 @@ export const INBOX_POLL_MS = 10_000;
     MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     Thread,
   ],
   templateUrl: './inbox.html',
@@ -51,6 +53,7 @@ export class Inbox {
 
   readonly search = new FormControl('', { nonNullable: true });
   readonly filter = new FormControl<'all' | 'unread' | 'closed'>('all', { nonNullable: true });
+  readonly who = new FormControl<'' | 'me' | 'none'>('', { nonNullable: true });
   readonly conversations = signal<Conversation[]>([]);
   readonly error = signal<string | null>(null);
   private readonly refresh$ = new Subject<void>();
@@ -61,6 +64,7 @@ export class Inbox {
       this.refresh$,
       this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged()),
       this.filter.valueChanges,
+      this.who.valueChanges,
     )
       .pipe(
         startWith(null),
@@ -70,6 +74,7 @@ export class Inbox {
               q: this.search.value,
               unread: this.filter.value === 'unread',
               status: this.filter.value === 'closed' ? 'CLOSED' : 'OPEN',
+              assignee: this.who.value,
             })
             .pipe(
               catchError((err: unknown) => {
