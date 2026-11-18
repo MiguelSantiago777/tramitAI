@@ -100,3 +100,63 @@ def test_invalid_json_and_max_tokens():
     with pytest.raises(LlmError) as cut:
         client.complete(REQUEST)
     assert cut.value.code == "max_tokens"
+
+
+class SequenceModels:
+    """Primeiro modelo sobrecarregado, o reserva responde."""
+
+    def __init__(self, results: dict[str, Any]) -> None:
+        self.results = results
+        self.calls: list[str] = []
+
+    def generate_content(self, **kwargs: Any) -> Any:
+        self.calls.append(kwargs["model"])
+        result = self.results[kwargs["model"]]
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
+def _overloaded() -> errors.ServerError:
+    return errors.ServerError(503, {"error": {"code": 503, "status": "UNAVAILABLE"}})
+
+
+def test_overloaded_model_falls_back_to_reserve_right_away(settings):
+    settings.LLM_MODEL = "gemini-3.8-flash"
+    settings.LLM_FALLBACK_MODELS = ["gemini-3.8-flash-lite"]
+    models = SequenceModels(
+        {
+            "gemini-3.8-flash": _overloaded(),
+            "gemini-3.8-flash-lite": _response(json.dumps({"reply": "Oi!"})),
+        }
+    )
+    result = GeminiLlmClient(client=SimpleNamespace(models=models)).complete(REQUEST)
+    assert result.data == {"reply": "Oi!"}
+    assert models.calls == ["gemini-3.8-flash", "gemini-3.8-flash-lite"]
+
+
+def test_all_models_overloaded_is_retryable(settings):
+    settings.LLM_MODEL = "a"
+    settings.LLM_FALLBACK_MODELS = ["b"]
+    models = SequenceModels({"a": _overloaded(), "b": _overloaded()})
+    with pytest.raises(LlmError) as raised:
+        GeminiLlmClient(client=SimpleNamespace(models=models)).complete(REQUEST)
+    assert raised.value.retryable
+    assert models.calls == ["a", "b"]
+
+
+def test_definitive_error_does_not_try_reserve(settings):
+    settings.LLM_MODEL = "a"
+    settings.LLM_FALLBACK_MODELS = ["b"]
+    bad = errors.ClientError(400, {"error": {"code": 400, "status": "INVALID_ARGUMENT"}})
+    models = SequenceModels({"a": bad, "b": _response("{}")})
+    with pytest.raises(LlmError):
+        GeminiLlmClient(client=SimpleNamespace(models=models)).complete(REQUEST)
+    assert models.calls == ["a"]
+
+
+def test_thinking_level_is_sent_when_configured(settings):
+    settings.LLM_THINKING_LEVEL = "low"
+    client, models = _client(_response(json.dumps({"reply": "ok"})))
+    client.complete(REQUEST)
+    assert models.calls[0]["config"].thinking_config.thinking_level == types.ThinkingLevel.LOW

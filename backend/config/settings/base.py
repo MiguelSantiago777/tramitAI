@@ -258,13 +258,18 @@ LLM_PROVIDER: str = env("LLM_PROVIDER", default="fake")
 _DEFAULT_MODELS = {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-3.8-flash"}
 LLM_MODEL: str = env("LLM_MODEL", default=_DEFAULT_MODELS.get(LLM_PROVIDER, "fake"))
 GEMINI_API_KEY: str = env("GEMINI_API_KEY", default="")
+# Modelos reserva (separados por vírgula), tentados na hora se o principal estiver
+# sobrecarregado. Ex.: LLM_FALLBACK_MODELS=gemini-3.8-flash-lite
+LLM_FALLBACK_MODELS: list[str] = env.list("LLM_FALLBACK_MODELS", default=[])
+# Raciocínio do Gemini 3: "minimal" ou "low" deixa a triagem mais rápida. Vazio = padrão do Google.
+LLM_THINKING_LEVEL: str = env("LLM_THINKING_LEVEL", default="")
 LLM_EFFORT: str = env("LLM_EFFORT", default="medium")
 LLM_MAX_TOKENS: int = env.int("LLM_MAX_TOKENS", default=16000)
 LLM_TIMEOUT_SECONDS: float = env.float("LLM_TIMEOUT_SECONDS", default=90.0)
 # Fallback automático do servidor quando o modelo recusa (só provedor anthropic).
 LLM_REFUSAL_FALLBACK: bool = env.bool("LLM_REFUSAL_FALLBACK", default=True)
 # Espera antes da triagem, para juntar mensagens enviadas em sequência.
-TRIAGE_DEBOUNCE_SECONDS: int = env.int("TRIAGE_DEBOUNCE_SECONDS", default=15)
+TRIAGE_DEBOUNCE_SECONDS: int = env.int("TRIAGE_DEBOUNCE_SECONDS", default=8)
 TRIAGE_HISTORY_MESSAGES: int = env.int("TRIAGE_HISTORY_MESSAGES", default=20)
 
 # --------------------------------------------------------------------------- andamentos

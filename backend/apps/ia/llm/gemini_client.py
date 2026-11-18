@@ -44,16 +44,39 @@ class GeminiLlmClient:
         )
 
     def complete(self, request: LlmRequest) -> LlmResult:
+        """Modelo principal; se estiver sobrecarregado (503/429/sem conexão), tenta na hora os
+        modelos reserva (LLM_FALLBACK_MODELS). No plano gratuito cada modelo tem cota e fila
+        próprias, então o reserva costuma responder enquanto o principal está cheio."""
+        models = [settings.LLM_MODEL, *settings.LLM_FALLBACK_MODELS]
+        last_error: LlmError | None = None
+        for model in dict.fromkeys(m for m in models if m):
+            try:
+                return self._complete(request, model)
+            except LlmRefusal:
+                raise
+            except LlmError as exc:
+                if not exc.retryable:
+                    raise
+                last_error = exc
+                logger.info("llm: %s indisponível (%s), tentando o próximo", model, exc.code)
+        raise last_error or LlmError("no_model", retryable=False)
+
+    def _complete(self, request: LlmRequest, model: str) -> LlmResult:
         config = types.GenerateContentConfig(
             system_instruction=request.system,
             response_mime_type="application/json",
             response_json_schema=request.json_schema,
             max_output_tokens=settings.LLM_MAX_TOKENS,
         )
+        if settings.LLM_THINKING_LEVEL:
+            # Triagem não precisa de raciocínio longo: "low"/"minimal" responde bem mais rápido.
+            config.thinking_config = types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel(settings.LLM_THINKING_LEVEL.upper())
+            )
         started = time.monotonic()
         try:
             response = self._client.models.generate_content(
-                model=settings.LLM_MODEL, contents=request.user_content, config=config
+                model=model, contents=request.user_content, config=config
             )
         except errors.APIError as exc:
             code = int(getattr(exc, "code", 0) or 0)
@@ -100,7 +123,7 @@ class GeminiLlmClient:
         output_tokens = int(getattr(usage, "candidates_token_count", 0) or 0) + int(
             getattr(usage, "thoughts_token_count", 0) or 0
         )
-        model = str(getattr(response, "model_version", "") or settings.LLM_MODEL)
+        model = str(getattr(response, "model_version", "") or model)
         logger.info(
             "llm ok purpose=%s model=%s in=%s out=%s ms=%s",
             request.purpose,
