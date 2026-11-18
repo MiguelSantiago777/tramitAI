@@ -13,6 +13,10 @@ TRIAGE_SCHEMA: dict[str, Any] = {
         "intent": {"type": "string", "enum": INTENTS},
         "needs_lawyer": {"type": "boolean"},
         "triage_complete": {"type": "boolean"},
+        # Agenda: "offer" = ofereceu horários; "book" = contato escolheu (slot + modo).
+        "scheduling_step": {"type": "string", "enum": ["none", "offer", "book"]},
+        "booking_slot": {"type": "string"},
+        "booking_mode": {"type": "string", "enum": ["", "presencial", "online"]},
         "urgency": {"type": "string", "enum": URGENCIES},
         "summary_for_lawyer": {"type": "string"},
         "reply": {"type": "string"},
@@ -21,6 +25,9 @@ TRIAGE_SCHEMA: dict[str, Any] = {
         "intent",
         "needs_lawyer",
         "triage_complete",
+        "scheduling_step",
+        "booking_slot",
+        "booking_mode",
         "urgency",
         "summary_for_lawyer",
         "reply",
@@ -38,6 +45,9 @@ class TriageResult:
     reply: str
     # Triagem de contato novo terminou (já tem nome e resumo): vai para o advogado.
     triage_complete: bool = True
+    scheduling_step: str = "none"
+    booking_slot: str = ""
+    booking_mode: str = ""
 
 
 class InvalidTriage(ValueError):
@@ -60,6 +70,7 @@ def parse_triage(data: dict[str, Any]) -> TriageResult:
     triage_complete = data.get("triage_complete", True)
     if not isinstance(triage_complete, bool):
         triage_complete = True
+    step = str(data.get("scheduling_step") or "none")
     if not reply:
         raise InvalidTriage("resposta vazia")
     return TriageResult(
@@ -69,4 +80,7 @@ def parse_triage(data: dict[str, Any]) -> TriageResult:
         summary_for_lawyer=summary[:1000],
         reply=reply[:MAX_REPLY_LENGTH],
         triage_complete=triage_complete,
+        scheduling_step=step if step in ("offer", "book") else "none",
+        booking_slot=str(data.get("booking_slot") or "")[:8],
+        booking_mode=str(data.get("booking_mode") or "")[:12],
     )

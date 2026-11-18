@@ -12,7 +12,7 @@ from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.agenda import services
+from apps.agenda import scheduling, services
 from apps.agenda.models import Event, Task
 from apps.core import audit
 from apps.core.views_base import schema_safe_queryset
@@ -184,6 +184,20 @@ class EventViewSet(
                 actor_type=audit.Actor.USER,
                 actor_user=self.request.user,
             )
+
+    @extend_schema(request=None, responses=EventSerializer)
+    @action(detail=True, methods=["post"])
+    def confirm(self, request: Request, pk: str | None = None) -> Response:
+        """Confirma o horário pré-reservado pela Lia: o contato recebe a confirmação."""
+        event = scheduling.confirm(self.get_object(), user=cast(User, request.user))
+        return Response(EventSerializer(event).data)
+
+    @extend_schema(request=None, responses=EventSerializer)
+    @action(detail=True, methods=["post"])
+    def decline(self, request: Request, pk: str | None = None) -> Response:
+        """Recusa a pré-reserva (combine outro horário com o contato pela conversa)."""
+        event = scheduling.decline(self.get_object(), user=cast(User, request.user))
+        return Response(EventSerializer(event).data)
 
 
 class MyDeskView(APIView):

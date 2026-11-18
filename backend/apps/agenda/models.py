@@ -98,6 +98,7 @@ class Event(TenantModel):
         OTHER = "OTHER", "Outro"
 
     class Status(models.TextChoices):
+        PENDING = "PENDING", "A confirmar"
         SCHEDULED = "SCHEDULED", "Agendado"
         DONE = "DONE", "Realizado"
         CANCELED = "CANCELED", "Cancelado"

@@ -1,6 +1,9 @@
+from typing import Any
+
 from rest_framework import serializers
 
 from apps.accounts.models import Membership
+from apps.processos.api.serializers import TenantMemberField
 from apps.tenants.models import ClientTermVersion, Tenant, TenantSettings
 
 
@@ -15,6 +18,18 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
     """Configurações do escritório. Edição: só o titular (permissão na view)."""
 
     tenant_name = serializers.CharField(max_length=200, required=False, trim_whitespace=True)
+    scheduling_user_id = TenantMemberField(
+        source="scheduling_user", required=False, allow_null=True
+    )
+    consult_minutes = serializers.ChoiceField(choices=[30, 45, 60, 90, 120], required=False)
+
+    def validate_business_hours(self, value: Any) -> Any:
+        from apps.agenda.scheduling import validate_business_hours
+
+        try:
+            return validate_business_hours(value)
+        except (ValueError, TypeError) as exc:
+            raise serializers.ValidationError(str(exc) or "Horário inválido.") from exc
 
     class Meta:
         model = TenantSettings
@@ -22,6 +37,10 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             "id",
             "tenant_name",
             "auto_send_simple_replies",
+            "business_hours",
+            "scheduling_enabled",
+            "consult_minutes",
+            "scheduling_user_id",
             "staff_can_approve",
             "ai_triage_enabled",
             "data_retention_days",

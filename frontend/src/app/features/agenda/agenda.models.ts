@@ -2,7 +2,7 @@ export type TaskKind = 'TASK' | 'DEADLINE' | 'FOLLOW_UP';
 export type TaskStatus = 'OPEN' | 'DONE' | 'CANCELED';
 export type TaskPriority = 'LOW' | 'NORMAL' | 'HIGH';
 export type EventKind = 'HEARING' | 'MEETING' | 'CONSULT' | 'OTHER';
-export type EventStatus = 'SCHEDULED' | 'DONE' | 'CANCELED';
+export type EventStatus = 'PENDING' | 'SCHEDULED' | 'DONE' | 'CANCELED';
 
 export interface Task {
   id: string;
@@ -103,6 +103,7 @@ export const EVENT_KIND_LABELS: Record<EventKind, string> = {
 };
 
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
+  PENDING: 'A confirmar',
   SCHEDULED: 'Agendado',
   DONE: 'Realizado',
   CANCELED: 'Cancelado',

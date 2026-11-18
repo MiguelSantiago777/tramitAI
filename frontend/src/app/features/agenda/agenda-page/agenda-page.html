@@ -23,6 +23,41 @@
   }
 </div>
 
+@if (pending().length > 0) {
+  <section class="card panel-card pending" aria-label="Consultas para confirmar">
+    <header class="panel-card__header">
+      <h2 class="section-title">
+        <span class="icon">event_upcoming</span> Marcadas pela Lia, para confirmar
+      </h2>
+    </header>
+    <ul class="row-list pending__list">
+      @for (e of pending(); track e.id) {
+        <li class="pending__item">
+          <div class="pending__text">
+            <strong>{{ e.starts_at | date: "EEEE, dd/MM 'às' HH:mm" }}</strong>
+            <span class="muted small">
+              {{ e.client_name || e.title }} · {{ e.location }}
+              @if (e.responsible_name) {
+                · agenda de {{ e.responsible_name }}
+              }
+            </span>
+          </div>
+          <button mat-button type="button" class="dialog-danger" (click)="decline(e)">
+            Recusar
+          </button>
+          <button mat-flat-button type="button" (click)="confirm(e)">
+            <span class="icon btn-icon">check</span>Confirmar
+          </button>
+        </li>
+      }
+    </ul>
+    <p class="muted small pending__hint">
+      Ao confirmar, o contato recebe a confirmação no WhatsApp. Ao recusar, combine outro horário
+      pela conversa.
+    </p>
+  </section>
+}
+
 @if (loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
@@ -54,9 +89,15 @@
             class="event"
             [attr.data-kind]="e.kind"
             [class.event--done]="e.status === 'DONE'"
+            [class.event--pending]="e.status === 'PENDING'"
             (click)="open(e)"
           >
-            <span class="event__time">{{ e.starts_at | date: 'HH:mm' }}</span>
+            <span class="event__time"
+              >{{ e.starts_at | date: 'HH:mm' }}
+              @if (e.status === 'PENDING') {
+                · a confirmar
+              }
+            </span>
             <span class="event__title">{{ e.title }}</span>
             <span class="event__meta"
               >{{ kindLabel(e) }}{{ e.client_name ? ' · ' + e.client_name : '' }}</span

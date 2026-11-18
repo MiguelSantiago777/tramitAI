@@ -135,6 +135,8 @@ class Conversation(TenantModel):
     # A Lia não conseguiu responder a última mensagem (IA fora do ar depois de várias
     # tentativas). Some quando ela consegue de novo. A tela mostra o aviso e "tentar de novo".
     ai_failed_at = models.DateTimeField(null=True, blank=True)
+    # Horários que a Lia ofereceu por último: [{"id": "H1", "start": "<iso>"}].
+    offered_slots = models.JSONField(default=list, blank=True)
     # Quem da equipe cuida desta conversa (inbox de equipe).
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL,

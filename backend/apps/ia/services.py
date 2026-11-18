@@ -216,6 +216,9 @@ def _store(
 
     Conversation.objects.filter(pk=conversation.pk).update(ai_failed_at=None)
     auto_mode = _auto_triage_enabled() and _is_new_contact(conversation)
+    booking_failed = False
+    if triage.scheduling_step == "book" and not flags:
+        booking_failed = not _prebook(conversation, triage)
     draft = approvals.create_draft(
         conversation=conversation,
         origin=OutboundDraft.Origin.AI_REPLY,
@@ -225,12 +228,22 @@ def _store(
         source_message=message,
         intent=triage.intent,
         urgency=triage.urgency,
-        needs_lawyer=triage.needs_lawyer or bool(flags),
-        summary=triage.summary_for_lawyer,
+        needs_lawyer=triage.needs_lawyer or bool(flags) or booking_failed,
+        summary=(
+            "O horário escolhido não está mais livre: combine outro com o contato. "
+            if booking_failed
+            else ""
+        )
+        + triage.summary_for_lawyer,
         guardrail_flags=flags,
     )
     outcome = "draft_created"
-    if auto_mode and _can_auto_send(conversation, triage, flags) and approvals.auto_send(draft):
+    if (
+        auto_mode
+        and not booking_failed
+        and _can_auto_send(conversation, triage, flags)
+        and approvals.auto_send(draft)
+    ):
         outcome = "auto_sent"
     elif auto_mode:
         # Triagem terminou (ou precisa do advogado): o cliente fica sabendo na hora, e o
@@ -259,6 +272,39 @@ def _auto_triage_enabled() -> bool:
     return bool(settings_ and settings_.auto_send_simple_replies)
 
 
+def _scheduling_enabled() -> bool:
+    settings_ = TenantSettings.objects.first()
+    return bool(settings_ and settings_.scheduling_enabled)
+
+
+def _prebook(conversation: Conversation, triage: Any) -> bool:
+    """Contato escolheu um dos horários oferecidos: pré-reserva na agenda (a confirmar)."""
+    from datetime import datetime
+
+    from apps.agenda import scheduling
+
+    cfg = TenantSettings.objects.first()
+    client = conversation.client
+    if cfg is None or not cfg.scheduling_enabled or client is None:
+        return False
+    chosen = next(
+        (o for o in conversation.offered_slots if o.get("id") == triage.booking_slot), None
+    )
+    if chosen is None:
+        return False
+    booking = scheduling.prebook(
+        cfg,
+        client=client,
+        start=datetime.fromisoformat(chosen["start"]),
+        mode=triage.booking_mode,
+        summary=triage.summary_for_lawyer,
+    )
+    if booking is not None:
+        # Reservado: a próxima oferta (se houver) começa do zero.
+        Conversation.objects.filter(pk=conversation.pk).update(offered_slots=[])
+    return booking is not None
+
+
 def _is_new_contact(conversation: Conversation) -> bool:
     """Só contato novo (sem cliente ou lead). Cliente com processo continua com aprovação."""
     from apps.clientes.models import Client
@@ -268,7 +314,12 @@ def _is_new_contact(conversation: Conversation) -> bool:
 
 
 def _can_auto_send(conversation: Conversation, triage: Any, flags: list[str]) -> bool:
-    if flags or triage.needs_lawyer or triage.triage_complete or triage.urgency == "high":
+    if flags or triage.needs_lawyer or triage.urgency == "high":
+        return False
+    # Oferecer horários e confirmar a pré-reserva também sai sozinho: quem confirma de fato é
+    # o advogado, pela agenda. Fora isso, triagem terminada vai para aprovação.
+    scheduling = triage.scheduling_step in ("offer", "book") and _scheduling_enabled()
+    if triage.triage_complete and not scheduling:
         return False
     since = timezone.now() - timedelta(hours=24)
     sent_today = OutboundDraft.objects.filter(

@@ -55,9 +55,14 @@ describe('AgendaPage', () => {
   });
 
   const el = () => fixture.nativeElement as HTMLElement;
+  // Buscas da semana na tela (a outra busca é a das pré-reservas dos próximos 30 dias).
+  const weekCalls = () =>
+    (events.mock.calls as [{ start: string; end: string }][])
+      .map(([f]) => f)
+      .filter((f) => (Date.parse(f.end) - Date.parse(f.start)) / 86_400_000 === 6);
 
   it('busca a semana atual (segunda a domingo) e põe o compromisso no dia certo', () => {
-    const [filters] = events.mock.calls[0] as [{ start: string; end: string }];
+    const [filters] = weekCalls();
     const start = new Date(`${filters.start}T00:00:00`);
     expect(start.getDay()).toBe(1); // segunda
     const today = el().querySelector('.day--today');
@@ -70,7 +75,7 @@ describe('AgendaPage', () => {
   it('navega para a próxima semana', () => {
     const next = el().querySelector('button[aria-label="Próxima semana"]') as HTMLButtonElement;
     next.click();
-    const [filters] = events.mock.calls[1] as [{ start: string }];
+    const filters = weekCalls()[1];
     const monday = new Date();
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + 7);
     expect(filters.start).toBe(isoDate(monday));

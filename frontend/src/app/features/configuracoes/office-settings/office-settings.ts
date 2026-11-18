@@ -1,14 +1,25 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  FormArray,
+  FormGroup,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { catchError, of } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
-import { TenantService } from '../../../core/tenant/tenant.service';
+import { OfficeSettings, TenantService } from '../../../core/tenant/tenant.service';
+import { DAY_NAMES, DayHours, hoursFromDays, daysFromHours } from './business-hours';
 
 /** Configurações do escritório. Alterar: só o titular. */
 @Component({
@@ -16,8 +27,10 @@ import { TenantService } from '../../../core/tenant/tenant.service';
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatSlideToggleModule,
   ],
   template: `
@@ -47,7 +60,7 @@ import { TenantService } from '../../../core/tenant/tenant.service';
         </mat-slide-toggle>
         <span class="muted small">
           Desligado: as mensagens continuam chegando em Conversas e os avisos de andamento usam um
-          texto fixo, sem IA. Nada sai sem aprovação em nenhum caso.
+          texto fixo, sem IA.
         </span>
       </div>
 
@@ -63,6 +76,76 @@ import { TenantService } from '../../../core/tenant/tenant.service';
           com processo continuam sempre com aprovação.
         </span>
       </div>
+
+      <h2>Horário de atendimento</h2>
+      <p class="muted small">
+        Fora desse horário, a Lia avisa o contato quando o escritório atende e segue a triagem.
+      </p>
+      <div class="hours" formArrayName="days">
+        @for (day of days.controls; track $index) {
+          <div class="hours__row" [formGroupName]="$index">
+            <mat-checkbox formControlName="open" class="hours__day">{{
+              dayNames[$index]
+            }}</mat-checkbox>
+            @if (day.controls.open.value) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Abre</mat-label>
+                <input matInput type="time" formControlName="start" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Fecha</mat-label>
+                <input matInput type="time" formControlName="end" />
+              </mat-form-field>
+              <mat-checkbox formControlName="hasBreak">Intervalo</mat-checkbox>
+              @if (day.controls.hasBreak.value) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>De</mat-label>
+                  <input matInput type="time" formControlName="breakStart" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Até</mat-label>
+                  <input matInput type="time" formControlName="breakEnd" />
+                </mat-form-field>
+              }
+            } @else {
+              <span class="muted small">Fechado</span>
+            }
+          </div>
+        }
+      </div>
+
+      <h2>Agenda da Lia</h2>
+      <div class="setting">
+        <mat-slide-toggle formControlName="scheduling_enabled">
+          Lia oferece horários livres para a consulta inicial
+        </mat-slide-toggle>
+        <span class="muted small">
+          A Lia oferece 3 horários livres dentro do horário de atendimento (sem bater com a agenda),
+          pergunta se a pessoa prefere presencial ou online e deixa o horário escolhido como "a
+          confirmar" na Agenda. O contato só recebe a confirmação quando você confirmar.
+        </span>
+      </div>
+      @if (form.controls.scheduling_enabled.value) {
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Duração da consulta</mat-label>
+            <mat-select formControlName="consult_minutes">
+              @for (m of durations; track m) {
+                <mat-option [value]="m">{{ m }} minutos</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Agenda de quem</mat-label>
+            <mat-select formControlName="scheduling_user_id">
+              <mat-option [value]="null">Titular do escritório</mat-option>
+              @for (m of members(); track m.user_id) {
+                <mat-option [value]="m.user_id">{{ m.full_name || m.email }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
 
       <h2>Aprovação de mensagens</h2>
       <div class="setting">
@@ -96,33 +179,61 @@ import { TenantService } from '../../../core/tenant/tenant.service';
       gap: 6px;
       max-width: 640px;
     }
+    .hours {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hours__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      min-height: 48px;
+    }
+    .hours__row mat-form-field {
+      width: 120px;
+    }
+    .hours__day {
+      width: 110px;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OfficeSettingsPage {
   private readonly api = inject(TenantService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly fb = inject(NonNullableFormBuilder);
   private readonly session = inject(AuthService).session;
   readonly canEdit = computed(() => this.session()?.role === 'OWNER');
 
+  readonly dayNames = DAY_NAMES;
+  readonly durations = [30, 45, 60, 90, 120];
+  readonly members = toSignal(this.api.members().pipe(catchError(() => of([]))), {
+    initialValue: [],
+  });
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
-  readonly form = inject(NonNullableFormBuilder).group({
+
+  readonly form = this.fb.group({
     tenant_name: ['', [Validators.required, Validators.maxLength(200)]],
     ai_triage_enabled: [true],
     auto_send_simple_replies: [false],
+    scheduling_enabled: [false],
+    consult_minutes: [60],
+    scheduling_user_id: [null as string | null],
     staff_can_approve: [false],
+    days: this.fb.array(DAY_NAMES.map(() => this.dayGroup())),
   });
+
+  get days(): FormArray<FormGroup<ReturnType<OfficeSettingsPage['dayGroup']>['controls']>> {
+    return this.form.controls.days;
+  }
 
   constructor() {
     this.api.settings().subscribe({
       next: (s) => {
-        this.form.reset({
-          tenant_name: s.tenant_name,
-          ai_triage_enabled: s.ai_triage_enabled,
-          auto_send_simple_replies: s.auto_send_simple_replies,
-          staff_can_approve: s.staff_can_approve,
-        });
+        this.fill(s);
         if (!this.canEdit()) {
           this.form.disable();
         }
@@ -136,23 +247,43 @@ export class OfficeSettingsPage {
       this.form.markAllAsTouched();
       return;
     }
+    const { days, ...rest } = this.form.getRawValue();
     this.busy.set(true);
     this.error.set(null);
-    this.api.updateSettings(this.form.getRawValue()).subscribe({
+    this.api.updateSettings({ ...rest, business_hours: hoursFromDays(days) }).subscribe({
       next: (s) => {
         this.busy.set(false);
-        this.form.reset({
-          tenant_name: s.tenant_name,
-          ai_triage_enabled: s.ai_triage_enabled,
-          auto_send_simple_replies: s.auto_send_simple_replies,
-          staff_can_approve: s.staff_can_approve,
-        });
+        this.fill(s);
         this.snackBar.open('Configurações salvas.', undefined, { duration: 3000 });
       },
       error: (err: unknown) => {
         this.busy.set(false);
         this.error.set(toApiError(err).message);
       },
+    });
+  }
+
+  private dayGroup(value?: DayHours) {
+    return this.fb.group({
+      open: [value?.open ?? false],
+      start: [value?.start ?? '09:00'],
+      end: [value?.end ?? '18:00'],
+      hasBreak: [value?.hasBreak ?? true],
+      breakStart: [value?.breakStart ?? '12:00'],
+      breakEnd: [value?.breakEnd ?? '13:00'],
+    });
+  }
+
+  private fill(s: OfficeSettings): void {
+    this.form.reset({
+      tenant_name: s.tenant_name,
+      ai_triage_enabled: s.ai_triage_enabled,
+      auto_send_simple_replies: s.auto_send_simple_replies,
+      scheduling_enabled: s.scheduling_enabled,
+      consult_minutes: s.consult_minutes,
+      scheduling_user_id: s.scheduling_user_id,
+      staff_can_approve: s.staff_can_approve,
+      days: daysFromHours(s.business_hours),
     });
   }
 }

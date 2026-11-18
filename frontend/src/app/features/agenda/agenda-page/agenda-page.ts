@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 
@@ -42,9 +43,12 @@ function addDays(date: Date, days: number): Date {
 export class AgendaPage {
   private readonly api = inject(AgendaService);
   private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
 
   readonly weekStart = signal(mondayOf(new Date()));
   readonly events = signal<CalendarEvent[]>([]);
+  /** Pré-reservas da Lia nos próximos 30 dias (independe da semana na tela). */
+  readonly pending = signal<CalendarEvent[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -103,7 +107,35 @@ export class AgendaPage {
       });
   }
 
+  confirm(e: CalendarEvent): void {
+    this.api.confirmEvent(e.id).subscribe({
+      next: () => {
+        this.snack.open('Confirmado. O contato recebeu a confirmação no WhatsApp.', 'OK', {
+          duration: 4000,
+        });
+        this.load();
+      },
+      error: (err: unknown) => this.error.set(toApiError(err).message),
+    });
+  }
+
+  decline(e: CalendarEvent): void {
+    this.api.declineEvent(e.id).subscribe({
+      next: () => this.load(),
+      error: (err: unknown) => this.error.set(toApiError(err).message),
+    });
+  }
+
+  private loadPending(): void {
+    const today = new Date();
+    this.api.events({ start: isoDate(today), end: isoDate(addDays(today, 30)) }).subscribe({
+      next: (page) => this.pending.set(page.results.filter((e) => e.status === 'PENDING')),
+      error: () => this.pending.set([]),
+    });
+  }
+
   private load(): void {
+    this.loadPending();
     this.loading.set(true);
     this.error.set(null);
     this.api.events({ start: isoDate(this.weekStart()), end: isoDate(this.weekEnd()) }).subscribe({

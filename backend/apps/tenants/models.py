@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 from apps.core.models import TenantModel
@@ -27,11 +28,28 @@ class Tenant(models.Model):
         return self.name
 
 
+def default_business_hours() -> dict[str, list[list[str]]]:
+    """Segunda a sexta, 9h-12h e 13h-18h. Chave = dia da semana (0 = segunda)."""
+    return {str(d): [["09:00", "12:00"], ["13:00", "18:00"]] if d < 5 else [] for d in range(7)}
+
+
 class TenantSettings(TenantModel):
     """Configurações do escritório (data plane, com RLS)."""
 
-    # A IA nunca envia sozinha. Esta flag existe para o futuro e fica desligada por padrão.
+    # Triagem automática: a Lia conversa sozinha com contato novo (desligada por padrão).
     auto_send_simple_replies = models.BooleanField(default=False)
+    # Horário de atendimento (a Lia avisa fora dele) e agenda de consultas da Lia.
+    business_hours = models.JSONField(default=default_business_hours)
+    scheduling_enabled = models.BooleanField("Lia oferece horários", default=False)
+    consult_minutes = models.PositiveSmallIntegerField("duração da consulta", default=60)
+    scheduling_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="agenda de quem",
+    )
     # Aprovação de rascunhos: OWNER e LAWYER sempre; STAFF só se ligado aqui.
     staff_can_approve = models.BooleanField(default=False)
     # Desliga a triagem por IA do escritório (mensagens continuam chegando no inbox).

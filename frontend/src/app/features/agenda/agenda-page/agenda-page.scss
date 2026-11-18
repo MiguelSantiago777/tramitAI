@@ -162,3 +162,35 @@
 .hint {
   margin-top: 16px;
 }
+
+.event--pending {
+  outline: 1.5px dashed var(--tm-warning);
+  outline-offset: -1.5px;
+}
+
+.pending__list {
+  padding: 0;
+}
+
+.pending__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0;
+}
+
+.pending__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 240px;
+
+  strong::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.pending__hint {
+  margin: 8px 0 0;
+}

@@ -35,6 +35,10 @@ export interface OfficeSettings {
   id: string;
   tenant_name: string;
   auto_send_simple_replies: boolean;
+  business_hours: Record<string, [string, string][]>;
+  scheduling_enabled: boolean;
+  consult_minutes: number;
+  scheduling_user_id: string | null;
   staff_can_approve: boolean;
   ai_triage_enabled: boolean;
   updated_at: string;
