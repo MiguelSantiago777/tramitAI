@@ -52,6 +52,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "assignee_id",
             "assignee_name",
             "ai_consent_version",
+            "ai_failed_at",
             "status",
             "last_inbound_at",
             "last_message_at",

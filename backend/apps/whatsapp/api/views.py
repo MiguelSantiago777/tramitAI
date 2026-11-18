@@ -9,9 +9,10 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from apps.accounts.models import User
+from apps.core.exceptions import ApiError
 from apps.core.views_base import schema_safe_queryset
 from apps.whatsapp import selectors, services
-from apps.whatsapp.models import Conversation, QuickReply
+from apps.whatsapp.models import Conversation, Message, QuickReply
 
 from .serializers import (
     ConversationFilterSerializer,
@@ -78,6 +79,27 @@ class ConversationViewSet(
             user=cast(User, request.user),
         )
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(request=None, responses={202: None})
+    @action(detail=True, methods=["post"], url_path="retry-ai")
+    def retry_ai(self, request: Request, pk: str | None = None) -> Response:
+        """Pede para a Lia tentar de novo responder a última mensagem do contato."""
+        from django.db import transaction
+
+        from apps.ia.tasks import triage_message
+
+        conversation = self.get_object()
+        last = (
+            conversation.messages.filter(direction=Message.Direction.INBOUND)
+            .order_by("-created_at")
+            .first()
+        )
+        if last is None:
+            raise ApiError("O contato ainda não mandou mensagem.", code="no_inbound")
+        Conversation.objects.filter(pk=conversation.pk).update(ai_failed_at=None)
+        args = (str(conversation.tenant_id), str(conversation.pk), str(last.pk))
+        transaction.on_commit(lambda: triage_message.delay(*args))
+        return Response(status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(request=None, responses={204: None})
     @action(detail=True, methods=["post"])

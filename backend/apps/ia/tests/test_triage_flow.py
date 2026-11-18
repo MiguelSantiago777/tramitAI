@@ -309,3 +309,56 @@ def test_media_after_consent_is_not_sent_to_llm(
     post_webhook(payload)
     assert fake_llm.calls == []
     assert drafts() == []
+
+
+def _maria_conversation(tenant_a, account_a, maria_with_case):
+    with tenant_context(tenant_a.tenant.id):
+        conversation = Conversation.objects.create(
+            account=account_a,
+            wa_id="5521998765432",
+            client=maria_with_case[0],
+            last_inbound_at=timezone.now(),
+        )
+        message = Message.objects.create(
+            conversation=conversation, direction="IN", body="Oi", status="RECEIVED"
+        )
+    return conversation, message
+
+
+def test_ai_overloaded_after_all_retries_flags_conversation_and_retry_clears_it(
+    tenant_a,
+    account_a,
+    maria_with_case,
+    fake_llm,
+    drafts,
+    login,
+    api_client,
+    django_capture_on_commit_callbacks,
+):
+    from apps.ia.tasks import triage_message
+
+    conversation, message = _maria_conversation(tenant_a, account_a, maria_with_case)
+    fake_llm.queue.append(LlmError("http_503", retryable=True))
+    args = (str(tenant_a.tenant.id), str(conversation.id), str(message.id))
+    # Última tentativa (as anteriores já falharam): desiste e avisa a equipe.
+    assert triage_message.apply(args=args, retries=6).get() == "llm_gave_up"
+
+    login(tenant_a.owner.email)
+    detail = api_client.get(f"/api/v1/conversations/{conversation.id}/").json()
+    assert detail["ai_failed_at"] is not None
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = api_client.post(f"/api/v1/conversations/{conversation.id}/retry-ai/")
+    assert response.status_code == 202
+    assert len(drafts(origin=AI)) == 1
+    assert (
+        api_client.get(f"/api/v1/conversations/{conversation.id}/").json()["ai_failed_at"] is None
+    )
+
+
+def test_retry_ai_without_inbound_message(tenant_a, account_a, login, api_client):
+    with tenant_context(tenant_a.tenant.id):
+        conversation = Conversation.objects.create(account=account_a, wa_id="5521911112222")
+    login(tenant_a.owner.email)
+    response = api_client.post(f"/api/v1/conversations/{conversation.id}/retry-ai/")
+    assert response.json()["error"]["code"] == "no_inbound"

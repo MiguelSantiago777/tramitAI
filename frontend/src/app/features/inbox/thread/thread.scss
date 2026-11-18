@@ -182,3 +182,24 @@
     display: none;
   }
 }
+
+.thread__ai-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 16px;
+  padding: 10px 14px;
+  border-radius: var(--tm-radius-sm);
+  background: var(--tm-warning-soft);
+  color: var(--tm-warning);
+  font: var(--mat-sys-body-small);
+
+  span:nth-child(2) {
+    flex: 1 1 260px;
+  }
+}
+
+.thread__ai-retrying {
+  margin: 8px 16px;
+}

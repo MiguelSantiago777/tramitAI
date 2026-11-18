@@ -47,6 +47,11 @@ export class InboxService {
     return this.http.post<Message>(`${URL}${id}/messages/`, { body });
   }
 
+  /** Pede para a Lia tentar de novo responder a última mensagem do contato. */
+  retryAi(id: string): Observable<void> {
+    return this.http.post<void>(`/api/v1/conversations/${id}/retry-ai/`, {});
+  }
+
   markRead(id: string): Observable<void> {
     return this.http.post<void>(`${URL}${id}/read/`, {});
   }

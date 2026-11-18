@@ -19,6 +19,7 @@ const base: Conversation = {
   assignee_id: null,
   assignee_name: '',
   ai_consent_version: 1,
+  ai_failed_at: null,
   status: 'OPEN',
   last_inbound_at: null,
   last_message_at: '2026-11-17T10:00:00Z',

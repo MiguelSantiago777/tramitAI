@@ -23,6 +23,7 @@ export interface Conversation {
   assignee_id: string | null;
   assignee_name: string;
   ai_consent_version: number | null;
+  ai_failed_at: string | null;
   status: ConversationStatus;
   last_inbound_at: string | null;
   last_message_at: string | null;

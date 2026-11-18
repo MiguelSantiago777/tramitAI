@@ -26,6 +26,7 @@ const conversation: Conversation = {
   assignee_id: null,
   assignee_name: '',
   ai_consent_version: null,
+  ai_failed_at: null,
   status: 'OPEN',
   last_inbound_at: '2026-11-17T10:00:00Z',
   last_message_at: '2026-11-17T10:05:00Z',
@@ -65,6 +66,7 @@ describe('Thread', () => {
       markRead: vi.fn(() => of(undefined)),
       send: vi.fn(),
       update: vi.fn(),
+      retryAi: vi.fn(() => of(undefined)),
     };
     await TestBed.configureTestingModule({
       imports: [Thread],
@@ -98,6 +100,16 @@ describe('Thread', () => {
     expect(bodies).toEqual(['Bom dia', 'Vou verificar.']);
     expect(el().textContent).toContain('Enviada ✓');
     expect(inbox['markRead']).toHaveBeenCalledWith('conv1');
+  });
+
+  it('avisa quando a Lia desistiu e pede para tentar de novo', async () => {
+    await setup({ ...conversation, ai_failed_at: '2026-11-18T11:05:00Z' }, [msg('1', 'IN', 'Olá')]);
+    expect(el().textContent).toContain('A Lia não conseguiu responder');
+    const button = [...el().querySelectorAll('.thread__ai-failed button')][0] as HTMLButtonElement;
+    button.click();
+    await fixture.whenStable();
+    expect(inbox['retryAi']).toHaveBeenCalledWith('conv1');
+    expect(el().textContent).toContain('A Lia está tentando de novo');
   });
 
   it('envia a resposta e acrescenta na conversa', async () => {

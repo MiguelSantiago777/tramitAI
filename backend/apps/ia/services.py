@@ -10,6 +10,8 @@ import logging
 import uuid
 from dataclasses import dataclass
 
+from django.utils import timezone
+
 from apps.aprovacoes import services as approvals
 from apps.aprovacoes.models import OutboundDraft
 from apps.cobranca.services import is_blocked
@@ -57,12 +59,19 @@ def handle_inbound(tenant_id: uuid.UUID, conversation_id: uuid.UUID, message_id:
         logger.warning("triage: falha no LLM (%s) conversa %s", exc.code, conversation_id)
         if exc.retryable:
             raise RetryableTriageError(exc.code) from exc
+        mark_ai_failed(tenant_id, conversation_id)
         return "llm_failed"
 
     with tenant_atomic(tenant_id):
         outcome = _store(conversation_id, message_id, plan, result)
     logger.info("triage: conversa %s → %s", conversation_id, outcome)
     return outcome
+
+
+def mark_ai_failed(tenant_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
+    """A Lia desistiu desta conversa: a tela avisa a equipe para responder ou tentar de novo."""
+    with tenant_atomic(tenant_id):
+        Conversation.objects.filter(pk=conversation_id).update(ai_failed_at=timezone.now())
 
 
 def _prepare(conversation_id: uuid.UUID, message_id: uuid.UUID) -> tuple[str, _Plan | None]:
@@ -180,6 +189,7 @@ def _store(
         audit.record(
             "ai.failed", generation, actor_type=audit.Actor.AI, data={"error_code": str(exc)}
         )
+        Conversation.objects.filter(pk=conversation.pk).update(ai_failed_at=timezone.now())
         return "invalid_output"
 
     flags = check_reply(triage.reply, plan.context)
@@ -202,6 +212,7 @@ def _store(
         # Gerou, mas o cliente mandou mais coisa: a triagem da mensagem nova vale.
         return "superseded_after_generation"
 
+    Conversation.objects.filter(pk=conversation.pk).update(ai_failed_at=None)
     approvals.create_draft(
         conversation=conversation,
         origin=OutboundDraft.Origin.AI_REPLY,

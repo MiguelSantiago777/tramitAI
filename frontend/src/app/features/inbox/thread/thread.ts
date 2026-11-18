@@ -135,6 +135,7 @@ export class Thread {
     { initialValue: [] },
   );
   readonly quickReplies = signal<QuickReply[]>([]);
+  readonly retrying = signal(false);
   readonly formatPhone = formatPhone;
 
   constructor() {
@@ -168,6 +169,9 @@ export class Thread {
         const [conversation, page, drafts] = result;
         this.conversation.set(conversation);
         this.pendingDrafts.set(drafts.results);
+        if (drafts.results.length > 0 || conversation.ai_failed_at) {
+          this.retrying.set(false);
+        }
         this.mergeLatest(page.results);
         if (this.olderPage === 1) {
           this.hasOlder.set(page.next !== null);
@@ -266,6 +270,22 @@ export class Thread {
     const text = fillQuickReply(reply.body, c?.client_name || c?.contact_name || '');
     const current = this.draft.value.trim();
     this.draft.setValue(current ? `${current}\n\n${text}` : text);
+  }
+
+  retryAi(): void {
+    const id = this.conversationId();
+    this.retrying.set(true);
+    this.inbox.retryAi(id).subscribe({
+      next: () => {
+        // O aviso some na hora; o rascunho aparece pelo polling quando a Lia terminar.
+        this.conversation.update((c) => (c ? { ...c, ai_failed_at: null } : c));
+        setTimeout(() => this.retrying.set(false), 60_000);
+      },
+      error: (err: unknown) => {
+        this.retrying.set(false);
+        this.error.set(toApiError(err).message);
+      },
+    });
   }
 
   unlinkClient(): void {
