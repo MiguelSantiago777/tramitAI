@@ -47,63 +47,73 @@ function currentMonth(): string {
   template: `
     <header class="page-header">
       <div>
-        <h1 class="page-title">Financeiro</h1>
-        <p class="muted">Honorários, parcelas e cobranças por Pix ou link do Mercado Pago.</p>
+        <h1>Financeiro</h1>
+        <p>Honorários, parcelas e cobranças por Pix ou link do Mercado Pago.</p>
       </div>
-      <span class="spacer"></span>
-      <a mat-stroked-button routerLink="/configuracoes/financeiro">
-        <span class="icon btn-icon">account_balance</span>Mercado Pago
-      </a>
-      <button mat-flat-button type="button" (click)="newAgreement()">
-        <span class="icon btn-icon">add</span>Novo contrato
-      </button>
+      <div class="actions">
+        <a mat-stroked-button routerLink="/configuracoes/financeiro">
+          <span class="icon btn-icon">account_balance</span>Mercado Pago
+        </a>
+        <button mat-flat-button type="button" (click)="newAgreement()">
+          <span class="icon btn-icon">add</span>Novo contrato
+        </button>
+      </div>
     </header>
 
-    <section class="stats">
-      <div class="card stat">
+    <section class="stats" aria-label="Resumo do mês">
+      <div class="stat card" data-tone="green">
+        <span class="stat__icon"><span class="icon">savings</span></span>
+        <span class="stat__value">{{ fmt(summary()?.received) }}</span>
         <span class="stat__label">Recebido no mês</span>
-        <strong class="stat__value success">{{ fmt(summary()?.received) }}</strong>
+        <span class="stat__hint">Parcelas pagas neste mês</span>
       </div>
-      <div class="card stat">
+      <div class="stat card">
+        <span class="stat__icon"><span class="icon">calendar_month</span></span>
+        <span class="stat__value">{{ fmt(summary()?.expected) }}</span>
         <span class="stat__label">Previsto no mês</span>
-        <strong class="stat__value">{{ fmt(summary()?.expected) }}</strong>
+        <span class="stat__hint">Parcelas que vencem neste mês</span>
       </div>
-      <button type="button" class="card stat stat--action" (click)="setFilter('overdue')">
-        <span class="stat__label">Em atraso ({{ summary()?.overdue_count ?? 0 }})</span>
-        <strong class="stat__value danger">{{ fmt(summary()?.overdue_total) }}</strong>
+      <button type="button" class="stat card" data-tone="red" (click)="setFilter('overdue')">
+        <span class="stat__icon"><span class="icon">warning</span></span>
+        <span class="stat__value">{{ fmt(summary()?.overdue_total) }}</span>
+        <span class="stat__label">Em atraso</span>
+        <span class="stat__hint">{{ summary()?.overdue_count ?? 0 }} parcela(s) · ver lista</span>
       </button>
-      <div class="card stat">
+      <div class="stat card" data-tone="teal">
+        <span class="stat__icon"><span class="icon">event_upcoming</span></span>
+        <span class="stat__value">{{ fmt(summary()?.next_30_days) }}</span>
         <span class="stat__label">Próximos 30 dias</span>
-        <strong class="stat__value">{{ fmt(summary()?.next_30_days) }}</strong>
+        <span class="stat__hint">A receber em aberto</span>
       </div>
     </section>
 
+    <div class="filters">
+      <mat-button-toggle-group
+        [value]="filter()"
+        (change)="setFilter($event.value)"
+        aria-label="Filtrar parcelas"
+      >
+        <mat-button-toggle value="open">Em aberto</mat-button-toggle>
+        <mat-button-toggle value="overdue">Atrasadas</mat-button-toggle>
+        <mat-button-toggle value="paid">Pagas</mat-button-toggle>
+        <mat-button-toggle value="">Todas</mat-button-toggle>
+      </mat-button-toggle-group>
+      <mat-form-field appearance="outline" class="filters__search" subscriptSizing="dynamic">
+        <span matPrefix class="icon search-icon">search</span>
+        <mat-label>Buscar</mat-label>
+        <input matInput [formControl]="search" placeholder="Cliente ou contrato" />
+      </mat-form-field>
+    </div>
+
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    @if (error(); as message) {
+      <p class="error-text" role="alert">{{ message }}</p>
+    }
+
     <section class="card">
-      <div class="toolbar">
-        <mat-button-toggle-group
-          [value]="filter()"
-          (change)="setFilter($event.value)"
-          aria-label="Filtrar parcelas"
-        >
-          <mat-button-toggle value="open">Em aberto</mat-button-toggle>
-          <mat-button-toggle value="overdue">Atrasadas</mat-button-toggle>
-          <mat-button-toggle value="paid">Pagas</mat-button-toggle>
-          <mat-button-toggle value="">Todas</mat-button-toggle>
-        </mat-button-toggle-group>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
-          <mat-label>Buscar cliente ou contrato</mat-label>
-          <input matInput [formControl]="search" />
-        </mat-form-field>
-      </div>
-
-      @if (loading()) {
-        <mat-progress-bar mode="indeterminate" />
-      }
-      @if (error(); as message) {
-        <p class="error-text" role="alert">{{ message }}</p>
-      }
-
-      <ul class="rows">
+      <ul class="row-list">
         @for (i of items(); track i.id) {
           <li class="row">
             <div class="row__main">
@@ -118,21 +128,25 @@ function currentMonth(): string {
               </span>
             </div>
             <div class="row__due">
-              <span class="small muted">{{ i.status === 'PAID' ? 'Pago em' : 'Vence' }}</span>
-              <span>{{ (i.status === 'PAID' ? i.paid_at : i.due_date) | date: 'dd/MM/yyyy' }}</span>
+              <span class="muted small">{{ i.status === 'PAID' ? 'Pago em' : 'Vencimento' }}</span>
+              <span class="mono">{{
+                (i.status === 'PAID' ? i.paid_at : i.due_date) | date: 'dd/MM/yyyy'
+              }}</span>
             </div>
-            <strong class="row__amount">{{
+            <strong class="row__amount mono">{{
               fmt(i.status === 'PAID' ? i.paid_amount : i.amount)
             }}</strong>
-            <span class="pill" [attr.data-tone]="state(i).tone">
-              {{ state(i).label }}
+            <div class="row__status">
+              <span class="badge" [attr.data-status]="state(i).code">{{ state(i).label }}</span>
               @if (i.status === 'PAID' && i.method) {
-                · {{ methodLabel(i) }}
+                <span class="muted small">{{ methodLabel(i) }}</span>
               }
               @if (i.status === 'OPEN' && i.has_active_charge) {
-                · {{ i.charge_kind === 'PIX' ? 'Pix gerado' : 'Link gerado' }}
+                <span class="muted small">{{
+                  i.charge_kind === 'PIX' ? 'Pix gerado' : 'Link gerado'
+                }}</span>
               }
-            </span>
+            </div>
             <app-installment-actions [installment]="i" (changed)="onChanged($event)" />
           </li>
         } @empty {
@@ -144,120 +158,61 @@ function currentMonth(): string {
           }
         }
       </ul>
-      <mat-paginator
-        [length]="total()"
-        [pageIndex]="pageIndex()"
-        [pageSize]="25"
-        [hidePageSize]="true"
-        (page)="onPage($event)"
-      />
+      @if (total() > 25) {
+        <mat-paginator
+          [length]="total()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="25"
+          [hidePageSize]="true"
+          (page)="onPage($event)"
+        />
+      }
     </section>
   `,
   styles: `
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    .spacer {
-      flex: 1;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .stat {
-      display: grid;
-      gap: 4px;
-      text-align: left;
-      font: inherit;
-      color: inherit;
-    }
-    .stat--action {
-      cursor: pointer;
-      border: 0;
-    }
-    .stat__label {
-      font-size: 0.85rem;
-      color: var(--mat-sys-on-surface-variant);
-    }
     .stat__value {
-      font-size: 1.4rem;
+      font-size: 26px;
     }
-    .success {
-      color: var(--tm-success);
-    }
-    .danger {
-      color: var(--tm-danger);
-    }
-    .toolbar {
+    .actions {
       display: flex;
-      gap: 12px;
-      align-items: center;
+      gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .search {
-      flex: 1;
-      min-width: 220px;
-    }
-    .rows {
-      list-style: none;
-      margin: 0;
-      padding: 0;
     }
     .row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 110px 120px 170px 40px;
-      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) 110px 120px 150px 40px;
+      gap: 16px;
       align-items: center;
-      padding: 10px 0;
-      border-top: 1px solid var(--mat-sys-outline-variant);
+      padding: 12px 0;
     }
-    .row__main {
-      display: grid;
+    .row__main,
+    .row__due,
+    .row__status {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
       min-width: 0;
+    }
+    .row__status {
+      align-items: flex-start;
     }
     .row__client {
       font-weight: 600;
-      text-decoration: none;
       color: inherit;
+      text-decoration: none;
     }
-    .row__due {
-      display: grid;
+    .row__client:hover {
+      color: var(--mat-sys-primary);
     }
     .row__amount {
       text-align: right;
     }
-    .pill {
-      justify-self: start;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      background: var(--tm-neutral-soft);
-    }
-    .pill[data-tone='success'] {
-      background: var(--tm-success-soft);
-      color: var(--tm-success);
-    }
-    .pill[data-tone='danger'] {
-      background: var(--tm-danger-soft);
-      color: var(--tm-danger);
-    }
-    .pill[data-tone='info'] {
-      background: var(--tm-info-soft);
-      color: var(--tm-info);
-    }
     @media (max-width: 760px) {
       .row {
-        grid-template-columns: 1fr auto 40px;
+        grid-template-columns: minmax(0, 1fr) auto 40px;
       }
       .row__due,
-      .pill {
+      .row__status {
         display: none;
       }
     }
@@ -291,7 +246,7 @@ export class FinancePage {
     return money(value);
   }
 
-  state(i: Installment): { label: string; tone: string } {
+  state(i: Installment): { label: string; code: string } {
     return installmentState(i);
   }
 

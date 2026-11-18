@@ -110,11 +110,12 @@ export function parseMoney(text: string): string | null {
   return Number.isFinite(value) && value > 0 ? value.toFixed(2) : null;
 }
 
-export function installmentState(i: Installment): { label: string; tone: string } {
-  if (i.status === 'PAID') return { label: 'Paga', tone: 'success' };
-  if (i.status === 'CANCELLED') return { label: 'Cancelada', tone: 'neutral' };
-  if (i.is_overdue) return { label: 'Atrasada', tone: 'danger' };
-  return { label: 'Em aberto', tone: 'info' };
+export function installmentState(i: Installment): { label: string; code: string } {
+  // `code` casa com as cores do .badge global.
+  if (i.status === 'PAID') return { label: 'Paga', code: 'PAID' };
+  if (i.status === 'CANCELLED') return { label: 'Cancelada', code: 'ARCHIVED' };
+  if (i.is_overdue) return { label: 'Atrasada', code: 'OVERDUE' };
+  return { label: 'Em aberto', code: 'OPEN' };
 }
 
 /** Prévia do parcelamento (mesma regra do backend: centavos na 1ª parcela). */

@@ -20,79 +20,107 @@ import { FinanceiroService } from '../../financeiro/financeiro.service';
     MatProgressBarModule,
   ],
   template: `
-    <h1 class="page-title">Mercado Pago</h1>
-    <p class="muted">
-      Conecte a conta do escritório para gerar Pix e links de pagamento das parcelas. O dinheiro cai
-      direto na sua conta; quando o cliente paga, a parcela recebe baixa sozinha.
-    </p>
+    <header class="page-header">
+      <div>
+        <h1>Mercado Pago</h1>
+        <p>A conta do escritório que recebe os Pix e links de pagamento dos honorários.</p>
+      </div>
+    </header>
 
-    <section class="card">
-      @if (loading()) {
-        <mat-progress-bar mode="indeterminate" />
-      }
-      @if (status(); as s) {
+    @if (error(); as message) {
+      <p class="error-text" role="alert">{{ message }}</p>
+    }
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    @if (status(); as s) {
+      <section class="form-card">
         @if (s.connected) {
-          <p class="ok">
-            <span class="icon">check_circle</span> Conectado à conta
-            <strong>{{ s.nickname || s.mp_user_id }}</strong>.
-          </p>
-          @if (!s.webhook_ready) {
-            <p class="muted small">
-              Aviso automático de pagamento indisponível neste ambiente (sem HTTPS). Em produção, a
+          <div class="mp__state">
+            <span class="mp__icon"><span class="icon icon--filled">check_circle</span></span>
+            <div>
+              <h2>Conectado</h2>
+              <p class="muted">Conta {{ s.nickname || s.mp_user_id }}</p>
+            </div>
+            <span class="mp__spacer"></span>
+            @if (s.can_manage) {
+              <button mat-stroked-button type="button" [disabled]="busy()" (click)="disconnect()">
+                Desconectar
+              </button>
+            }
+          </div>
+          <p class="muted small mp__note">
+            @if (s.webhook_ready) {
+              Quando o cliente paga, a parcela recebe baixa sozinha.
+            } @else {
+              Aviso automático de pagamento indisponível neste ambiente (sem HTTPS). Em produção a
               baixa é automática.
-            </p>
-          }
-          @if (s.can_manage) {
-            <button mat-stroked-button type="button" [disabled]="busy()" (click)="disconnect()">
-              Desconectar
-            </button>
-          }
+            }
+          </p>
         } @else if (s.can_manage) {
-          <ol class="steps">
+          <h2>Conectar a conta do escritório</h2>
+          <ol class="plain-list">
             <li>
               Entre em
               <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank"
                 >mercadopago.com.br/developers</a
               >
-              com a conta do escritório e crie uma aplicação (tipo "Pagamentos online").
+              com a conta do escritório e crie uma aplicação.
             </li>
             <li>
               Em <strong>Credenciais de produção</strong>, copie o
               <strong>Access Token</strong> (começa com APP_USR-).
             </li>
             <li>
-              Cole abaixo. Ele fica guardado cifrado e só é usado para criar e consultar cobranças.
+              Cole abaixo. Ele fica guardado cifrado e só serve para criar e consultar cobranças.
             </li>
           </ol>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Access Token</mat-label>
-            <input matInput type="password" autocomplete="off" [formControl]="token" />
-          </mat-form-field>
-          <button mat-flat-button type="button" [disabled]="busy()" (click)="connect()">
-            Conectar
-          </button>
+          <div class="inline-form">
+            <mat-form-field appearance="outline" class="grow" subscriptSizing="dynamic">
+              <mat-label>Access Token</mat-label>
+              <input matInput type="password" autocomplete="off" [formControl]="token" />
+            </mat-form-field>
+            <button mat-flat-button type="button" [disabled]="busy()" (click)="connect()">
+              Conectar
+            </button>
+          </div>
         } @else {
-          <p>O titular do escritório precisa conectar a conta do Mercado Pago.</p>
+          <div class="empty-state">
+            <span class="icon">account_balance</span>
+            O titular do escritório precisa conectar a conta do Mercado Pago.
+          </div>
         }
-      }
-      @if (error(); as message) {
-        <p class="error-text" role="alert">{{ message }}</p>
-      }
-    </section>
+      </section>
+    }
   `,
   styles: `
-    .ok {
+    .mp__state {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 6px;
+      gap: 16px;
+    }
+    .mp__state h2 {
+      margin: 0 0 2px;
+    }
+    .mp__state p {
+      margin: 0;
+    }
+    .mp__icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--tm-success-soft);
       color: var(--tm-success);
     }
-    .steps {
-      padding-left: 20px;
-      line-height: 1.6;
+    .mp__spacer {
+      flex: 1;
     }
-    .full {
-      width: 100%;
+    .mp__note {
+      margin: 12px 0 0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

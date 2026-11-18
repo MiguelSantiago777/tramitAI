@@ -113,16 +113,14 @@ describe('FinancePage', () => {
 
   it('mostra o resumo do mês e as parcelas em aberto', () => {
     expect(api['installments']).toHaveBeenCalledWith({ status: 'open', q: '' }, 0);
-    expect(text()).toContain('Em atraso (1)');
+    expect(text()).toContain('1 parcela(s) · ver lista');
     expect(text()).toContain('Ana Souza');
     expect(text()).toContain('Atrasada');
     expect(text()).toContain('Pix gerado');
   });
 
   it('filtra só as atrasadas pelo card', async () => {
-    (fixture.nativeElement as HTMLElement)
-      .querySelector<HTMLButtonElement>('.stat--action')!
-      .click();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('button.stat')!.click();
     await fixture.whenStable();
     expect(api['installments']).toHaveBeenLastCalledWith({ status: 'overdue', q: '' }, 0);
   });

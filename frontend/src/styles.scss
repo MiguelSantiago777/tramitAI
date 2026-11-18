@@ -351,6 +351,197 @@ a {
   color: var(--mat-sys-on-surface-variant);
 }
 
+// ======================================================================== números (cards de resumo)
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    gap: 10px;
+  }
+}
+
+.stat {
+  --tone: #4f46e5;
+  --tone-soft: #eef2ff;
+
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'value icon'
+    'label label'
+    'hint hint';
+  gap: 4px;
+  padding: 18px 20px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--tm-shadow-lg);
+  }
+
+  &[data-tone='amber'] {
+    --tone: #b45309;
+    --tone-soft: #fef3c7;
+  }
+
+  &[data-tone='teal'] {
+    --tone: #0e7490;
+    --tone-soft: #cffafe;
+  }
+
+  &[data-tone='slate'] {
+    --tone: #334155;
+    --tone-soft: #f1f5f9;
+  }
+}
+
+.stat--loading {
+  min-height: 118px;
+  background: linear-gradient(90deg, #fff 0%, #f1f5f9 50%, #fff 100%);
+}
+
+.stat__icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--tone-soft);
+  color: var(--tone);
+}
+
+.stat__value {
+  grid-area: value;
+  font:
+    650 32px / 1.1 Inter,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  grid-area: label;
+  font:
+    550 14px / 1.3 Inter,
+    system-ui,
+    sans-serif;
+}
+
+.stat__hint {
+  grid-area: hint;
+  font:
+    13px / 1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 520px) {
+  .stat {
+    padding: 14px;
+  }
+
+  .stat__value {
+    font-size: 26px;
+  }
+
+  .stat__icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .stat__hint {
+    display: none;
+  }
+}
+
+.stat[data-tone='green'] {
+  --tone: #15803d;
+  --tone-soft: #dcfce7;
+}
+
+.stat[data-tone='red'] {
+  --tone: #b91c1c;
+  --tone-soft: #fee2e2;
+}
+
+button.stat {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+// ======================================================================== painéis
+
+// Card com espaçamento interno e cabeçalho (título + ações), como a ficha do cliente.
+.panel-card {
+  padding: 20px 24px;
+  margin: 16px 0;
+
+  @media (max-width: 600px) {
+    padding: 16px;
+  }
+}
+
+.panel-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .section-title {
+    margin: 0;
+    margin-right: auto;
+
+    .icon {
+      color: var(--mat-sys-primary);
+    }
+  }
+}
+
+// Lista dentro de card: linhas separadas, com respiro nas laterais.
+.row-list {
+  margin: 0;
+  padding: 4px 16px;
+  list-style: none;
+
+  > li + li {
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+.badge {
+  &[data-status='PAID'] {
+    background: var(--tm-success-soft);
+    color: var(--tm-success);
+  }
+
+  &[data-status='OVERDUE'] {
+    background: var(--tm-danger-soft);
+    color: var(--tm-danger);
+  }
+
+  &[data-status='OPEN'] {
+    background: var(--tm-info-soft);
+    color: var(--tm-info);
+  }
+}
+
 // ======================================================================== diálogos
 
 .dialog-form {

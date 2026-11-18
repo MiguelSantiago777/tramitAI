@@ -23,41 +23,48 @@ import { Billing, BillingService } from './billing.service';
     MatProgressBarModule,
   ],
   template: `
-    <h1 class="page-title">Assinatura</h1>
+    <header class="page-header">
+      <div>
+        <h1>Assinatura</h1>
+        <p>Plano do TramitAI do seu escritório, pago pelo Mercado Pago.</p>
+      </div>
+    </header>
+
     @if (loading()) {
       <mat-progress-bar mode="indeterminate" />
     }
+    @if (error(); as message) {
+      <p class="error-text" role="alert">{{ message }}</p>
+    }
+
     @if (billing(); as b) {
-      <section class="card">
+      <section class="form-card">
         @if (b.exempt) {
-          <p>Este escritório está isento de assinatura. Nada a fazer aqui.</p>
+          <div class="empty-state">
+            <span class="icon">workspace_premium</span>
+            Este escritório está isento de assinatura. Nada a fazer aqui.
+          </div>
         } @else {
-          <div class="head">
+          <div class="bill__head">
             <div>
               <span class="muted small">Plano</span>
-              <strong class="plan">{{ b.plan_name }} · {{ price(b) }}/mês</strong>
+              <h2>{{ b.plan_name }} · {{ price(b) }}/mês</h2>
             </div>
-            <span class="pill" [attr.data-tone]="tone(b)">{{ b.status_label }}</span>
+            <span class="badge" [attr.data-status]="badge(b)">{{ b.status_label }}</span>
           </div>
 
           @if (b.blocked) {
-            <p class="alert" role="alert">
+            <p class="bill__alert" role="alert">
               O acesso está bloqueado porque
-              {{
-                b.status === 'TRIAL'
-                  ? 'o teste grátis'
-                  : 'a
-              assinatura'
-              }}
-              venceu. Assine abaixo para voltar a usar: seus dados continuam guardados.
+              {{ b.status === 'TRIAL' ? 'o teste grátis' : 'a assinatura' }} venceu. Assine abaixo
+              para voltar a usar: seus dados continuam guardados.
             </p>
           } @else if (b.status === 'TRIAL') {
             <p>
               Teste grátis até <strong>{{ b.trial_ends_at | date: 'dd/MM/yyyy' }}</strong> ({{
                 b.days_left
               }}
-              dia(s)). Assine quando quiser: o primeiro pagamento só libera o mês seguinte depois do
-              teste.
+              dia(s)).
             </p>
           } @else if (b.status === 'ACTIVE') {
             <p>
@@ -67,7 +74,7 @@ import { Billing, BillingService } from './billing.service';
           } @else if (b.status === 'PENDING') {
             <p>Assinatura criada, aguardando a confirmação do pagamento no Mercado Pago.</p>
           } @else if (b.status === 'PAST_DUE') {
-            <p class="alert">
+            <p class="bill__alert">
               O Mercado Pago não conseguiu cobrar. Atualize o cartão no Mercado Pago para evitar o
               bloqueio em {{ b.access_until | date: 'dd/MM/yyyy' }}.
             </p>
@@ -77,8 +84,8 @@ import { Billing, BillingService } from './billing.service';
 
           @if (b.can_manage) {
             @if (b.status !== 'ACTIVE') {
-              <div class="checkout">
-                <mat-form-field appearance="outline" class="email">
+              <div class="inline-form">
+                <mat-form-field appearance="outline" class="grow">
                   <mat-label>E-mail da sua conta no Mercado Pago</mat-label>
                   <input matInput type="email" [formControl]="email" />
                   <mat-hint>O pagamento é feito com a conta do Mercado Pago deste e-mail.</mat-hint>
@@ -88,97 +95,52 @@ import { Billing, BillingService } from './billing.service';
                 </button>
               </div>
               @if (b.checkout_url) {
-                <p class="small">
-                  Já começou?
-                  <a [href]="b.checkout_url" target="_self">Continuar o pagamento</a>
-                  ·
-                  <button type="button" class="linkish" (click)="check()">
+                <div class="form-actions">
+                  <a mat-button [href]="b.checkout_url">Continuar o pagamento</a>
+                  <button mat-button type="button" [disabled]="busy()" (click)="check()">
                     Já paguei, conferir
                   </button>
-                </p>
+                </div>
               }
             } @else {
-              <button
-                mat-button
-                type="button"
-                class="danger"
-                [disabled]="busy()"
-                (click)="cancel()"
-              >
-                Cancelar assinatura
-              </button>
+              <div class="form-actions">
+                <button
+                  mat-button
+                  type="button"
+                  class="dialog-danger"
+                  [disabled]="busy()"
+                  (click)="cancel()"
+                >
+                  Cancelar assinatura
+                </button>
+              </div>
             }
           } @else {
-            <p class="muted">Só o titular do escritório pode assinar ou cancelar.</p>
+            <p class="muted small">Só o titular do escritório pode assinar ou cancelar.</p>
           }
         }
-        @if (error(); as message) {
-          <p class="error-text" role="alert">{{ message }}</p>
-        }
       </section>
+      @if (b.blocked) {
+        <button mat-button type="button" (click)="logout()">
+          <span class="icon btn-icon">logout</span>Sair
+        </button>
+      }
     }
-    <p class="muted small">
-      <button type="button" class="linkish" (click)="logout()">Sair</button>
-    </p>
   `,
   styles: `
-    .head {
+    .bill__head {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .head > div {
-      display: grid;
-    }
-    .plan {
-      font-size: 1.15rem;
-    }
-    .pill {
-      padding: 2px 10px;
-      border-radius: 999px;
-      background: var(--tm-neutral-soft);
-      font-size: 0.85rem;
-    }
-    .pill[data-tone='success'] {
-      background: var(--tm-success-soft);
-      color: var(--tm-success);
-    }
-    .pill[data-tone='danger'] {
-      background: var(--tm-danger-soft);
-      color: var(--tm-danger);
-    }
-    .pill[data-tone='info'] {
-      background: var(--tm-info-soft);
-      color: var(--tm-info);
-    }
-    .alert {
-      padding: 10px 14px;
-      border-radius: 10px;
-      background: var(--tm-danger-soft);
-      color: var(--tm-danger);
-    }
-    .checkout {
-      display: flex;
-      gap: 12px;
       align-items: flex-start;
-      flex-wrap: wrap;
-      margin-top: 8px;
+      gap: 12px;
     }
-    .email {
-      flex: 1;
-      min-width: 260px;
+    .bill__head h2 {
+      margin: 2px 0 8px;
     }
-    .linkish {
-      background: none;
-      border: 0;
-      padding: 0;
-      color: var(--mat-sys-primary);
-      cursor: pointer;
-      font: inherit;
-    }
-    .danger {
+    .bill__alert {
+      padding: 10px 14px;
+      border-radius: var(--tm-radius-sm);
+      background: var(--tm-danger-soft);
       color: var(--tm-danger);
     }
   `,
@@ -214,10 +176,12 @@ export class BillingPage {
     return money(b.price);
   }
 
-  tone(b: Billing): string {
-    if (b.blocked || b.status === 'PAST_DUE') return 'danger';
-    if (b.status === 'ACTIVE') return 'success';
-    return 'info';
+  /** Cor do .badge global. */
+  badge(b: Billing): string {
+    if (b.blocked || b.status === 'PAST_DUE') return 'OVERDUE';
+    if (b.status === 'ACTIVE') return 'PAID';
+    if (b.status === 'PENDING') return 'PENDING';
+    return 'OPEN';
   }
 
   subscribe(): void {

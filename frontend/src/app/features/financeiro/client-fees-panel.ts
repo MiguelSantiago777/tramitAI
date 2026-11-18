@@ -28,10 +28,9 @@ import { InstallmentActions } from './installment-actions';
   selector: 'app-client-fees-panel',
   imports: [DatePipe, MatButtonModule, InstallmentActions],
   template: `
-    <section class="card fees">
-      <header class="fees__header">
+    <section class="card panel-card">
+      <header class="panel-card__header">
         <h2 class="section-title"><span class="icon">payments</span> Honorários</h2>
-        <span class="fees__spacer"></span>
         <button mat-stroked-button type="button" (click)="newAgreement()">
           <span class="icon btn-icon">add</span>Contrato
         </button>
@@ -43,86 +42,67 @@ import { InstallmentActions } from './installment-actions';
         <article class="agreement" [class.agreement--closed]="a.status !== 'ACTIVE'">
           <div class="agreement__top">
             <strong>{{ a.title }}</strong>
-            <span class="muted small">
-              {{ kindLabel(a) }} · total {{ fmt(a.total_amount) }} · pago {{ fmt(a.paid_total) }} ·
-              em aberto {{ fmt(a.open_total) }}
-              @if (a.status === 'FINISHED') {
-                · quitado
-              }
-              @if (a.status === 'CANCELLED') {
-                · cancelado
-              }
-            </span>
+            @if (a.status === 'FINISHED') {
+              <span class="badge" data-status="PAID">Quitado</span>
+            } @else if (a.status === 'CANCELLED') {
+              <span class="badge" data-status="ARCHIVED">Cancelado</span>
+            }
           </div>
+          <p class="muted small agreement__meta">
+            {{ kindLabel(a) }} · total {{ fmt(a.total_amount) }} · pago {{ fmt(a.paid_total) }} · em
+            aberto {{ fmt(a.open_total) }}
+          </p>
           <ol class="installments">
             @for (i of a.installments; track i.id) {
               <li>
-                <span>{{ i.number }}ª · {{ i.due_date | date: 'dd/MM/yyyy' }}</span>
-                <strong>{{ fmt(i.amount) }}</strong>
-                <span class="pill" [attr.data-tone]="state(i).tone">{{ state(i).label }}</span>
+                <span class="mono">{{ i.number }}ª · {{ i.due_date | date: 'dd/MM/yyyy' }}</span>
+                <strong class="mono">{{ fmt(i.amount) }}</strong>
+                <span class="badge" [attr.data-status]="state(i).code">{{ state(i).label }}</span>
                 <app-installment-actions [installment]="i" (changed)="reload()" />
               </li>
             }
           </ol>
         </article>
       } @empty {
-        <p class="empty-state">
+        <div class="empty-state">
           <span class="icon">payments</span>
           Nenhum contrato de honorários para este cliente.
-        </p>
+        </div>
       }
     </section>
   `,
   styles: `
-    .fees__header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .fees__spacer {
-      flex: 1;
-    }
     .agreement {
+      padding: 12px 0;
+    }
+    .agreement + .agreement {
       border-top: 1px solid var(--mat-sys-outline-variant);
-      padding: 10px 0;
     }
     .agreement--closed {
       opacity: 0.7;
     }
     .agreement__top {
-      display: grid;
-      gap: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .agreement__meta {
+      margin: 2px 0 8px;
     }
     .installments {
       list-style: none;
       padding: 0;
-      margin: 8px 0 0;
+      margin: 0;
     }
     .installments li {
       display: grid;
-      grid-template-columns: 1fr 110px 110px 40px;
+      grid-template-columns: minmax(0, 1fr) 110px 110px 40px;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       padding: 2px 0;
     }
-    .pill {
+    .installments .badge {
       justify-self: start;
-      padding: 1px 8px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      background: var(--tm-neutral-soft);
-    }
-    .pill[data-tone='success'] {
-      background: var(--tm-success-soft);
-      color: var(--tm-success);
-    }
-    .pill[data-tone='danger'] {
-      background: var(--tm-danger-soft);
-      color: var(--tm-danger);
-    }
-    .pill[data-tone='info'] {
-      background: var(--tm-info-soft);
-      color: var(--tm-info);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -151,7 +131,7 @@ export class ClientFeesPanel {
     return KIND_LABELS[a.kind];
   }
 
-  state(i: Installment): { label: string; tone: string } {
+  state(i: Installment): { label: string; code: string } {
     return installmentState(i);
   }
 

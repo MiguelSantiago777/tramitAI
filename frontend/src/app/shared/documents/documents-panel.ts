@@ -46,11 +46,14 @@ import { DocumentsService } from './documents.service';
     MatSelectModule,
   ],
   template: `
-    <section class="card docs">
-      <header class="docs__header">
-        <h2 class="section-title"><span class="icon">folder_open</span> Documentos</h2>
-        <span class="docs__count muted">{{ docs().length }}</span>
-        <span class="docs__spacer"></span>
+    <section class="card panel-card">
+      <header class="panel-card__header">
+        <h2 class="section-title">
+          <span class="icon">folder_open</span> Documentos
+          @if (docs().length) {
+            <span class="muted small">({{ docs().length }})</span>
+          }
+        </h2>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="docs__category">
           <mat-label>Tipo do arquivo</mat-label>
           <mat-select [formControl]="category">
@@ -92,23 +95,23 @@ import { DocumentsService } from './documents.service';
             <span class="doc__icon"
               ><span class="icon">{{ icon(d) }}</span></span
             >
-            <button type="button" class="doc__name link-button" (click)="open(d)">
-              {{ d.name }}
-            </button>
-            <span class="doc__meta muted">
-              {{ d.category_label }} · {{ size(d) }} · {{ d.created_at | date: 'dd/MM/yyyy' }}
-              @if (d.source === 'WHATSAPP') {
-                · pelo WhatsApp
-                @if (d.conversation_id) {
-                  (<a [routerLink]="['/inbox', d.conversation_id]">conversa</a>)
+            <div class="doc__text">
+              <button type="button" class="doc__name" (click)="open(d)">{{ d.name }}</button>
+              <span class="muted small">
+                {{ d.category_label }} · {{ size(d) }} · {{ d.created_at | date: 'dd/MM/yyyy' }}
+                @if (d.source === 'WHATSAPP') {
+                  · pelo WhatsApp
+                  @if (d.conversation_id) {
+                    (<a [routerLink]="['/inbox', d.conversation_id]">conversa</a>)
+                  }
+                } @else if (d.uploaded_by_name) {
+                  · por {{ d.uploaded_by_name }}
                 }
-              } @else if (d.uploaded_by_name) {
-                · por {{ d.uploaded_by_name }}
-              }
-              @if (d.case_number && !caseId()) {
-                · <span class="mono">{{ d.case_number }}</span>
-              }
-            </span>
+                @if (d.case_number && !caseId()) {
+                  · <span class="mono">{{ d.case_number }}</span>
+                }
+              </span>
+            </div>
             <button
               mat-icon-button
               type="button"
@@ -147,32 +150,23 @@ import { DocumentsService } from './documents.service';
     </section>
   `,
   styles: `
-    .docs__header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .docs__spacer {
-      flex: 1;
-    }
     .docs__category {
-      width: 210px;
+      width: 220px;
     }
     .docs__drop {
-      margin: 12px 0;
-      padding: 14px;
-      border: 1.5px dashed var(--mat-sys-outline-variant);
-      border-radius: 10px;
+      margin-bottom: 12px;
+      padding: 14px 16px;
+      border: 1.5px dashed var(--mat-sys-outline);
+      border-radius: var(--tm-radius-sm);
       color: var(--mat-sys-on-surface-variant);
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.9rem;
+      font: var(--mat-sys-body-small);
     }
     .docs__drop--over {
       border-color: var(--mat-sys-primary);
-      background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent);
+      background: var(--tm-info-soft);
     }
     .docs__list {
       list-style: none;
@@ -180,49 +174,54 @@ import { DocumentsService } from './documents.service';
       padding: 0;
     }
     .doc {
-      display: grid;
-      grid-template-columns: 36px 1fr auto;
-      grid-template-rows: auto auto;
+      display: flex;
       align-items: center;
-      column-gap: 10px;
-      padding: 8px 0;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .doc + .doc {
       border-top: 1px solid var(--mat-sys-outline-variant);
     }
     .doc__icon {
-      grid-row: span 2;
+      flex: none;
       width: 36px;
       height: 36px;
-      border-radius: 8px;
+      border-radius: var(--tm-radius-sm);
       display: grid;
       place-items: center;
-      background: var(--mat-sys-surface-container);
+      background: var(--tm-info-soft);
+      color: var(--tm-info);
+    }
+    .doc__text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
     }
     .doc__name {
-      text-align: left;
-      font-weight: 600;
-      overflow-wrap: anywhere;
-    }
-    .doc__meta {
-      grid-column: 2;
-      font-size: 0.82rem;
-    }
-    .doc button[mat-icon-button] {
-      grid-column: 3;
-      grid-row: 1 / span 2;
-    }
-    .link-button {
       background: none;
       border: 0;
       padding: 0;
+      text-align: left;
+      font:
+        600 14px / 1.4 Inter,
+        system-ui,
+        sans-serif;
       color: inherit;
       cursor: pointer;
-      font: inherit;
+      overflow-wrap: anywhere;
     }
-    .link-button:hover {
-      text-decoration: underline;
+    .doc__name:hover {
+      color: var(--mat-sys-primary);
     }
     .danger {
       color: var(--tm-danger);
+    }
+    @media (max-width: 600px) {
+      .docs__category {
+        width: 100%;
+      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
