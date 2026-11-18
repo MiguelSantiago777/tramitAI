@@ -265,7 +265,7 @@ LLM_FALLBACK_MODELS: list[str] = env.list("LLM_FALLBACK_MODELS", default=[])
 LLM_THINKING_LEVEL: str = env("LLM_THINKING_LEVEL", default="")
 LLM_EFFORT: str = env("LLM_EFFORT", default="medium")
 LLM_MAX_TOKENS: int = env.int("LLM_MAX_TOKENS", default=16000)
-LLM_TIMEOUT_SECONDS: float = env.float("LLM_TIMEOUT_SECONDS", default=90.0)
+LLM_TIMEOUT_SECONDS: float = env.float("LLM_TIMEOUT_SECONDS", default=40.0)
 # Fallback automático do servidor quando o modelo recusa (só provedor anthropic).
 LLM_REFUSAL_FALLBACK: bool = env.bool("LLM_REFUSAL_FALLBACK", default=True)
 # Espera antes da triagem, para juntar mensagens enviadas em sequência.

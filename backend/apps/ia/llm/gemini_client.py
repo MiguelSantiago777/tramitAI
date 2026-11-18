@@ -40,7 +40,12 @@ class GeminiLlmClient:
     def __init__(self, client: Any | None = None) -> None:
         self._client = client or genai.Client(
             api_key=settings.GEMINI_API_KEY,
-            http_options=types.HttpOptions(timeout=int(settings.LLM_TIMEOUT_SECONDS * 1000)),
+            http_options=types.HttpOptions(
+                timeout=int(settings.LLM_TIMEOUT_SECONDS * 1000),
+                # Sem repetição dentro do SDK: um 503 passa na hora para o modelo reserva, e a
+                # insistência fica com a task (que espera fora de transação e avisa a equipe).
+                retry_options=types.HttpRetryOptions(attempts=1),
+            ),
         )
 
     def complete(self, request: LlmRequest) -> LlmResult:
