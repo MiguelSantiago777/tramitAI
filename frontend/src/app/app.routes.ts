@@ -128,6 +128,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'manuais',
+        title: 'Manuais · TramitAI',
+        loadComponent: () => import('./features/manuais/manuais-page').then((m) => m.ManuaisPage),
+      },
+      {
         path: 'assinatura',
         title: 'Assinatura · TramitAI',
         loadComponent: () =>

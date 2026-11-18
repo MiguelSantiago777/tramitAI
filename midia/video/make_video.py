@@ -27,6 +27,9 @@ for d in (WORK / "audio", WORK / "cards", WORK / "scenes", OUT):
 # Como a voz deve falar (a legenda continua com a grafia certa): "Tra-mi-TAI".
 SPOKEN = {"TramitAI": "Tramitái"}
 HIGHLIGHT = "&H3DC8FF&"  # âmbar (#FFC83D) em BGR do ASS
+# Qualidade: o vídeo de apresentação usa 18/160k; os manuais (no sistema) usam mais compressão.
+CRF = 18
+AUDIO_BITRATE = "160k"
 
 # id, imagem, rótulo no canto, narração, destaques [(trecho da fala, alvo na tela)]
 SCENES = [
@@ -360,9 +363,10 @@ def render_scene(index: int, scene: tuple, raw_words: list, boxes: dict) -> tupl
             "-filter_complex",
             f"[0:v]{vf}[v];[1:a]adelay={int(pad_before * 1000)}:all=1,apad[a]",
             "-map", "[v]", "-map", "[a]", "-t", f"{total:.2f}",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-tune", "stillimage",
+            "-c:v", "libx264", "-preset", "medium", "-crf", str(CRF), "-tune", "stillimage",
+            "-g", "300",
             "-pix_fmt", "yuv420p", "-r", "30",
-            "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+            "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "48000",
             str(out),
         ],
         check=True,

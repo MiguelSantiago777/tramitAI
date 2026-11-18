@@ -1,0 +1,50 @@
+[
+ {
+  "id": "primeiros-passos",
+  "title": "Primeiros passos",
+  "description": "Como entrar, a tela inicial e onde fica cada coisa.",
+  "seconds": 46
+ },
+ {
+  "id": "whatsapp",
+  "title": "WhatsApp e termo de IA",
+  "description": "Conectar o número do escritório e o termo de ciência de IA.",
+  "seconds": 38
+ },
+ {
+  "id": "conversas",
+  "title": "Conversas e a Lia",
+  "description": "Triagem pela Lia, aprovação de mensagens e respostas prontas.",
+  "seconds": 62
+ },
+ {
+  "id": "clientes-processos",
+  "title": "Clientes, processos e documentos",
+  "description": "Cadastro, ficha do cliente, documentos e acompanhamento de processos.",
+  "seconds": 66
+ },
+ {
+  "id": "agenda",
+  "title": "Agenda, tarefas e Google Agenda",
+  "description": "Compromissos, consultas marcadas pela Lia, tarefas e Google Agenda.",
+  "seconds": 60
+ },
+ {
+  "id": "funil",
+  "title": "Funil de clientes",
+  "description": "Acompanhar quem chegou até virar contrato.",
+  "seconds": 19
+ },
+ {
+  "id": "financeiro",
+  "title": "Financeiro e Mercado Pago",
+  "description": "Honorários em parcelas, Pix, link de pagamento e baixa automática.",
+  "seconds": 53
+ },
+ {
+  "id": "equipe-configuracoes",
+  "title": "Equipe e configurações",
+  "description": "Convidar a equipe, horário de atendimento e como a Lia trabalha.",
+  "seconds": 46
+ }
+]

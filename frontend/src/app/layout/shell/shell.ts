@@ -64,6 +64,7 @@ export class Shell {
     { path: '/configuracoes/escritorio', label: 'Configurações', icon: 'settings' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
     { path: '/assinatura', label: 'Assinatura', icon: 'workspace_premium' },
+    { path: '/manuais', label: 'Manuais', icon: 'play_circle' },
   ];
 
   private readonly billing = inject(BillingService);
