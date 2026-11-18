@@ -169,16 +169,18 @@ Configuração única (projeto do TramitAI no Google Cloud):
 2. APIs e serviços → Biblioteca → ativar **Google Calendar API**.
 3. Tela de permissão OAuth → tipo **Externo**; nome "TramitAI", e-mail de suporte, domínio
    autorizado `tramitai.pro`, link da política de privacidade `https://app.tramitai.pro/termos`.
-   Escopos: `openid`, `email`, `.../auth/calendar.events`, `.../auth/calendar.freebusy`.
-   Em **Usuários de teste**, adicione o Gmail de quem vai conectar.
+   Escopos: `openid`, `email` e `.../auth/calendar.events`.
+   Publique o app (**Público-alvo → Publicar app**): assim qualquer conta Google conecta,
+   sem lista de usuários de teste, e a autorização não vence a cada 7 dias.
 4. Credenciais → Criar → **ID do cliente OAuth** → Aplicativo da Web. URI de redirecionamento:
    `https://app.tramitai.pro/api/oauth/google/callback/`
 5. Copie o ID e a chave secreta para `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env` e rode
    `docker compose -f docker-compose.prod.yml up -d backend worker beat`.
 
-Em **modo de teste** o Google limita a 100 contas cadastradas e a autorização vence a cada 7 dias
-(a tela pede "Reconectar"). Para tirar o limite, peça a verificação do app na tela de permissão
-OAuth (pode levar dias ou semanas).
+Publicado mas ainda não verificado, o Google mostra o aviso "app não verificado" na autorização
+(Avançado → Acessar TramitAI) e limita a 100 contas. Para tirar o aviso e o limite, peça a
+verificação (Central de verificação): política de privacidade, domínio verificado no Search
+Console e um vídeo mostrando a conexão e o uso. Leva de dias a semanas.
 
 ## Testes e lint
 

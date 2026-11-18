@@ -43,7 +43,8 @@ def test_connect_flow_stores_encrypted_token(
     assert api_client.get(URL).json()["connected"] is False
     url = api_client.post(URL).json()["authorization_url"]
     query = parse_qs(urlparse(url).query)
-    assert "https://www.googleapis.com/auth/calendar.events" in query["scope"][0]
+    scopes = query["scope"][0].split()
+    assert scopes == ["openid", "email", "https://www.googleapis.com/auth/calendar.events"]
     assert query["access_type"] == ["offline"]
     assert query["redirect_uri"][0].endswith("/api/oauth/google/callback/")
 
@@ -145,3 +146,55 @@ def test_expired_authorization_asks_to_reconnect(
     with pytest.raises(google.GoogleError):
         google.refresh_busy(tenant_a.tenant.id, conn.pk)
     assert api_client.get(URL).json()["needs_reconnect"] is True
+
+
+def test_http_busy_reads_only_times_and_handles_all_day_and_pages():
+    import httpx
+
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if "pageToken" not in request.url.params:
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "start": {"dateTime": "2026-11-23T10:00:00-03:00"},
+                            "end": {"dateTime": "2026-11-23T12:00:00-03:00"},
+                        },
+                        {  # "disponível" no Google: não ocupa
+                            "start": {"dateTime": "2026-11-23T14:00:00-03:00"},
+                            "end": {"dateTime": "2026-11-23T15:00:00-03:00"},
+                            "transparency": "transparent",
+                        },
+                        {
+                            "status": "cancelled",
+                            "start": {"dateTime": "2026-11-23T16:00:00-03:00"},
+                            "end": {"dateTime": "2026-11-23T17:00:00-03:00"},
+                        },
+                    ],
+                    "nextPageToken": "p2",
+                },
+            )
+        return httpx.Response(
+            200, json={"items": [{"start": {"date": "2026-11-25"}, "end": {"date": "2026-11-26"}}]}
+        )
+
+    client = google.HttpGoogleClient(httpx.Client(transport=httpx.MockTransport(handler)))
+    busy = client.busy(
+        "token", "primary", datetime(2026, 11, 23, tzinfo=TZ), datetime(2026, 12, 1, tzinfo=TZ)
+    )
+    assert [
+        (s.astimezone(TZ).strftime("%d %H:%M"), e.astimezone(TZ).strftime("%d %H:%M"))
+        for s, e in busy
+    ] == [
+        ("23 10:00", "23 12:00"),
+        ("25 00:00", "26 00:00"),  # dia inteiro (férias)
+    ]
+    assert len(seen) == 2
+    fields = seen[0].url.params["fields"]
+    assert "summary" not in fields
+    assert "description" not in fields
+    assert seen[0].headers["Authorization"] == "Bearer token"

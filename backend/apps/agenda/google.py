@@ -2,9 +2,9 @@
 
 - TramitAI → Google: compromisso criado, alterado ou cancelado aqui é refletido no Google
   (pré-reserva da Lia entra como "provisório").
-- Google → Lia: só livre/ocupado (freeBusy), guardado em cache, para a Lia não oferecer
-  horário que bate com compromisso marcado direto no Google. Título e detalhes dos eventos do
-  Google nunca são lidos.
+- Google → Lia: só livre/ocupado (início/fim dos compromissos), guardado em cache, para a
+  Lia não oferecer horário que bate com compromisso marcado direto no Google. Título e
+  detalhes dos eventos do Google nunca são lidos (nem pedidos ao Google).
 
 Regras: HTTP nunca dentro de transação aberta; token de atualização guardado cifrado; nada de
 conteúdo em log.
@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from functools import cache
 from typing import Any, Protocol
 from urllib.parse import quote, urlencode
+from zoneinfo import ZoneInfo
 
 import httpx
 from django.conf import settings
@@ -37,8 +38,9 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 SCOPES = [
     "openid",
     "email",
+    # Só este escopo do Calendar: criar/alterar nossos compromissos e ler início/fim dos
+    # outros (para o ocupado). Escopo padrão do Google, aceito em qualquer projeto.
     "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/calendar.freebusy",
 ]
 STATE_SALT = "tramitai.google-calendar"
 STATE_MAX_AGE = 15 * 60
@@ -175,23 +177,46 @@ class HttpGoogleClient:
     def busy(
         self, access_token: str, calendar_id: str, start: datetime, end: datetime
     ) -> list[tuple[datetime, datetime]]:
-        data = self._calendar(
-            "POST",
-            "/freeBusy",
-            access_token,
-            json={
+        """Horários ocupados, lendo só início/fim dos compromissos (o `fields` pede ao Google
+        apenas isso: título e descrição nem chegam aqui). Usa o escopo calendar.events."""
+        cal = quote(calendar_id, safe="")
+        out: list[tuple[datetime, datetime]] = []
+        page_token = ""
+        for _ in range(10):  # 10 páginas x 250 = folga para 15 dias de agenda
+            params = {
                 "timeMin": start.isoformat(),
                 "timeMax": end.isoformat(),
-                "timeZone": TZ_NAME,
-                "items": [{"id": calendar_id}],
-            },
-        )
-        periods = (data.get("calendars") or {}).get(calendar_id, {}).get("busy", [])
-        out = []
-        for p in periods:
-            s, e = parse_datetime(p.get("start", "")), parse_datetime(p.get("end", ""))
-            if s and e:
-                out.append((s, e))
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "maxResults": "250",
+                "fields": "items(start,end,status,transparency),nextPageToken",
+            }
+            if page_token:
+                params["pageToken"] = page_token
+            data = self._calendar("GET", f"/calendars/{cal}/events", access_token, params=params)
+            for item in data.get("items", []):
+                # Cancelado ou marcado como "disponível" no Google não ocupa a agenda.
+                if item.get("status") == "cancelled" or item.get("transparency") == "transparent":
+                    continue
+                s = parse_datetime((item.get("start") or {}).get("dateTime", ""))
+                e = parse_datetime((item.get("end") or {}).get("dateTime", ""))
+                if s and e:
+                    out.append((s, e))
+                    continue
+                # Dia inteiro (ex.: férias, feriado pessoal): ocupa o dia todo.
+                day_s = (item.get("start") or {}).get("date")
+                day_e = (item.get("end") or {}).get("date")
+                if day_s and day_e:
+                    tz = ZoneInfo(TZ_NAME)
+                    out.append(
+                        (
+                            datetime.fromisoformat(day_s).replace(tzinfo=tz),
+                            datetime.fromisoformat(day_e).replace(tzinfo=tz),
+                        )
+                    )
+            page_token = str(data.get("nextPageToken") or "")
+            if not page_token:
+                break
         return out
 
 
