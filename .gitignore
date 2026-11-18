@@ -35,3 +35,7 @@ bridge/node_modules/
 
 # Documentos enviados em dev (MEDIA_ROOT)
 backend/media/
+
+# Vídeo de apresentação (gerado)
+midia/video/out/
+midia/video/work/
