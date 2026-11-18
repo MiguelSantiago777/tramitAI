@@ -179,7 +179,7 @@ import { Billing, BillingService, Plan } from './billing.service';
                   {{
                     p.monthly_ai_limit !== null
                       ? (p.monthly_ai_limit | number) + ' mensagens da Lia por mês'
-                      : 'Lia sem limite'
+                      : 'Lia liberada, sem limite de mensagens'
                   }}
                 </li>
                 <li>{{ p.description }}</li>

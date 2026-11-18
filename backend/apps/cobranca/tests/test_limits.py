@@ -51,8 +51,8 @@ def test_three_tiers_are_offered(db, api_client):
     plans = api_client.get("/api/v1/billing/plans/").json()
     assert [(p["code"], p["max_users"], p["monthly_ai_limit"]) for p in plans] == [
         ("essencial", 2, 300),
-        ("escritorio", 5, 1000),
-        ("equipe", 15, 3000),
+        ("escritorio", 5, None),
+        ("equipe", 15, None),
     ]
 
 

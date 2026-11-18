@@ -6,8 +6,8 @@ from django.db import migrations, models
 
 TIERS = [
     ("essencial", "Essencial", "149.00", 2, 300, 1, "Para o advogado que trabalha sozinho."),
-    ("escritorio", "Escritório", "297.00", 5, 1000, 2, "Para o escritório pequeno. O mais escolhido."),
-    ("equipe", "Equipe", "497.00", 15, 3000, 3, "Para escritórios com equipe, com suporte prioritário."),
+    ("escritorio", "Escritório", "297.00", 5, None, 2, "Para o escritório pequeno. O mais escolhido."),
+    ("equipe", "Equipe", "497.00", 15, None, 3, "Para escritórios com equipe, com suporte prioritário."),
 ]
 FEATURES = "WhatsApp com a Lia, processos, agenda, funil, documentos e financeiro."
 
