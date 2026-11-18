@@ -60,7 +60,7 @@ def test_signup_creates_office_in_trial_and_logs_in(db, api_client):
     billing = api_client.get(BILLING).json()
     assert billing["status"] == "TRIAL"
     assert billing["blocked"] is False
-    assert billing["days_left"] >= 13
+    assert billing["days_left"] == 14
     assert api_client.get("/api/v1/clients/").status_code == 200
 
 

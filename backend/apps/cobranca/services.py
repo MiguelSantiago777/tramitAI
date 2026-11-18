@@ -2,6 +2,7 @@
 pagamento. Chamadas ao MP sempre fora de transação."""
 
 import logging
+import math
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -130,7 +131,10 @@ def billing_status(tenant_id: uuid.UUID, membership: Membership) -> BillingStatu
         )
     plan = sub.plan or default_plan()
     until = sub.access_until()
-    days_left = max((until - timezone.now()).days, 0) if until else None
+    # Arredonda para cima: no 1º dia do teste de 14 dias aparece "14", não "13".
+    days_left = (
+        max(math.ceil((until - timezone.now()).total_seconds() / 86400), 0) if until else None
+    )
     return BillingStatus(
         status=sub.status,
         status_label=sub.get_status_display(),
