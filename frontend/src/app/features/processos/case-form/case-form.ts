@@ -44,6 +44,7 @@ type ClientRowGroup = FormGroup<{
   client_name: FormControl<string>;
   role: FormControl<CaseClientRole>;
 }>;
+import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 
 @Component({
   selector: 'app-case-form',
@@ -59,6 +60,7 @@ type ClientRowGroup = FormGroup<{
     MatSelectModule,
     MatSlideToggleModule,
     CaseMovements,
+    DocumentsPanel,
   ],
   templateUrl: './case-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

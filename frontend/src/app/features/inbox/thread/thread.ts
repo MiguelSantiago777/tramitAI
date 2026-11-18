@@ -38,6 +38,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { formatPhone } from '../../../shared/br';
+import { MessageMedia } from '../../../shared/documents/message-media';
 import { Client } from '../../clientes/client.models';
 import { ClientsService } from '../../clientes/clients.service';
 import { DraftCard } from '../../aprovacoes/draft-card/draft-card';
@@ -70,6 +71,7 @@ export const THREAD_POLL_MS = 5_000;
     MatSelectModule,
     MatTooltipModule,
     DraftCard,
+    MessageMedia,
   ],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',

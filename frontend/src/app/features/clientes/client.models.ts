@@ -81,7 +81,7 @@ export interface ClientNote {
 }
 
 export type TimelineType =
-  'note' | 'task' | 'task_done' | 'event' | 'message' | 'case' | 'movement' | 'term';
+  'note' | 'task' | 'task_done' | 'event' | 'message' | 'case' | 'movement' | 'document' | 'term';
 
 export interface TimelineItem {
   id: string;

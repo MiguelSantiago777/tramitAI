@@ -40,6 +40,8 @@ export interface Message {
   status: MessageStatus;
   error_detail: string;
   sent_by_name: string;
+  document: { id: string; name: string; content_type: string; size: number } | null;
+  media_pending: boolean;
   wa_timestamp: string | null;
   delivered_at: string | null;
   read_at: string | null;

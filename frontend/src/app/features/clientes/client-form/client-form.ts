@@ -31,6 +31,7 @@ import {
 import { ClientsService } from '../clients.service';
 import { ClientTimeline } from '../client-timeline/client-timeline';
 import { TermAcceptances } from '../term-acceptances/term-acceptances';
+import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 
 @Component({
   selector: 'app-client-form',
@@ -45,6 +46,7 @@ import { TermAcceptances } from '../term-acceptances/term-acceptances';
     MatSelectModule,
     TermAcceptances,
     ClientTimeline,
+    DocumentsPanel,
   ],
   templateUrl: './client-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

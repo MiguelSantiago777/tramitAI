@@ -22,6 +22,7 @@ import { EventDialog } from '../../agenda/event-dialog/event-dialog';
 import { TaskDialog } from '../../agenda/task-dialog/task-dialog';
 import { NOTE_KIND_LABELS, NoteKind, TimelineItem, TimelineType } from '../client.models';
 import { ClientsService } from '../clients.service';
+import { DocumentsService } from '../../../shared/documents/documents.service';
 
 const ICONS: Record<TimelineType, string> = {
   note: 'sticky_note_2',
@@ -31,6 +32,7 @@ const ICONS: Record<TimelineType, string> = {
   message: 'chat',
   case: 'gavel',
   movement: 'timeline',
+  document: 'attach_file',
   term: 'verified_user',
 };
 
@@ -54,6 +56,7 @@ const ICONS: Record<TimelineType, string> = {
 export class ClientTimeline {
   private readonly api = inject(ClientsService);
   private readonly dialog = inject(MatDialog);
+  private readonly documents = inject(DocumentsService);
 
   readonly clientId = input.required<string>();
   readonly clientName = input('');
@@ -123,6 +126,11 @@ export class ClientTimeline {
       })
       .afterClosed()
       .subscribe((saved) => saved && this.load(this.clientId(), null));
+  }
+
+  openDocument(item: TimelineItem): void {
+    const id = item.meta['document_id'];
+    if (id) this.documents.open({ id, name: item.body, can_preview: true });
   }
 
   more(): void {

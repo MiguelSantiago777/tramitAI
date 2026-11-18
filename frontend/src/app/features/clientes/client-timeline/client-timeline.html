@@ -77,6 +77,9 @@
             } @else if (item.meta['case_number']) {
               <span class="mono">{{ item.meta['case_number'] }}</span>
             }
+            @if (item.type === 'document' && item.meta['document_id']) {
+              <button type="button" class="link" (click)="openDocument(item)">Abrir arquivo</button>
+            }
             @if (item.type === 'message' && item.meta['conversation_id']) {
               <a [routerLink]="['/inbox', item.meta['conversation_id']]">Abrir conversa</a>
             }
