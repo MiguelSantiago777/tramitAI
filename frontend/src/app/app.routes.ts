@@ -112,6 +112,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'financeiro',
+        title: 'Financeiro · TramitAI',
+        loadComponent: () =>
+          import('./features/financeiro/finance-page').then((m) => m.FinancePage),
+      },
+      {
+        path: 'configuracoes/financeiro',
+        title: 'Mercado Pago · TramitAI',
+        loadComponent: () =>
+          import('./features/configuracoes/mercadopago/mercadopago-settings').then(
+            (m) => m.MercadoPagoSettings,
+          ),
+      },
+      {
         path: 'configuracoes/termo',
         title: 'Termo de ciência · TramitAI',
         loadComponent: () =>

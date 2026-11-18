@@ -51,9 +51,11 @@ export class Shell {
   readonly records: NavLink[] = [
     { path: '/clientes', label: 'Clientes', icon: 'group' },
     { path: '/processos', label: 'Processos', icon: 'gavel' },
+    { path: '/financeiro', label: 'Financeiro', icon: 'payments' },
   ];
   readonly settings: NavLink[] = [
     { path: '/configuracoes/whatsapp', label: 'WhatsApp', icon: 'smartphone' },
+    { path: '/configuracoes/financeiro', label: 'Mercado Pago', icon: 'account_balance' },
     { path: '/configuracoes/equipe', label: 'Equipe', icon: 'badge' },
     { path: '/configuracoes/etiquetas', label: 'Etiquetas', icon: 'sell' },
     { path: '/configuracoes/respostas', label: 'Respostas prontas', icon: 'bolt' },

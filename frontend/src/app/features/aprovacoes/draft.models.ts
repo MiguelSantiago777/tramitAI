@@ -1,4 +1,5 @@
-export type DraftOrigin = 'AI_REPLY' | 'TERM_REQUEST' | 'MOVEMENT_UPDATE' | 'EVENT_REMINDER';
+export type DraftOrigin =
+  'AI_REPLY' | 'TERM_REQUEST' | 'MOVEMENT_UPDATE' | 'EVENT_REMINDER' | 'PAYMENT_REMINDER';
 export type DraftStatus = 'DRAFT' | 'APPROVED' | 'AWAITING' | 'SENT' | 'REJECTED' | 'FAILED';
 export type Urgency = 'low' | 'normal' | 'high' | '';
 
@@ -56,6 +57,7 @@ export const ORIGIN_LABELS: Record<DraftOrigin, string> = {
   TERM_REQUEST: 'Termo de ciência',
   MOVEMENT_UPDATE: 'Andamento do processo',
   EVENT_REMINDER: 'Lembrete de compromisso',
+  PAYMENT_REMINDER: 'Lembrete de pagamento',
 };
 
 export const DRAFT_STATUS_LABELS: Record<DraftStatus, string> = {

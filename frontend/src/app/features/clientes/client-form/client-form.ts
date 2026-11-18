@@ -32,6 +32,7 @@ import { ClientsService } from '../clients.service';
 import { ClientTimeline } from '../client-timeline/client-timeline';
 import { TermAcceptances } from '../term-acceptances/term-acceptances';
 import { DocumentsPanel } from '../../../shared/documents/documents-panel';
+import { ClientFeesPanel } from '../../financeiro/client-fees-panel';
 
 @Component({
   selector: 'app-client-form',
@@ -47,6 +48,7 @@ import { DocumentsPanel } from '../../../shared/documents/documents-panel';
     TermAcceptances,
     ClientTimeline,
     DocumentsPanel,
+    ClientFeesPanel,
   ],
   templateUrl: './client-form.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
