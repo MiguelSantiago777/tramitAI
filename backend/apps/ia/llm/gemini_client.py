@@ -57,6 +57,14 @@ class GeminiLlmClient:
             )
         except errors.APIError as exc:
             code = int(getattr(exc, "code", 0) or 0)
+            # Status e mensagem do Google explicam o erro (chave, modelo, schema) e não trazem
+            # o conteúdo enviado; o texto da conversa continua fora do log.
+            logger.warning(
+                "llm http error code=%s status=%s message=%s",
+                code,
+                getattr(exc, "status", ""),
+                str(getattr(exc, "message", "") or "")[:300],
+            )
             if code == 429:
                 raise LlmError("rate_limited", retryable=True) from exc
             raise LlmError(f"http_{code}", retryable=code >= 500) from exc

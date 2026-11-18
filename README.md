@@ -61,7 +61,7 @@ Cada escritório conecta o próprio número lendo um QR Code, como no WhatsApp W
 
 - `LLM_PROVIDER=fake` (padrão): respostas determinísticas locais, nada sai da máquina.
 - `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (Google AI Studio). Modelo em `LLM_MODEL`
-  (padrão `gemini-2.5-flash`; confira na documentação do Google o modelo Flash atual).
+  (padrão `gemini-3.8-flash`; confira na documentação do Google o modelo Flash atual).
   **Plano gratuito do Gemini: o Google pode usar o conteúdo enviado para melhorar os produtos.**
   Para mensagens reais de clientes (sigilo/LGPD), use uma chave com faturamento ativo.
 - `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`: API da Anthropic. Modelo e esforço em

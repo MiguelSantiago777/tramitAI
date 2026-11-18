@@ -47,7 +47,7 @@ def _client(result: Any) -> tuple[GeminiLlmClient, FakeModels]:
 
 
 def test_success_sends_schema_and_parses_json(settings):
-    settings.LLM_MODEL = "gemini-2.5-flash"
+    settings.LLM_MODEL = "gemini-3.8-flash"
     client, models = _client(_response(json.dumps({"reply": "Olá!"})))
 
     result = client.complete(REQUEST)
@@ -56,7 +56,7 @@ def test_success_sends_schema_and_parses_json(settings):
     assert (result.provider, result.model) == ("gemini", "gemini-teste")
     assert (result.input_tokens, result.output_tokens) == (120, 50)
     [call] = models.calls
-    assert call["model"] == "gemini-2.5-flash"
+    assert call["model"] == "gemini-3.8-flash"
     assert call["contents"] == REQUEST.user_content
     assert call["config"].system_instruction == "Você é a Lia."
     assert call["config"].response_mime_type == "application/json"

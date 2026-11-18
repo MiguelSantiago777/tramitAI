@@ -218,7 +218,7 @@ WEBHOOK_EVENT_RETENTION_DAYS: int = env.int("WEBHOOK_EVENT_RETENTION_DAYS", defa
 # --------------------------------------------------------------------------- IA
 # "fake" (dev/testes, determinístico, não sai da máquina) ou "anthropic".
 LLM_PROVIDER: str = env("LLM_PROVIDER", default="fake")
-_DEFAULT_MODELS = {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-2.5-flash"}
+_DEFAULT_MODELS = {"anthropic": "claude-sonnet-5-5", "gemini": "gemini-3.8-flash"}
 LLM_MODEL: str = env("LLM_MODEL", default=_DEFAULT_MODELS.get(LLM_PROVIDER, "fake"))
 GEMINI_API_KEY: str = env("GEMINI_API_KEY", default="")
 LLM_EFFORT: str = env("LLM_EFFORT", default="medium")
