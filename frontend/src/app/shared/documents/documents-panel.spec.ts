@@ -145,3 +145,38 @@ describe('MessageMedia', () => {
     expect(api.objectUrl).not.toHaveBeenCalled(); // PDF não tem prévia na conversa
   });
 });
+
+describe('MessageMedia no polling da conversa', () => {
+  it('não recarrega o áudio quando o mesmo arquivo chega como objeto novo', async () => {
+    let n = 0;
+    const api = { objectUrl: vi.fn(() => of(`blob:audio-${++n}`)), open: vi.fn() };
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    await TestBed.configureTestingModule({
+      imports: [MessageMedia],
+      providers: [{ provide: DocumentsService, useValue: api }],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(MessageMedia);
+    const audio = { id: 'a1', name: 'audio.ogg', content_type: 'audio/ogg', size: 2048 };
+    fixture.componentRef.setInput('doc', audio);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('audio')?.getAttribute('src')).toBe('blob:audio-1');
+
+    // Polling: mesmo arquivo, objeto novo (várias vezes).
+    for (let i = 0; i < 3; i++) {
+      fixture.componentRef.setInput('doc', { ...audio });
+      await fixture.whenStable();
+    }
+    expect(api.objectUrl).toHaveBeenCalledTimes(1);
+    expect(revoke).not.toHaveBeenCalled();
+    expect(el.querySelector('audio')?.getAttribute('src')).toBe('blob:audio-1');
+
+    // Arquivo diferente: aí sim troca (e libera o anterior).
+    fixture.componentRef.setInput('doc', { ...audio, id: 'a2' });
+    await fixture.whenStable();
+    expect(api.objectUrl).toHaveBeenCalledTimes(2);
+    expect(revoke).toHaveBeenCalledWith('blob:audio-1');
+    expect(el.querySelector('audio')?.getAttribute('src')).toBe('blob:audio-2');
+    revoke.mockRestore();
+  });
+});

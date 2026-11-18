@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  computed,
   effect,
   inject,
   input,
   signal,
   untracked,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import { fileIcon, formatSize } from './documents.models';
 import { DocumentsService } from './documents.service';
@@ -112,11 +114,22 @@ export class MessageMedia {
   readonly url = signal<string | null>(null);
   readonly kind = signal<'image' | 'audio' | 'video' | 'file'>('file');
 
+  /**
+   * O polling da conversa entrega um objeto `doc` novo a cada poucos segundos, mesmo sem
+   * mudança. Recarregar a cada vez trocava o `src` do player e cortava o áudio no meio:
+   * só o id do arquivo dispara uma nova carga.
+   */
+  private readonly docId = computed(() => this.doc()?.id ?? null);
+  private loading: Subscription | null = null;
+
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.revoke());
+    inject(DestroyRef).onDestroy(() => {
+      this.loading?.unsubscribe();
+      this.revoke();
+    });
     effect(() => {
-      const d = this.doc();
-      untracked(() => this.prepare(d));
+      this.docId();
+      untracked(() => this.prepare(this.doc()));
     });
   }
 
@@ -134,6 +147,9 @@ export class MessageMedia {
   }
 
   private prepare(d: MessageDocument | null): void {
+    // Carga anterior ainda em andamento não pode sobrescrever a atual (nem vazar o blob).
+    this.loading?.unsubscribe();
+    this.loading = null;
     this.revoke();
     if (!d) return;
     const type = d.content_type;
@@ -147,7 +163,7 @@ export class MessageMedia {
     this.kind.set(kind);
     // Prévia na própria conversa só para mídia leve; o resto abre ao clicar.
     if (kind !== 'file' && d.size <= 8 * 1024 * 1024) {
-      this.api.objectUrl(d.id).subscribe({ next: (url) => this.url.set(url) });
+      this.loading = this.api.objectUrl(d.id).subscribe({ next: (url) => this.url.set(url) });
     } else if (kind !== 'file') {
       this.kind.set('file');
     }
