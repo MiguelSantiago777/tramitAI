@@ -205,6 +205,10 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.financeiro.tasks.create_payment_reminders",
         "schedule": crontab(hour=12, minute=0),
     },
+    "refresh-google-busy": {
+        "task": "apps.agenda.tasks.refresh_google_busy",
+        "schedule": 60 * 10,
+    },
     # Confere as assinaturas no Mercado Pago (cobre aviso perdido).
     "refresh-subscriptions": {
         "task": "apps.cobranca.tasks.refresh_subscriptions",
@@ -225,6 +229,11 @@ SIGNUP_ENABLED: bool = env.bool("SIGNUP_ENABLED", default=True)
 TRIAL_DAYS: int = env.int("TRIAL_DAYS", default=14)
 # Dias de tolerância depois do vencimento antes de bloquear o acesso.
 SUBSCRIPTION_GRACE_DAYS: int = env.int("SUBSCRIPTION_GRACE_DAYS", default=5)
+# Google Agenda: "http" (Google de verdade) ou "fake" (dev/testes). Credenciais OAuth do
+# projeto do TramitAI no Google Cloud (ver README, seção Google Agenda).
+GOOGLE_CALENDAR_CLIENT: str = env("GOOGLE_CALENDAR_CLIENT", default="fake")
+GOOGLE_CLIENT_ID: str = env("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET: str = env("GOOGLE_CLIENT_SECRET", default="")
 # Endereço público da API (o MP chama de volta aqui). Padrão: o mesmo domínio do site.
 PUBLIC_API_URL: str = env("PUBLIC_API_URL", default=FRONTEND_URL)
 

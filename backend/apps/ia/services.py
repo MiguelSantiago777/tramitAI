@@ -47,6 +47,7 @@ class _Plan:
 
 def handle_inbound(tenant_id: uuid.UUID, conversation_id: uuid.UUID, message_id: uuid.UUID) -> str:
     """Decide o que fazer com uma mensagem recebida. Devolve um código de resultado."""
+    _refresh_calendar(tenant_id)
     with tenant_atomic(tenant_id):
         outcome, plan = _prepare(conversation_id, message_id)
     if plan is None:
@@ -68,6 +69,17 @@ def handle_inbound(tenant_id: uuid.UUID, conversation_id: uuid.UUID, message_id:
         outcome = _store(conversation_id, message_id, plan, result)
     logger.info("triage: conversa %s → %s", conversation_id, outcome)
     return outcome
+
+
+def _refresh_calendar(tenant_id: uuid.UUID) -> None:
+    """Antes da Lia oferecer horários, atualiza o ocupado do Google (HTTP fora de transação)."""
+    from apps.agenda import google, scheduling
+
+    with tenant_atomic(tenant_id):
+        cfg = TenantSettings.objects.first()
+        user = scheduling.responsible(cfg) if cfg and cfg.scheduling_enabled else None
+        user_id = user.pk if user else None
+    google.refresh_stale_busy(tenant_id, user_id)
 
 
 def mark_ai_failed(tenant_id: uuid.UUID, conversation_id: uuid.UUID) -> None:

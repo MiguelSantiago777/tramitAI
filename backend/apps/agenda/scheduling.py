@@ -129,7 +129,12 @@ def _busy(user: User | None, start: datetime, end: datetime) -> list[tuple[datet
     if user is not None:
         # Compromisso sem responsável conta como do escritório inteiro.
         qs = qs.filter(Q(responsible=user) | Q(responsible__isnull=True))
-    return [(e.starts_at, e.ends_at or e.starts_at + timedelta(hours=1)) for e in qs]
+    busy = [(e.starts_at, e.ends_at or e.starts_at + timedelta(hours=1)) for e in qs]
+    # Compromissos marcados direto no Google Agenda do responsável (só livre/ocupado).
+    from .google import busy_for
+
+    busy.extend((s, e) for s, e in busy_for(user) if s < end and e > start)
+    return busy
 
 
 def free_slots(

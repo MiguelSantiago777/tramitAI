@@ -157,6 +157,29 @@ Depois: entre em `https://SEU_DOMINIO`, abra **WhatsApp** e leia o QR Code.
 - **Financeiro dos escritórios**: cada escritório conecta a própria conta do Mercado Pago em
   Configurações → Mercado Pago; Pix e links de pagamento das parcelas caem direto nela.
 
+## Google Agenda
+
+Cada advogado conecta o próprio Google Agenda em **Agenda → Conectar**. O que é marcado no
+TramitAI vai para o Google (pré-reserva da Lia como "provisório"), e a Lia não oferece horário
+em que o advogado está ocupado no Google (só livre/ocupado é lido, nunca títulos).
+
+Configuração única (projeto do TramitAI no Google Cloud):
+
+1. console.cloud.google.com → criar projeto "TramitAI".
+2. APIs e serviços → Biblioteca → ativar **Google Calendar API**.
+3. Tela de permissão OAuth → tipo **Externo**; nome "TramitAI", e-mail de suporte, domínio
+   autorizado `tramitai.pro`, link da política de privacidade `https://app.tramitai.pro/termos`.
+   Escopos: `openid`, `email`, `.../auth/calendar.events`, `.../auth/calendar.freebusy`.
+   Em **Usuários de teste**, adicione o Gmail de quem vai conectar.
+4. Credenciais → Criar → **ID do cliente OAuth** → Aplicativo da Web. URI de redirecionamento:
+   `https://app.tramitai.pro/api/oauth/google/callback/`
+5. Copie o ID e a chave secreta para `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no `.env` e rode
+   `docker compose -f docker-compose.prod.yml up -d backend worker beat`.
+
+Em **modo de teste** o Google limita a 100 contas cadastradas e a autorização vence a cada 7 dias
+(a tela pede "Reconectar"). Para tirar o limite, peça a verificação do app na tela de permissão
+OAuth (pode levar dias ou semanas).
+
 ## Testes e lint
 
 ```bash

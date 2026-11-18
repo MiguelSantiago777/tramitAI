@@ -128,6 +128,8 @@ class Event(TenantModel):
         blank=True,
         related_name="events",
     )
+    # Cópia no Google Agenda do responsável (se ele conectou).
+    google_event_id = models.CharField(max_length=128, blank=True, default="", editable=False)
     # Lembrete ao cliente pelo WhatsApp na véspera (vira rascunho para aprovação).
     remind_client = models.BooleanField("lembrar o cliente", default=False)
     client_reminded_at = models.DateTimeField(null=True, blank=True, editable=False)
@@ -143,3 +145,26 @@ class Event(TenantModel):
 
     def __str__(self) -> str:
         return self.title
+
+
+class GoogleCalendarConnection(TenantModel):
+    """Google Agenda conectado por um advogado (autorização dele, token cifrado)."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    google_email = models.EmailField(blank=True, default="")
+    calendar_id = models.CharField(max_length=255, default="primary")
+    refresh_token_encrypted = models.TextField()
+    # Autorização vencida/revogada no Google: a tela pede para reconectar.
+    needs_reconnect = models.BooleanField(default=False)
+    # Só livre/ocupado dos próximos dias: [[início, fim], ...] em ISO. Nada de títulos.
+    busy_cache = models.JSONField(default=list, blank=True)
+    busy_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Google Agenda conectado"
+        constraints = [
+            models.UniqueConstraint(fields=["tenant", "user"], name="google_calendar_one_per_user"),
+        ]
+
+    def __str__(self) -> str:
+        return self.google_email or str(self.user_id)

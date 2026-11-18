@@ -11,6 +11,7 @@ import { toApiError } from '../../../core/http/api-error';
 import { CalendarEvent, EVENT_KIND_LABELS, isoDate, todayIso } from '../agenda.models';
 import { AgendaService } from '../agenda.service';
 import { EventDialog, EventDialogData } from '../event-dialog/event-dialog';
+import { GoogleCalendarCard } from '../google-calendar-card';
 
 interface Day {
   iso: string;
@@ -35,7 +36,14 @@ function addDays(date: Date, days: number): Date {
 /** Agenda da semana: audiências, reuniões e atendimentos. */
 @Component({
   selector: 'app-agenda-page',
-  imports: [DatePipe, RouterLink, MatButtonModule, MatProgressBarModule, MatTooltipModule],
+  imports: [
+    DatePipe,
+    RouterLink,
+    MatButtonModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+    GoogleCalendarCard,
+  ],
   templateUrl: './agenda-page.html',
   styleUrl: './agenda-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,6 +3,7 @@ from django.db import transaction
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.agenda.api.google_views import GoogleCallbackView
 from apps.cobranca.webhook import SubscriptionWebhookView
 from apps.core.views import HealthView
 from apps.financeiro.webhook import MercadoPagoWebhookView
@@ -35,6 +36,11 @@ urlpatterns = [
     path("api/v1/", include(api_v1)),
     path("api/webhooks/whatsapp/", WhatsAppWebhookView.as_view(), name="whatsapp-webhook"),
     path("api/webhooks/bridge/", BridgeWebhookView.as_view(), name="bridge-webhook"),
+    path(
+        "api/oauth/google/callback/",
+        transaction.non_atomic_requests(GoogleCallbackView.as_view()),
+        name="google-oauth-callback",
+    ),
     path(
         "api/webhooks/mercadopago-assinatura/",
         SubscriptionWebhookView.as_view(),

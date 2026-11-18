@@ -15,3 +15,5 @@ SECURE_REDIRECT_EXEMPT = [r"^api/health/$", r"^api/webhooks/bridge/$"]
 
 # Produção fala com o Mercado Pago de verdade, mesmo num .env antigo sem a variável.
 MERCADOPAGO_CLIENT = env("MERCADOPAGO_CLIENT", default="http")
+
+GOOGLE_CALENDAR_CLIENT = env("GOOGLE_CALENDAR_CLIENT", default="http")
