@@ -75,3 +75,45 @@ class Subscription(models.Model):
     def is_blocked(self, now: datetime | None = None) -> bool:
         until = self.access_until()
         return until is not None and (now or timezone.now()) >= until
+
+
+class SubscriptionPayment(models.Model):
+    """Cada cobrança da assinatura (Mercado Pago) ou pagamento lançado à mão no painel."""
+
+    class Source(models.TextChoices):
+        MERCADOPAGO = "MERCADOPAGO", "Mercado Pago"
+        MANUAL = "MANUAL", "Lançado no painel"
+
+    class Status(models.TextChoices):
+        PAID = "PAID", "Pago"
+        FAILED = "FAILED", "Recusado"
+        PENDING = "PENDING", "Em processamento"
+
+    subscription = models.ForeignKey(
+        Subscription, on_delete=models.CASCADE, related_name="payments"
+    )
+    source = models.CharField(max_length=12, choices=Source.choices)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.PAID)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_at = models.DateTimeField()
+    # Id da cobrança no MP (vazio no manual). Único: o aviso pode chegar mais de uma vez.
+    mp_payment_id = models.CharField(max_length=64, blank=True, default="")
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "pagamento de assinatura"
+        ordering = ["-paid_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["mp_payment_id"],
+                condition=~models.Q(mp_payment_id=""),
+                name="subscription_payment_mp_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.subscription_id} {self.amount} {self.paid_at:%d/%m/%Y}"

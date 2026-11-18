@@ -83,6 +83,17 @@ class Subscription:
     next_payment_date: datetime | None
 
 
+@dataclass(frozen=True)
+class AuthorizedPayment:
+    """Uma cobrança mensal de assinatura."""
+
+    payment_id: str
+    preapproval_id: str
+    status: str  # processed | recycling | cancelled | scheduled ...
+    amount: Decimal
+    date: datetime | None
+
+
 class MercadoPagoClient(Protocol):
     def whoami(self, token: str) -> MpAccount: ...
 
@@ -131,8 +142,10 @@ class MercadoPagoClient(Protocol):
 
     def cancel_subscription(self, token: str, preapproval_id: str) -> None: ...
 
-    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
-        """Cobrança mensal de uma assinatura → id da assinatura (preapproval)."""
+    def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment: ...
+
+    def authorized_payments_of(self, token: str, preapproval_id: str) -> list[AuthorizedPayment]:
+        """Cobranças de uma assinatura (para conferir aviso perdido)."""
         ...
 
 
@@ -312,9 +325,14 @@ class HttpMercadoPagoClient:
     def cancel_subscription(self, token: str, preapproval_id: str) -> None:
         self._request("PUT", f"/preapproval/{preapproval_id}", token, json={"status": "cancelled"})
 
-    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
-        data = self._request("GET", f"/authorized_payments/{payment_id}", token)
-        return str(data.get("preapproval_id") or "")
+    def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment:
+        return _authorized(self._request("GET", f"/authorized_payments/{payment_id}", token))
+
+    def authorized_payments_of(self, token: str, preapproval_id: str) -> list[AuthorizedPayment]:
+        data = self._request(
+            "GET", f"/authorized_payments/search?preapproval_id={preapproval_id}", token
+        )
+        return [_authorized(item) for item in data.get("results", []) if isinstance(item, dict)]
 
 
 def _payer(payer: Payer) -> dict[str, Any]:
@@ -327,6 +345,18 @@ def _payer(payer: Payer) -> dict[str, Any]:
     if len(digits) in (11, 14):
         data["identification"] = {"type": "CPF" if len(digits) == 11 else "CNPJ", "number": digits}
     return data
+
+
+def _authorized(data: dict[str, Any]) -> AuthorizedPayment:
+    raw_payment = data.get("payment")
+    payment: dict[str, Any] = raw_payment if isinstance(raw_payment, dict) else {}
+    return AuthorizedPayment(
+        payment_id=str(data.get("id", "")),
+        preapproval_id=str(data.get("preapproval_id") or ""),
+        status=str(data.get("status") or payment.get("status") or ""),
+        amount=Decimal(str(data.get("transaction_amount") or "0")),
+        date=_dt(data.get("date_created") or data.get("debit_date")),
+    )
 
 
 def _subscription(data: dict[str, Any]) -> Subscription:
@@ -351,7 +381,7 @@ class FakeMercadoPago:
     subscriptions: dict[str, Subscription] = field(default_factory=dict)
     created: list[dict[str, Any]] = field(default_factory=list)
     cancelled: list[str] = field(default_factory=list)
-    authorized_payments: dict[str, str] = field(default_factory=dict)
+    authorized: dict[str, AuthorizedPayment] = field(default_factory=dict)
     fail_next: MercadoPagoError | None = None
 
     def _check(self, token: str) -> None:
@@ -434,9 +464,15 @@ class FakeMercadoPago:
                 next_payment_date=sub.next_payment_date,
             )
 
-    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
+    def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment:
         self._check(token)
-        return self.authorized_payments.get(payment_id, "")
+        if payment_id not in self.authorized:
+            raise MercadoPagoError("not_found", "cobrança não existe")
+        return self.authorized[payment_id]
+
+    def authorized_payments_of(self, token: str, preapproval_id: str) -> list[AuthorizedPayment]:
+        self._check(token)
+        return [a for a in self.authorized.values() if a.preapproval_id == preapproval_id]
 
 
 @cache

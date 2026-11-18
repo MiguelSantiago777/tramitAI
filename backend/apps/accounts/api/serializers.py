@@ -24,6 +24,8 @@ class SessionSerializer(serializers.Serializer):
     tenant = TenantSerializer()
     role = serializers.ChoiceField(choices=Membership.Role.choices)
     can_approve = serializers.BooleanField()
+    # Dono do TramitAI: vê o Painel da plataforma.
+    is_platform_admin = serializers.BooleanField()
 
 
 class LoginResponseSerializer(serializers.Serializer):

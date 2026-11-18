@@ -15,11 +15,16 @@ from rest_framework import status as http_status
 
 from apps.accounts.models import Membership, User
 from apps.core.exceptions import ApiError
-from apps.core.mercadopago import MercadoPagoError, get_mercadopago, public_url
+from apps.core.mercadopago import (
+    AuthorizedPayment,
+    MercadoPagoError,
+    get_mercadopago,
+    public_url,
+)
 from apps.tenants.models import Tenant
 from apps.tenants.services import CreatedTenant, create_tenant
 
-from .models import Plan, Subscription
+from .models import Plan, Subscription, SubscriptionPayment
 
 logger = logging.getLogger(__name__)
 
@@ -254,11 +259,44 @@ def sync_subscription(preapproval_id: str) -> str:
         return sub.status
 
 
-def sync_from_authorized_payment(payment_id: str) -> str:
-    preapproval_id = get_mercadopago().authorized_payment_subscription(
-        _platform_token(), payment_id
+_PAYMENT_STATUS = {
+    "processed": SubscriptionPayment.Status.PAID,
+    "approved": SubscriptionPayment.Status.PAID,
+    "recycling": SubscriptionPayment.Status.FAILED,
+    "rejected": SubscriptionPayment.Status.FAILED,
+    "cancelled": SubscriptionPayment.Status.FAILED,
+}
+
+
+def record_payment(charge: AuthorizedPayment) -> SubscriptionPayment | None:
+    """Guarda a cobrança mensal no histórico (idempotente pelo id do MP)."""
+    status = _PAYMENT_STATUS.get(charge.status)
+    if status is None or not charge.payment_id:
+        return None  # agendada / ainda sem resultado
+    sub = Subscription.objects.filter(mp_preapproval_id=charge.preapproval_id).first()
+    if sub is None:
+        return None
+    payment, _ = SubscriptionPayment.objects.update_or_create(
+        mp_payment_id=charge.payment_id,
+        defaults={
+            "subscription": sub,
+            "source": SubscriptionPayment.Source.MERCADOPAGO,
+            "status": status,
+            "amount": charge.amount,
+            "paid_at": charge.date or timezone.now(),
+        },
     )
-    return sync_subscription(preapproval_id) if preapproval_id else "unknown"
+    return payment
+
+
+def sync_from_authorized_payment(payment_id: str) -> str:
+    charge = get_mercadopago().authorized_payment(_platform_token(), payment_id)
+    if not charge.preapproval_id:
+        return "unknown"
+    result = sync_subscription(charge.preapproval_id)
+    with transaction.atomic():
+        record_payment(charge)
+    return result
 
 
 def cancel(tenant_id: uuid.UUID) -> None:
@@ -290,9 +328,14 @@ def refresh_all() -> int:
         .values_list("mp_preapproval_id", flat=True)
     )
     done = 0
+    client = get_mercadopago()
     for preapproval_id in ids:
         try:
             sync_subscription(preapproval_id)
+            charges = client.authorized_payments_of(_platform_token(), preapproval_id)
+            with transaction.atomic():
+                for charge in charges:
+                    record_payment(charge)
             done += 1
         except MercadoPagoError as exc:
             logger.warning("cobranca: assinatura não conferida (%s)", exc.code)

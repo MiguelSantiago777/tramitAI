@@ -27,6 +27,7 @@ def _session_data(membership: Membership) -> dict[str, Any]:
         "tenant": membership.tenant,
         "role": membership.role,
         "can_approve": services.can_approve_drafts(membership),
+        "is_platform_admin": bool(membership.user.is_superuser),
     }
 
 

@@ -17,6 +17,12 @@
       @for (link of settings; track link.path) {
         <ng-container [ngTemplateOutlet]="item" [ngTemplateOutletContext]="{ $implicit: link }" />
       }
+      @if (session()?.is_platform_admin) {
+        <ng-container
+          [ngTemplateOutlet]="item"
+          [ngTemplateOutletContext]="{ $implicit: platformLink }"
+        />
+      }
     </nav>
 
     <div class="account">

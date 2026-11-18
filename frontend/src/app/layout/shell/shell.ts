@@ -69,6 +69,12 @@ export class Shell {
 
   private readonly billing = inject(BillingService);
   readonly billingNotice = computed(() => billingNotice(this.billing.current()));
+  /** Só para o dono do TramitAI (o servidor também confere). */
+  readonly platformLink: NavLink = {
+    path: '/plataforma',
+    label: 'Painel da plataforma',
+    icon: 'admin_panel_settings',
+  };
   readonly session = this.auth.session;
   readonly pending = this.counter.count;
   /** Menu lateral aberto no celular. */

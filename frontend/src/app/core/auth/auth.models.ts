@@ -19,6 +19,8 @@ export interface Session {
   tenant: Tenant;
   role: Role;
   can_approve: boolean;
+  /** Dono do TramitAI: vê o Painel da plataforma. */
+  is_platform_admin?: boolean;
 }
 
 export interface LoginResponse {

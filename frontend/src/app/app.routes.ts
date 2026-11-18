@@ -1,6 +1,8 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { AuthService } from './core/auth/auth.service';
 
 export const routes: Routes = [
   {
@@ -126,6 +128,13 @@ export const routes: Routes = [
           import('./features/configuracoes/whatsapp-connection/whatsapp-connection').then(
             (m) => m.WhatsAppConnectionPage,
           ),
+      },
+      {
+        path: 'plataforma',
+        title: 'Painel da plataforma · TramitAI',
+        canMatch: [() => inject(AuthService).session()?.is_platform_admin === true],
+        loadComponent: () =>
+          import('./features/plataforma/plataforma-page').then((m) => m.PlataformaPage),
       },
       {
         path: 'manuais',
