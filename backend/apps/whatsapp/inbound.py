@@ -19,6 +19,9 @@ class InboundMessage:
     body: str
     media_id: str
     timestamp: datetime
+    media_filename: str = ""
+    # A ponte avisa quando não conseguiu baixar (ex.: grande demais): não adianta buscar.
+    media_error: str = ""
 
 
 @dataclass(frozen=True)
@@ -49,9 +52,11 @@ def _content(message: dict[str, Any]) -> tuple[str, str, str]:
         interactive = message.get("interactive", {})
         reply = interactive.get("button_reply") or interactive.get("list_reply") or {}
         return Message.Type.TEXT, str(reply.get("title", "")), ""
-    if kind in ("image", "video", "document", "audio", "sticker"):
+    if kind in ("image", "video", "document", "audio"):
         media = message.get(kind, {})
         return kind, str(media.get("caption", "")), str(media.get("id", ""))
+    if kind == "sticker":
+        return kind, "", ""  # figurinha não vai para a pasta do cliente
     if kind in _KNOWN_TYPES:
         return kind, "", ""
     return Message.Type.OTHER, "", ""
@@ -78,6 +83,7 @@ def parse_payload(payload: dict[str, Any]) -> tuple[list[InboundMessage], list[S
                 if not wa_id or not raw.get("id"):
                     continue
                 kind, body, media_id = _content(raw)
+                filename = str((raw.get("document") or {}).get("filename", ""))[:200]
                 messages.append(
                     InboundMessage(
                         phone_number_id=phone_number_id,
@@ -88,6 +94,7 @@ def parse_payload(payload: dict[str, Any]) -> tuple[list[InboundMessage], list[S
                         body=body,
                         media_id=media_id,
                         timestamp=_ts(raw.get("timestamp")),
+                        media_filename=filename,
                     )
                 )
             for raw in value.get("statuses", []) or []:
@@ -139,6 +146,7 @@ def parse_bridge_payload(
             if not isinstance(raw, dict) or not raw.get("id") or not raw.get("from"):
                 continue
             kind = str(raw.get("type") or "other")
+            media = raw.get("media") if isinstance(raw.get("media"), dict) else None
             messages.append(
                 InboundMessage(
                     phone_number_id=session,
@@ -147,8 +155,11 @@ def parse_bridge_payload(
                     wa_message_id=message_id(str(raw["id"])),
                     type=kind if kind in _BRIDGE_TYPES else "other",
                     body=str(raw.get("text") or ""),
-                    media_id="",
+                    # Na ponte, a mídia é buscada pelo id da mensagem (sem o prefixo).
+                    media_id=str(raw["id"])[:128] if media else "",
                     timestamp=_ts(raw.get("timestamp")),
+                    media_filename=str((media or {}).get("filename") or "")[:200],
+                    media_error=str((media or {}).get("error") or "")[:32],
                 )
             )
     elif event == "statuses":

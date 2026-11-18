@@ -14,6 +14,11 @@ x-app: &app
     target: prod
   image: tramitai-backend:prod
   env_file: ${ENV_FILE:-.env}
+  environment:
+    MEDIA_ROOT: /app/media
+  # Documentos dos clientes. Privado: o Caddy não serve esta pasta, só a API com login.
+  volumes:
+    - documents:/app/media
   restart: unless-stopped
   logging: *logging
 
@@ -131,6 +136,7 @@ services:
     volumes:
       - backups:/backups
       - bridge_data:/bridge:ro
+      - documents:/documents:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,6 +144,7 @@ services:
     logging: *logging
 
 volumes:
+  documents:
   pgdata:
   redisdata:
   bridge_data:

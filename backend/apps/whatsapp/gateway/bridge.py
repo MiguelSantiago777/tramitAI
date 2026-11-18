@@ -7,11 +7,12 @@ chamadas são HTTP: nunca dentro de transação aberta.
 import logging
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote, unquote
 
 import httpx
 from django.conf import settings
 
-from .base import Credentials, GatewayError, SendResult
+from .base import Credentials, GatewayError, MediaFile, SendResult
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,30 @@ class BridgeGateway:
     ) -> SendResult:
         # WhatsApp Web não tem templates nem janela de 24h: nunca deveria chegar aqui.
         raise GatewayError("unsupported", "Modelo da Meta não existe no Baileys.", retryable=False)
+
+    def download_media(self, credentials: Credentials, *, media_id: str) -> MediaFile:
+        """A ponte baixou a mídia quando ela chegou; aqui só buscamos a cópia temporária."""
+        path = f"/sessions/{credentials.phone_number_id}/media/{quote(media_id, safe='')}"
+        try:
+            response = self._client.get(path)
+        except httpx.HTTPError as exc:
+            raise GatewayError("bridge_down", type(exc).__name__, retryable=True) from exc
+        if response.status_code == 404:
+            raise GatewayError("media_not_found", "Mídia não está mais na ponte.", retryable=False)
+        if not response.is_success:
+            raise GatewayError(_error_code(response), "Falha ao buscar a mídia.", retryable=True)
+        return MediaFile(
+            content=response.content,
+            content_type=response.headers.get("content-type", ""),
+            filename=unquote(response.headers.get("x-file-name", "")),
+        )
+
+    def release_media(self, credentials: Credentials, *, media_id: str) -> None:
+        path = f"/sessions/{credentials.phone_number_id}/media/{quote(media_id, safe='')}"
+        try:
+            self._client.delete(path)
+        except httpx.HTTPError:
+            logger.info("bridge: falha ao apagar mídia temporária (a ponte limpa sozinha)")
 
 
 def _error_code(response: httpx.Response) -> str:

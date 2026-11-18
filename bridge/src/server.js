@@ -6,12 +6,15 @@
 //   POST   /sessions/:id/start        → { status, qr, phone }
 //   DELETE /sessions/:id              → desconecta e apaga a sessão
 //   POST   /sessions/:id/messages     { to, text } → { id }
+//   GET    /sessions/:id/media/:msgId  → arquivo (Content-Type + X-File-Name)
+//   DELETE /sessions/:id/media/:msgId  → apaga a cópia temporária
 
 import { createServer } from 'node:http';
 
 import pino from 'pino';
 
 import { BackendClient, isValidBearer } from './backend.js';
+import { MEDIA_TTL_MS, MediaStore } from './media.js';
 import { SESSION_ID, SendError, SessionManager } from './sessions.js';
 
 const PORT = Number(process.env.PORT ?? 3100);
@@ -27,7 +30,8 @@ if (SECRET.length < 32) {
 }
 
 const backend = new BackendClient({ url: WEBHOOK_URL, secret: SECRET, logger });
-const sessions = new SessionManager({ dataDir: DATA_DIR, backend, logger });
+const media = new MediaStore(DATA_DIR);
+const sessions = new SessionManager({ dataDir: DATA_DIR, backend, logger, media });
 
 function send(res, status, body) {
   const payload = body === undefined ? '' : JSON.stringify(body);
@@ -60,6 +64,28 @@ async function route(req, res) {
   if (!isValidBearer(req.headers.authorization, SECRET)) {
     return send(res, 401, { error: 'unauthorized' });
   }
+  const mediaMatch = url.pathname.match(/^\/sessions\/([^/]+)\/media\/([^/]+)$/);
+  if (mediaMatch && SESSION_ID.test(mediaMatch[1])) {
+    const [, sessionId, mediaId] = mediaMatch;
+    if (req.method === 'GET') {
+      const found = await media.read(sessionId, mediaId);
+      if (!found) {
+        return send(res, 404, { error: 'not_found' });
+      }
+      res.writeHead(200, {
+        'Content-Type': found.meta.mimetype || 'application/octet-stream',
+        'Content-Length': found.buffer.length,
+        'X-File-Name': encodeURIComponent(found.meta.filename || ''),
+      });
+      return res.end(found.buffer);
+    }
+    if (req.method === 'DELETE') {
+      await media.remove(sessionId, mediaId);
+      return send(res, 204);
+    }
+    return send(res, 405, { error: 'method_not_allowed' });
+  }
+
   const match = url.pathname.match(/^\/sessions\/([^/]+)(\/start|\/messages)?$/);
   if (!match || !SESSION_ID.test(match[1])) {
     return send(res, 404, { error: 'not_found' });
@@ -98,6 +124,13 @@ const server = createServer((req, res) => {
 });
 
 await sessions.restore();
+// Limpa cópias de mídia que o backend nunca buscou (ex.: backend fora por dias).
+setInterval(() => {
+  media.purge(MEDIA_TTL_MS).then(
+    (removed) => removed && logger.info({ removed }, 'mídias antigas apagadas'),
+    () => undefined,
+  );
+}, 60 * 60 * 1000).unref();
 server.listen(PORT, () => logger.info({ port: PORT }, 'ponte WhatsApp no ar'));
 
 for (const signal of ['SIGTERM', 'SIGINT']) {

@@ -11,13 +11,14 @@ import { join } from 'node:path';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   jidDecode,
   useMultiFileAuthState,
 } from 'baileys';
 import QRCode from 'qrcode';
 
-import { jidFromWaId, normalizeInbound, normalizeStatus } from './normalize.js';
+import { MAX_MEDIA_BYTES, jidFromWaId, normalizeInbound, normalizeStatus } from './normalize.js';
 
 export const SESSION_ID = /^[a-z0-9_-]{6,64}$/;
 
@@ -37,10 +38,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const jitter = (min, max) => min + Math.floor(Math.random() * (max - min));
 
 export class SessionManager {
-  /** @param {{ dataDir: string, backend: import('./backend.js').BackendClient, logger: any }} opts */
-  constructor({ dataDir, backend, logger }) {
+  /** @param {{ dataDir: string, backend: import('./backend.js').BackendClient, logger: any, media?: import('./media.js').MediaStore }} opts */
+  constructor({ dataDir, backend, logger, media }) {
     this.dir = join(dataDir, 'sessions');
     this.backend = backend;
+    this.media = media ?? null;
     this.logger = logger;
     /** @type {Map<string, any>} */
     this.sessions = new Map();
@@ -166,6 +168,9 @@ export class SessionManager {
         try {
           const item = await normalizeInbound(msg, resolvePn);
           if (item) {
+            if (item.media) {
+              await this.#keepMedia(session, sock, msg, item);
+            }
             normalized.push(item);
           }
         } catch (error) {
@@ -183,6 +188,40 @@ export class SessionManager {
         this.backend.deliver({ session_id: session.id, event: 'statuses', statuses });
       }
     });
+  }
+
+  /** Baixa a mídia agora (depois não dá) e guarda a cópia para o backend buscar. */
+  async #keepMedia(session, sock, msg, item) {
+    if (!this.media) {
+      return;
+    }
+    if (item.media.size > MAX_MEDIA_BYTES) {
+      item.media.error = 'too_large';
+      return;
+    }
+    try {
+      const buffer = await downloadMediaMessage(
+        msg,
+        'buffer',
+        {},
+        {
+          logger: this.logger.child({ session: session.id }, { level: 'error' }),
+          reuploadRequest: sock.updateMediaMessage,
+        },
+      );
+      if (buffer.length > MAX_MEDIA_BYTES) {
+        item.media.error = 'too_large';
+        return;
+      }
+      await this.media.save(session.id, item.id, buffer, {
+        mimetype: item.media.mimetype,
+        filename: item.media.filename,
+      });
+      item.media.size = buffer.length;
+    } catch (error) {
+      item.media.error = 'download_failed';
+      this.logger.warn({ session: session.id, err: error.message }, 'mídia não baixada');
+    }
   }
 
   #onClose(session, error, registered) {

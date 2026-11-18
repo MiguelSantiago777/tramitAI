@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.clientes.models import Client
@@ -101,8 +102,18 @@ class ConversationSerializer(serializers.ModelSerializer):
         )
 
 
+class MessageDocumentSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    content_type = serializers.CharField()
+    size = serializers.IntegerField()
+
+
 class MessageSerializer(serializers.ModelSerializer):
     sent_by_name = serializers.SerializerMethodField()
+    document = serializers.SerializerMethodField()
+    # Mídia recebida que ainda está sendo guardada (a tela mostra "baixando...").
+    media_pending = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -114,12 +125,24 @@ class MessageSerializer(serializers.ModelSerializer):
             "status",
             "error_detail",
             "sent_by_name",
+            "document",
+            "media_pending",
             "wa_timestamp",
             "delivered_at",
             "read_at",
             "created_at",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(MessageDocumentSerializer(allow_null=True))
+    def get_document(self, obj: Message) -> dict[str, Any] | None:
+        doc = getattr(obj, "document", None)
+        if doc is None:
+            return None
+        return {"id": doc.pk, "name": doc.name, "content_type": doc.content_type, "size": doc.size}
+
+    def get_media_pending(self, obj: Message) -> bool:
+        return bool(obj.media_id) and not obj.error_code and getattr(obj, "document", None) is None
 
     def get_sent_by_name(self, obj: Message) -> str:
         user = obj.sent_by

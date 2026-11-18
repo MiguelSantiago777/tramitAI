@@ -32,3 +32,6 @@ bridge/node_modules/
 .env.*
 !.env.example
 !.env.prod.example
+
+# Documentos enviados em dev (MEDIA_ROOT)
+backend/media/

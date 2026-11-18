@@ -36,7 +36,7 @@ LLM_PROVIDER = "fake"
 PROCESS_SOURCE = "fake"
 TRIAGE_DEBOUNCE_SECONDS = 0
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

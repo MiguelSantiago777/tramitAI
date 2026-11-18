@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { isValidBearer, sign } from '../src/backend.js';
 import {
   contentOf,
+  mediaOf,
   jidFromWaId,
   normalizeInbound,
   normalizeStatus,
@@ -88,4 +89,35 @@ test('assinatura e bearer', () => {
   assert.equal(isValidBearer('Bearer abd', 'abc'), false);
   assert.equal(isValidBearer(undefined, 'abc'), false);
   assert.equal(isValidBearer('Bearer ', ''), false);
+});
+
+test('documento traz metadados da mídia para a ponte baixar', async () => {
+  const doc = {
+    ...base,
+    message: {
+      documentWithCaptionMessage: {
+        message: {
+          documentMessage: {
+            mimetype: 'application/pdf',
+            fileName: 'contracheque.pdf',
+            fileLength: 1234,
+            caption: 'segue',
+          },
+        },
+      },
+    },
+  };
+  const item = await normalizeInbound(doc);
+  assert.equal(item.type, 'document');
+  assert.equal(item.text, 'segue');
+  assert.deepEqual(item.media, {
+    mimetype: 'application/pdf',
+    filename: 'contracheque.pdf',
+    size: 1234,
+  });
+});
+
+test('texto e figurinha não têm mídia para guardar', async () => {
+  assert.equal((await normalizeInbound(base)).media, undefined);
+  assert.equal(mediaOf({ stickerMessage: { mimetype: 'image/webp' } }), null);
 });

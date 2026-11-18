@@ -15,6 +15,13 @@ class SendResult:
     wa_message_id: str
 
 
+@dataclass(frozen=True)
+class MediaFile:
+    content: bytes
+    content_type: str
+    filename: str = ""
+
+
 class GatewayError(Exception):
     """Falha de envio.
 
@@ -42,3 +49,9 @@ class WhatsAppGateway(Protocol):
         language: str,
         params: list[str],
     ) -> SendResult: ...
+
+    def download_media(self, credentials: Credentials, *, media_id: str) -> MediaFile: ...
+
+    def release_media(self, credentials: Credentials, *, media_id: str) -> None:
+        """Avisa o provedor que a mídia já foi guardada (a ponte apaga a cópia temporária)."""
+        ...

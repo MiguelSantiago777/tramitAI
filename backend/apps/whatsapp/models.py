@@ -188,6 +188,8 @@ class Message(TenantModel):
     type = models.CharField(max_length=10, choices=Type.choices, default=Type.TEXT)
     body = models.TextField(blank=True, default="")
     media_id = models.CharField(max_length=128, blank=True, default="")
+    # Nome original do arquivo (documento enviado pelo contato), usado ao guardar a mídia.
+    media_filename = models.CharField(max_length=200, blank=True, default="")
     # Só para type=template. `body` guarda a prévia renderizada, para o inbox.
     template_name = models.CharField(max_length=64, blank=True, default="")
     template_language = models.CharField(max_length=10, blank=True, default="")

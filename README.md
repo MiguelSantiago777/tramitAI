@@ -129,12 +129,16 @@ Depois: entre em `https://SEU_DOMINIO`, abra **WhatsApp** e leia o QR Code.
 
 - **HTTPS**: automático (Caddy + Let's Encrypt). Só as portas 80/443 ficam abertas.
 - **Backup**: todo dia às `BACKUP_HOUR` UTC (padrão 6 = 3h de Brasília), banco + sessões do
-  WhatsApp, criptografados com `BACKUP_PASSPHRASE`, guardados por `BACKUP_KEEP_DAYS` dias.
+  WhatsApp + documentos dos clientes (volume `documents`), criptografados com `BACKUP_PASSPHRASE`, guardados por `BACKUP_KEEP_DAYS` dias.
   **Guarde a `BACKUP_PASSPHRASE` fora do servidor** e configure `BACKUP_RCLONE_REMOTE` para
   copiar para fora (Cloudflare R2, Backblaze B2...). Backup manual:
   `docker compose -f docker-compose.prod.yml exec backup backup.sh`.
   Restaurar (pare backend/worker/beat/bridge antes):
   `docker compose -f docker-compose.prod.yml exec backup restore.sh /backups/db-<data>.dump.enc`.
+  Documentos: descriptografe `documentos-<data>.tar.gz.enc` com a mesma senha
+  (`openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000`) e extraia no volume `documents`.
+- **Documentos**: ficam no volume `documents` (privado, sem link público; download só pela API
+  com login). Limite por arquivo em `DOCUMENT_MAX_BYTES` (padrão 25 MB).
 - **Monitoramento**: cadastre `https://SEU_DOMINIO/api/health/` num monitor gratuito
   (UptimeRobot, Better Stack). Se o WhatsApp de um escritório desconectar, o titular recebe
   e-mail (precisa de `EMAIL_URL`).

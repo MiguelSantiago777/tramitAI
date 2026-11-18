@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.aprovacoes",
     "apps.agenda",
     "apps.funil",
+    "apps.documentos",
     "apps.cobranca",
 ]
 
@@ -97,6 +98,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Arquivos dos clientes (documentos e mídias do WhatsApp). Privados: só saem pela API com
+# login (não existe rota pública em MEDIA_URL). Em produção é um volume do Docker.
+MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
+DOCUMENT_MAX_BYTES: int = env.int("DOCUMENT_MAX_BYTES", default=25 * 1024 * 1024)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},

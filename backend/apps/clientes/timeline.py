@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any
 
 from apps.agenda.models import Event, Task
+from apps.documentos.services import for_client
 from apps.processos.models import CaseMovement, LegalCase
 from apps.whatsapp.models import Message
 
@@ -21,7 +22,7 @@ PREVIEW = 280
 @dataclass(frozen=True)
 class TimelineItem:
     id: str
-    type: str  # note | task | task_done | event | message | case | movement | term
+    type: str  # note | task | task_done | event | message | case | movement | document | term
     at: datetime
     title: str
     body: str = ""
@@ -147,6 +148,27 @@ def client_timeline(
                     "case_id": str(mv.case_id),
                     "case_number": mv.case.cnj_formatted,
                     "notification": mv.notification,
+                },
+            )
+        )
+
+    documents = until(for_client(client), "created_at").select_related("uploaded_by")
+    for d in documents.order_by("-created_at")[:fetch]:
+        items.append(
+            TimelineItem(
+                id=str(d.pk),
+                type="document",
+                at=d.created_at,
+                title=(
+                    "Cliente enviou um arquivo pelo WhatsApp"
+                    if d.source == "WHATSAPP"
+                    else "Documento adicionado"
+                ),
+                body=d.name,
+                meta={
+                    "document_id": str(d.pk),
+                    "by": _name(d.uploaded_by),
+                    "content_type": d.content_type,
                 },
             )
         )

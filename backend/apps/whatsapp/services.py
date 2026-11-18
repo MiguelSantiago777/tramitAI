@@ -238,8 +238,11 @@ def ingest_message(m: InboundMessage) -> Message | None:
                 type=m.type,
                 body=m.body,
                 media_id=m.media_id,
+                media_filename=m.media_filename,
                 status=Message.Status.RECEIVED,
                 wa_timestamp=m.timestamp,
+                error_code=m.media_error,
+                error_detail=_MEDIA_ERRORS.get(m.media_error, "") if m.media_error else "",
             )
     except IntegrityError:
         return None  # corrida com outro worker processando o mesmo wamid
@@ -272,6 +275,11 @@ def ingest_message(m: InboundMessage) -> Message | None:
     inbound_message_received.send(sender=Message, message=message, conversation=conversation)
     return message
 
+
+_MEDIA_ERRORS = {
+    "too_large": "Arquivo grande demais para guardar. Peça por e-mail ou outro meio.",
+    "download_failed": "Não foi possível baixar o arquivo. Peça para o contato reenviar.",
+}
 
 _CPF_PATTERN = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
 
@@ -502,6 +510,15 @@ def conversation_for_client(client: Client) -> Conversation | None:
     )
 
 
+def account_credentials(account: WhatsAppAccount) -> Credentials:
+    return Credentials(
+        phone_number_id=account.phone_number_id,
+        access_token=(
+            decrypt_secret(account.access_token_encrypted) if account.access_token_encrypted else ""
+        ),
+    )
+
+
 def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
     """Envia uma mensagem QUEUED. Três transações curtas; a chamada HTTP fica fora delas."""
     with tenant_atomic(tenant_id):
@@ -517,14 +534,7 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
         message.save(update_fields=["status", "updated_at"])
         account = message.conversation.account
         provider = account.provider
-        credentials = Credentials(
-            phone_number_id=account.phone_number_id,
-            access_token=(
-                decrypt_secret(account.access_token_encrypted)
-                if account.access_token_encrypted
-                else ""
-            ),
-        )
+        credentials = account_credentials(account)
         to, body = message.conversation.wa_id, message.body
         template = (
             (message.template_name, message.template_language, list(message.template_params))

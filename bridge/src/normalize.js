@@ -65,6 +65,24 @@ export function contentOf(message) {
   return null;
 }
 
+/** Limite de mídia que a ponte baixa (igual ao DOCUMENT_MAX_BYTES do backend). */
+export const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
+
+/** Metadados da mídia que vale guardar na pasta do cliente (figurinha não entra). */
+export function mediaOf(message) {
+  const m = unwrap(message);
+  const media = m?.imageMessage ?? m?.videoMessage ?? m?.audioMessage ?? m?.documentMessage;
+  if (!media) {
+    return null;
+  }
+  const size = Number(media.fileLength?.toString?.() ?? media.fileLength ?? 0) || 0;
+  return {
+    mimetype: String(media.mimetype ?? '').slice(0, 100),
+    filename: String(m.documentMessage?.fileName ?? '').slice(0, 200),
+    size,
+  };
+}
+
 /** "5521998765432@s.whatsapp.net" → "5521998765432"; "123@lid" → "lid:123". */
 export function waIdFromJid(jid) {
   if (!jid || typeof jid !== 'string') {
@@ -137,7 +155,7 @@ export async function normalizeInbound(msg, resolvePn) {
   if (!from || !key.id) {
     return null;
   }
-  return {
+  const item = {
     id: key.id,
     from,
     name: msg.pushName ?? '',
@@ -145,6 +163,11 @@ export async function normalizeInbound(msg, resolvePn) {
     type: content.type,
     text: content.text,
   };
+  const media = mediaOf(msg.message);
+  if (media) {
+    item.media = media;
+  }
+  return item;
 }
 
 /** Atualização de status de mensagem ENVIADA por nós → formato do backend, ou null. */

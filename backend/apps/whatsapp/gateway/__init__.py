@@ -3,10 +3,17 @@ from functools import cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from .base import Credentials, GatewayError, SendResult, WhatsAppGateway
+from .base import Credentials, GatewayError, MediaFile, SendResult, WhatsAppGateway
 from .fake import FakeGateway
 
-__all__ = ["Credentials", "FakeGateway", "GatewayError", "SendResult", "get_gateway"]
+__all__ = [
+    "Credentials",
+    "FakeGateway",
+    "GatewayError",
+    "MediaFile",
+    "SendResult",
+    "get_gateway",
+]
 
 CLOUD_API = "CLOUD_API"
 BAILEYS = "BAILEYS"

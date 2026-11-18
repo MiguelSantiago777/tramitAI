@@ -1,5 +1,6 @@
 #!/bin/sh
-# Um backup agora. Arquivos: /backups/db-<data>.dump.enc e /backups/whatsapp-<data>.tar.gz.enc
+# Um backup agora. Arquivos: /backups/db-<data>.dump.enc, /backups/whatsapp-<data>.tar.gz.enc
+# e /backups/documentos-<data>.tar.gz.enc
 set -eu
 set -o pipefail
 : "${BACKUP_PASSPHRASE:?defina BACKUP_PASSPHRASE (guarde fora do servidor!)}"
@@ -18,8 +19,14 @@ PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h "${POSTGRES_HOST:-postgres}" -U "$POS
 mv "$DIR/db-$TS.dump.enc.part" "$DIR/db-$TS.dump.enc"
 
 if [ -d /bridge ]; then
-  tar -C /bridge -czf - . | encrypt "$DIR/whatsapp-$TS.tar.gz.enc.part"
+  # Sem ./media: são cópias temporárias que o backend já guardou em documentos.
+  tar -C /bridge --exclude ./media -czf - . | encrypt "$DIR/whatsapp-$TS.tar.gz.enc.part"
   mv "$DIR/whatsapp-$TS.tar.gz.enc.part" "$DIR/whatsapp-$TS.tar.gz.enc"
+fi
+
+if [ -d /documents ]; then
+  tar -C /documents -czf - . | encrypt "$DIR/documentos-$TS.tar.gz.enc.part"
+  mv "$DIR/documentos-$TS.tar.gz.enc.part" "$DIR/documentos-$TS.tar.gz.enc"
 fi
 
 find "$DIR" -name '*.enc' -mtime "+$KEEP" -delete

@@ -45,4 +45,4 @@ def search_conversations(
 
 
 def thread(conversation: Conversation) -> QuerySet[Message]:
-    return conversation.messages.select_related("sent_by").order_by("-created_at")
+    return conversation.messages.select_related("sent_by", "document").order_by("-created_at")

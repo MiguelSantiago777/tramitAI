@@ -28,7 +28,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY . .
 RUN DJANGO_SECRET_KEY=collectstatic-only DATABASE_URL=postgres://x@localhost/x \
-    python manage.py collectstatic --noinput
+    python manage.py collectstatic --noinput \
+    && mkdir -p /app/media && chown app:app /app/media && chmod 700 /app/media
 USER app
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-"]
