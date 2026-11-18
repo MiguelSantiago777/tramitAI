@@ -18,6 +18,9 @@ class Plan(models.Model):
     max_users = models.PositiveSmallIntegerField(
         "máximo de usuários", null=True, blank=True, help_text="Vazio = sem limite."
     )
+    monthly_ai_limit = models.PositiveIntegerField(
+        "mensagens da Lia por mês", null=True, blank=True, help_text="Vazio = sem limite."
+    )
     is_active = models.BooleanField("disponível para assinar", default=True)
     sort = models.PositiveSmallIntegerField(default=0)
 

@@ -11,7 +11,7 @@ from .platform_views import (
     PaymentsView,
     PlanViewSet,
 )
-from .views import BillingRefreshView, BillingView, PlansView, SignupView
+from .views import BillingRefreshView, BillingView, ChangePlanView, PlansView, SignupView
 
 router = SimpleRouter()
 router.register("platform/plans", PlanViewSet, basename="platform-plan")
@@ -21,6 +21,11 @@ urlpatterns = [
     path("billing/plans/", PlansView.as_view(), name="billing-plans"),
     # Falam com o Mercado Pago: fora da transação do request (ATOMIC_REQUESTS).
     path("billing/", transaction.non_atomic_requests(BillingView.as_view()), name="billing"),
+    path(
+        "billing/plan/",
+        transaction.non_atomic_requests(ChangePlanView.as_view()),
+        name="billing-plan",
+    ),
     path(
         "billing/refresh/",
         transaction.non_atomic_requests(BillingRefreshView.as_view()),

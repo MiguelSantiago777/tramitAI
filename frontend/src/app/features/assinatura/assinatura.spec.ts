@@ -23,6 +23,11 @@ const base: Billing = {
   checkout_url: '',
   can_manage: true,
   exempt: false,
+  plan_code: 'escritorio',
+  users_used: 1,
+  users_limit: 5,
+  ai_used: 0,
+  ai_limit: 1000,
 };
 
 describe('aviso da assinatura', () => {
@@ -34,6 +39,10 @@ describe('aviso da assinatura', () => {
     expect(billingNotice({ ...base, status: 'PAST_DUE' })).toContain('atrasado');
     expect(billingNotice({ ...base, exempt: true, blocked: true })).toBeNull();
     expect(billingNotice(null)).toBeNull();
+    expect(billingNotice({ ...base, ai_used: 799 })).toBeNull();
+    expect(billingNotice({ ...base, ai_used: 800 })).toContain('800 de 1000');
+    expect(billingNotice({ ...base, ai_used: 1000 })).toContain('limite do plano');
+    expect(billingNotice({ ...base, ai_limit: null, ai_used: 5000 })).toBeNull();
   });
 });
 

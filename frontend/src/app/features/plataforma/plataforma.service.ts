@@ -67,6 +67,7 @@ export interface PlatformPlan {
   price: string;
   description: string;
   max_users: number | null;
+  monthly_ai_limit: number | null;
   is_active: boolean;
   sort: number;
 }

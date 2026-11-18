@@ -19,6 +19,11 @@ export interface Billing {
   checkout_url: string;
   can_manage: boolean;
   exempt: boolean;
+  plan_code: string;
+  users_used: number;
+  users_limit: number | null;
+  ai_used: number;
+  ai_limit: number | null;
 }
 
 export interface Plan {
@@ -27,6 +32,7 @@ export interface Plan {
   price: string;
   description: string;
   max_users: number | null;
+  monthly_ai_limit: number | null;
 }
 
 const URL = '/api/v1/billing/';
@@ -53,15 +59,24 @@ export class BillingService {
     return this.http.delete<Billing>(URL).pipe(tap((b) => this.current.set(b)));
   }
 
+  changePlan(planCode: string): Observable<Billing> {
+    return this.http
+      .post<Billing>(`${URL}plan/`, { plan_code: planCode })
+      .pipe(tap((b) => this.current.set(b)));
+  }
+
   plans(): Observable<Plan[]> {
     return this.http.get<Plan[]>(`${URL}plans/`);
   }
 }
 
-/** Aviso no topo: teste acabando, pagamento pendente/atrasado ou bloqueado. */
+/** Aviso no topo: teste acabando, pagamento pendente/atrasado, bloqueado ou Lia no limite. */
 export function billingNotice(b: Billing | null): string | null {
   if (!b || b.exempt) return null;
   if (b.blocked) return 'Acesso bloqueado: a assinatura venceu.';
+  if (b.ai_limit !== null && b.ai_used >= b.ai_limit) {
+    return 'A Lia atingiu o limite do plano neste mês: responda as conversas manualmente ou mude de plano.';
+  }
   if (b.status === 'TRIAL' && b.days_left !== null && b.days_left <= 7) {
     return b.days_left === 0
       ? 'Seu teste grátis termina hoje.'
@@ -71,5 +86,8 @@ export function billingNotice(b: Billing | null): string | null {
   if (b.status === 'PENDING') return 'Assinatura aguardando pagamento.';
   if (b.status === 'CANCELLED')
     return 'Assinatura cancelada: o acesso vai até o fim do período pago.';
+  if (b.ai_limit !== null && b.ai_used >= b.ai_limit * 0.8) {
+    return `A Lia já usou ${b.ai_used} de ${b.ai_limit} mensagens do plano neste mês.`;
+  }
   return null;
 }

@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from apps.aprovacoes import services as approvals
 from apps.aprovacoes.models import OutboundDraft
+from apps.cobranca.limits import ai_allowed
 from apps.cobranca.services import is_blocked
 from apps.core import audit
 from apps.core.tenancy import tenant_atomic
@@ -101,6 +102,9 @@ def _prepare(conversation_id: uuid.UUID, message_id: uuid.UUID) -> tuple[str, _P
         return "ai_disabled", None
     if is_blocked(conversation.tenant_id):
         return "subscription_blocked", None  # sem assinatura, sem custo de IA
+    if not ai_allowed(conversation.tenant_id):
+        # Limite do plano no mês: a mensagem fica na conversa para a equipe responder.
+        return "ai_limit_reached", None
 
     term = active_term_version()
     if term is None:

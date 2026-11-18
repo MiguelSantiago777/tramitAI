@@ -143,7 +143,10 @@ def _prepare(case_id: uuid.UUID) -> tuple[str, list[_Plan]]:
         return "no_clients", []
 
     settings_ = TenantSettings.objects.first()
-    ai_enabled = settings_ is None or settings_.ai_triage_enabled
+    from apps.cobranca.limits import ai_allowed
+
+    # Limite do plano esgotado: aviso com o texto fixo (sem IA), como com a Lia desligada.
+    ai_enabled = (settings_ is None or settings_.ai_triage_enabled) and ai_allowed(case.tenant_id)
     previous = list(
         CaseMovement.objects.filter(case=case)
         .exclude(notification=CaseMovement.Notification.PENDING)

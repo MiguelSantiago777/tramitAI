@@ -49,6 +49,9 @@ def invite_member(
             code="already_member",
             status_code=status.HTTP_409_CONFLICT,
         )
+    from apps.cobranca.limits import check_can_add_user
+
+    check_can_add_user(tenant_id)
     if membership is None:
         membership = Membership.objects.create(user=user, tenant_id=tenant_id, role=role)
     else:
@@ -102,6 +105,10 @@ def update_member(
                 code="last_owner",
                 status_code=status.HTTP_409_CONFLICT,
             )
+    if new_active and not membership.is_active:
+        from apps.cobranca.limits import check_can_add_user
+
+        check_can_add_user(membership.tenant_id)  # reativar ocupa um lugar do plano
     membership.role = new_role
     membership.is_active = new_active
     membership.save(update_fields=["role", "is_active"])

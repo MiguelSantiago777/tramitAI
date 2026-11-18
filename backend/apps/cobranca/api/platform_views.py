@@ -132,7 +132,17 @@ class PaymentsView(PlatformAPIView):
 class PlatformPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ["id", "code", "name", "price", "description", "max_users", "is_active", "sort"]
+        fields = [
+            "id",
+            "code",
+            "name",
+            "price",
+            "description",
+            "max_users",
+            "monthly_ai_limit",
+            "is_active",
+            "sort",
+        ]
         read_only_fields = ["id"]
 
 

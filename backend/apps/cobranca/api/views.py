@@ -16,14 +16,14 @@ from apps.accounts.permissions import IsOwnerForWrites
 from apps.cobranca import services
 from apps.cobranca.models import Plan
 from apps.core.mercadopago import MercadoPagoError
-from apps.core.tenancy import tenant_context
+from apps.core.tenancy import tenant_atomic, tenant_context
 from apps.core.views_base import OutsideTransactionMixin
 
 
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ["code", "name", "price", "description", "max_users"]
+        fields = ["code", "name", "price", "description", "max_users", "monthly_ai_limit"]
 
 
 class BillingSerializer(serializers.Serializer[Any]):
@@ -40,6 +40,15 @@ class BillingSerializer(serializers.Serializer[Any]):
     checkout_url = serializers.CharField(allow_blank=True)
     can_manage = serializers.BooleanField()
     exempt = serializers.BooleanField()
+    plan_code = serializers.CharField(allow_blank=True)
+    users_used = serializers.IntegerField()
+    users_limit = serializers.IntegerField(allow_null=True)
+    ai_used = serializers.IntegerField()
+    ai_limit = serializers.IntegerField(allow_null=True)
+
+
+class ChangePlanSerializer(serializers.Serializer[Any]):
+    plan_code = serializers.SlugField()
 
 
 class CheckoutSerializer(serializers.Serializer[Any]):
@@ -123,8 +132,9 @@ class BillingView(OutsideTransactionMixin, APIView):
 
     def _status(self, request: Request) -> dict[str, Any]:
         membership = get_membership(request)
-        with transaction.atomic():
-            return services.billing_status(membership.tenant_id, membership).__dict__
+        with tenant_atomic(membership.tenant_id):
+            status = services.billing_status(membership.tenant_id, membership)
+            return services._with_usage(status, membership.tenant_id).__dict__
 
     @extend_schema(responses=BillingSerializer, tags=["assinatura"])
     def get(self, request: Request) -> Response:
@@ -160,6 +170,24 @@ class BillingRefreshView(OutsideTransactionMixin, APIView):
             # Se o MP não responder agora, o aviso ou o beat confirmam depois.
             with contextlib.suppress(MercadoPagoError):
                 services.sync_subscription(preapproval_id)
-        with transaction.atomic():
-            data = services.billing_status(membership.tenant_id, membership).__dict__
+        with tenant_atomic(membership.tenant_id):
+            status = services.billing_status(membership.tenant_id, membership)
+            data = services._with_usage(status, membership.tenant_id).__dict__
+        return Response(BillingSerializer(data).data)
+
+
+class ChangePlanView(OutsideTransactionMixin, APIView):
+    """Escritório troca de plano (só o titular)."""
+
+    permission_classes = [IsOwnerForWrites]
+
+    @extend_schema(request=ChangePlanSerializer, responses=BillingSerializer, tags=["assinatura"])
+    def post(self, request: Request) -> Response:
+        payload = ChangePlanSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        membership = get_membership(request)
+        services.change_plan(membership.tenant_id, plan_code=payload.validated_data["plan_code"])
+        with tenant_atomic(membership.tenant_id):
+            status = services.billing_status(membership.tenant_id, membership)
+            data = services._with_usage(status, membership.tenant_id).__dict__
         return Response(BillingSerializer(data).data)

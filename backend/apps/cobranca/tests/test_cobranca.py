@@ -183,4 +183,4 @@ def test_only_owner_subscribes_and_billing_not_configured(db, api_client, settin
 
 def test_public_plans(db, api_client):
     plans = api_client.get("/api/v1/billing/plans/").json()
-    assert [p["code"] for p in plans] == ["escritorio"]
+    assert [p["code"] for p in plans] == ["essencial", "escritorio", "equipe"]

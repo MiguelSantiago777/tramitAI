@@ -292,11 +292,41 @@ type Tab = 'geral' | 'escritorios' | 'pagamentos' | 'planos';
                 <mat-label>Descrição</mat-label>
                 <input matInput [value]="p.description" #desc />
               </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan__num">
+                <mat-label>Máx. usuários</mat-label>
+                <input
+                  matInput
+                  [value]="p.max_users ?? ''"
+                  #users
+                  inputmode="numeric"
+                  placeholder="sem limite"
+                />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan__num">
+                <mat-label>Lia por mês</mat-label>
+                <input
+                  matInput
+                  [value]="p.monthly_ai_limit ?? ''"
+                  #ai
+                  inputmode="numeric"
+                  placeholder="sem limite"
+                />
+              </mat-form-field>
               <mat-slide-toggle [checked]="p.is_active" #active>À venda</mat-slide-toggle>
               <button
                 mat-flat-button
                 type="button"
-                (click)="savePlan(p, name.value, price.value, desc.value, active.checked)"
+                (click)="
+                  savePlan(
+                    p,
+                    name.value,
+                    price.value,
+                    desc.value,
+                    active.checked,
+                    users.value,
+                    ai.value
+                  )
+                "
               >
                 Salvar
               </button>
@@ -416,6 +446,9 @@ type Tab = 'geral' | 'escritorios' | 'pagamentos' | 'planos';
     .plan__price {
       width: 150px;
     }
+    .plan__num {
+      width: 130px;
+    }
     .plan__desc {
       flex: 1 1 260px;
     }
@@ -519,6 +552,7 @@ export class PlataformaPage {
         price: '0.00',
         description: '',
         max_users: null,
+        monthly_ai_limit: null,
         is_active: false,
         sort: list.length,
       },
@@ -531,6 +565,8 @@ export class PlataformaPage {
     price: string,
     description: string,
     active: boolean,
+    users = '',
+    ai = '',
   ): void {
     const value = parseMoney(price);
     if (!value) {
@@ -543,6 +579,8 @@ export class PlataformaPage {
       price: value,
       description: description.trim(),
       is_active: active,
+      max_users: limit(users),
+      monthly_ai_limit: limit(ai),
     };
     this.api.savePlan(body).subscribe({
       next: (saved) => {
@@ -577,4 +615,10 @@ export class PlataformaPage {
       },
     });
   }
+}
+
+/** Campo vazio = sem limite. */
+function limit(value: string): number | null {
+  const n = parseInt(value.replace(/\D/g, ''), 10);
+  return Number.isNaN(n) ? null : n;
 }

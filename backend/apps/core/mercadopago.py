@@ -142,6 +142,10 @@ class MercadoPagoClient(Protocol):
 
     def cancel_subscription(self, token: str, preapproval_id: str) -> None: ...
 
+    def update_subscription_amount(self, token: str, preapproval_id: str, amount: Decimal) -> None:
+        """Troca de plano: a próxima cobrança já vem com o valor novo."""
+        ...
+
     def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment: ...
 
     def authorized_payments_of(self, token: str, preapproval_id: str) -> list[AuthorizedPayment]:
@@ -325,6 +329,14 @@ class HttpMercadoPagoClient:
     def cancel_subscription(self, token: str, preapproval_id: str) -> None:
         self._request("PUT", f"/preapproval/{preapproval_id}", token, json={"status": "cancelled"})
 
+    def update_subscription_amount(self, token: str, preapproval_id: str, amount: Decimal) -> None:
+        self._request(
+            "PUT",
+            f"/preapproval/{preapproval_id}",
+            token,
+            json={"auto_recurring": {"transaction_amount": _money(amount), "currency_id": "BRL"}},
+        )
+
     def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment:
         return _authorized(self._request("GET", f"/authorized_payments/{payment_id}", token))
 
@@ -382,6 +394,7 @@ class FakeMercadoPago:
     created: list[dict[str, Any]] = field(default_factory=list)
     cancelled: list[str] = field(default_factory=list)
     authorized: dict[str, AuthorizedPayment] = field(default_factory=dict)
+    amount_updates: list[tuple[str, Decimal]] = field(default_factory=list)
     fail_next: MercadoPagoError | None = None
 
     def _check(self, token: str) -> None:
@@ -463,6 +476,10 @@ class FakeMercadoPago:
                 init_point=sub.init_point,
                 next_payment_date=sub.next_payment_date,
             )
+
+    def update_subscription_amount(self, token: str, preapproval_id: str, amount: Decimal) -> None:
+        self._check(token)
+        self.amount_updates.append((preapproval_id, amount))
 
     def authorized_payment(self, token: str, payment_id: str) -> AuthorizedPayment:
         self._check(token)
