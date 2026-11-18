@@ -54,7 +54,34 @@ import { RouterLink } from '@angular/router';
         depois são excluídos, salvo obrigação legal de guarda.
       </p>
 
-      <h2>6. Contato</h2>
+      <h2>6. Google Agenda</h2>
+      <p>
+        Se um usuário conectar o Google Agenda, o TramitAI usa o acesso autorizado (escopo
+        <em>calendar.events</em>) apenas para: (a) criar, alterar e cancelar no Google Agenda desse
+        usuário os compromissos que ele ou o escritório marcam no TramitAI; e (b) consultar o
+        horário de início e fim dos compromissos já existentes, para não oferecer horários ocupados.
+        Título, descrição, convidados e demais detalhes dos compromissos do Google não são lidos nem
+        armazenados. Guardamos apenas o e-mail da conta conectada, a autorização (cifrada) e os
+        intervalos de horário ocupados dos próximos 15 dias.
+      </p>
+      <p>
+        Os dados do Google não são vendidos, não são usados para publicidade, não são usados para
+        treinar modelos de inteligência artificial e não são compartilhados com terceiros. O usuário
+        pode desconectar a qualquer momento na tela Agenda; a autorização é revogada e os dados
+        guardados são apagados.
+      </p>
+      <p>
+        O uso e a transferência, para qualquer outro aplicativo, de informações recebidas das APIs
+        do Google seguirão a
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy"
+          target="_blank"
+          rel="noopener"
+          >Política de Dados do Usuário dos Serviços de API do Google</a
+        >, incluindo os requisitos de Uso Limitado.
+      </p>
+
+      <h2>7. Contato</h2>
       <p>Dúvidas e pedidos sobre dados pessoais: pelo e-mail de suporte informado no sistema.</p>
     </article>
   `,
