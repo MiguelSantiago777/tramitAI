@@ -20,3 +20,21 @@ docker run --rm -v "$PWD/midia/video:/video" tramitai-video python3 make_video.p
 
 O roteiro fica em `SCENES` dentro de `make_video.py`. O texto da narração é enviado ao serviço
 de voz da Microsoft (só o roteiro, sem dados de clientes).
+
+## Manuais (aba Manuais do sistema)
+
+Oito vídeos curtos, um por assunto, servidos pelo próprio sistema em `/videos/manuais/`.
+
+```bash
+# dados extras do escritório de demonstração (equipe, respostas prontas, etiquetas)
+docker compose run --rm -v "$PWD/midia:/midia" backend sh -c "python manage.py shell < /midia/video/seed_manuais.py"
+
+docker run --rm -v "$PWD/midia/video:/video" tramitai-video python3 capture_manuais.py
+docker run --rm -v "$PWD/midia/video:/video" tramitai-video python3 make_manuais.py          # todos
+docker run --rm -v "$PWD/midia/video:/video" tramitai-video python3 make_manuais.py agenda   # só um
+
+cp midia/video/out/manuais/* frontend/public/videos/manuais/
+```
+
+Roteiro de cada manual: lista `MANUAIS` em `make_manuais.py`. Telas e elementos destacados:
+`SHOTS` em `capture_manuais.py`.
