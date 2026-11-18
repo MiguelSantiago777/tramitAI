@@ -56,6 +56,11 @@
         <span class="brand__name">TramitAI</span>
       </a>
     </header>
+    @if (billingNotice(); as notice) {
+      <a class="billing-banner" routerLink="/assinatura">
+        <span class="icon">info</span>{{ notice }} <strong>Ver assinatura</strong>
+      </a>
+    }
     <main class="main">
       <router-outlet />
     </main>

@@ -10,7 +10,8 @@ const withToken = (req: HttpRequest<unknown>, token: string | null) =>
 
 /** Põe o Bearer nas chamadas /api e tenta um refresh quando o access expira (401). */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const isPublic = req.url === AUTH_URLS.login || req.url === AUTH_URLS.refresh;
+  const publicUrls: string[] = [AUTH_URLS.login, AUTH_URLS.refresh, AUTH_URLS.signup];
+  const isPublic = publicUrls.includes(req.url);
   if (!req.url.startsWith('/api/') || isPublic) {
     return next(req);
   }
@@ -20,6 +21,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(withToken(req, auth.accessToken)).pipe(
     catchError((err: unknown) => {
+      // Assinatura vencida: leva para a página de assinatura (o resto da API fica fechado).
+      if (err instanceof HttpErrorResponse && err.status === 402) {
+        if (!router.url.startsWith('/assinatura')) void router.navigate(['/assinatura']);
+        return throwError(() => err);
+      }
       if (!(err instanceof HttpErrorResponse) || err.status !== 401 || !auth.hasRefreshToken) {
         return throwError(() => err);
       }

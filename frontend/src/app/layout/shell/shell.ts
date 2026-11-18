@@ -11,6 +11,7 @@ import { ROLE_LABELS } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
 import { PtBrPaginatorIntl } from '../../core/i18n/paginator-intl';
 import { PendingDraftsCounter } from '../../features/aprovacoes/pending-counter';
+import { BillingService, billingNotice } from '../../features/assinatura/billing.service';
 import { initialsOf } from '../../shared/initials';
 
 interface NavLink {
@@ -52,6 +53,7 @@ export class Shell {
     { path: '/clientes', label: 'Clientes', icon: 'group' },
     { path: '/processos', label: 'Processos', icon: 'gavel' },
     { path: '/financeiro', label: 'Financeiro', icon: 'payments' },
+    { path: '/relatorios', label: 'Relatórios', icon: 'monitoring' },
   ];
   readonly settings: NavLink[] = [
     { path: '/configuracoes/whatsapp', label: 'WhatsApp', icon: 'smartphone' },
@@ -61,8 +63,11 @@ export class Shell {
     { path: '/configuracoes/respostas', label: 'Respostas prontas', icon: 'bolt' },
     { path: '/configuracoes/escritorio', label: 'Configurações', icon: 'settings' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
+    { path: '/assinatura', label: 'Assinatura', icon: 'workspace_premium' },
   ];
 
+  private readonly billing = inject(BillingService);
+  readonly billingNotice = computed(() => billingNotice(this.billing.current()));
   readonly session = this.auth.session;
   readonly pending = this.counter.count;
   /** Menu lateral aberto no celular. */
@@ -79,6 +84,7 @@ export class Shell {
   readonly initials = computed(() => initialsOf(this.userName()));
 
   constructor() {
+    this.billing.load().subscribe({ error: () => undefined });
     interval(30_000)
       .pipe(startWith(0), takeUntilDestroyed())
       .subscribe(() => this.counter.refresh());

@@ -10,6 +10,22 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
+    path: 'cadastro',
+    canMatch: [guestGuard],
+    title: 'Teste grátis · TramitAI',
+    loadComponent: () => import('./features/auth/signup/signup').then((m) => m.Signup),
+  },
+  {
+    path: 'conheca',
+    title: 'TramitAI · Secretária jurídica no WhatsApp',
+    loadComponent: () => import('./features/site/landing').then((m) => m.Landing),
+  },
+  {
+    path: 'termos',
+    title: 'Termos de uso · TramitAI',
+    loadComponent: () => import('./features/site/terms').then((m) => m.Terms),
+  },
+  {
     path: 'esqueci-senha',
     canMatch: [guestGuard],
     title: 'Esqueci minha senha · TramitAI',
@@ -110,6 +126,18 @@ export const routes: Routes = [
           import('./features/configuracoes/whatsapp-connection/whatsapp-connection').then(
             (m) => m.WhatsAppConnectionPage,
           ),
+      },
+      {
+        path: 'assinatura',
+        title: 'Assinatura · TramitAI',
+        loadComponent: () =>
+          import('./features/assinatura/billing-page').then((m) => m.BillingPage),
+      },
+      {
+        path: 'relatorios',
+        title: 'Relatórios · TramitAI',
+        loadComponent: () =>
+          import('./features/relatorios/reports-page').then((m) => m.ReportsPage),
       },
       {
         path: 'financeiro',

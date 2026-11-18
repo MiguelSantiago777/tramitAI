@@ -9,7 +9,16 @@ export const AUTH_URLS = {
   login: '/api/v1/auth/login/',
   refresh: '/api/v1/auth/refresh/',
   me: '/api/v1/auth/me/',
+  signup: '/api/v1/auth/signup/',
 } as const;
+
+export interface SignupInput {
+  office_name: string;
+  full_name: string;
+  email: string;
+  password: string;
+  accept_terms: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -38,6 +47,17 @@ export class AuthService {
         }),
         map((res) => res.session),
       );
+  }
+
+  /** Cadastro do escritório (teste grátis): já volta logado. */
+  signup(input: SignupInput): Observable<Session> {
+    return this.http.post<LoginResponse>(AUTH_URLS.signup, input).pipe(
+      tap((res) => {
+        tokenStorage.save(res.access, res.refresh);
+        this.sessionState.set(res.session);
+      }),
+      map((res) => res.session),
+    );
   }
 
   /** Renova o access token. Chamadas simultâneas compartilham o mesmo request. */
