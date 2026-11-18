@@ -131,6 +131,10 @@ class MercadoPagoClient(Protocol):
 
     def cancel_subscription(self, token: str, preapproval_id: str) -> None: ...
 
+    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
+        """Cobrança mensal de uma assinatura → id da assinatura (preapproval)."""
+        ...
+
 
 def _money(value: Decimal) -> float:
     return float(value.quantize(Decimal("0.01")))
@@ -308,6 +312,10 @@ class HttpMercadoPagoClient:
     def cancel_subscription(self, token: str, preapproval_id: str) -> None:
         self._request("PUT", f"/preapproval/{preapproval_id}", token, json={"status": "cancelled"})
 
+    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
+        data = self._request("GET", f"/authorized_payments/{payment_id}", token)
+        return str(data.get("preapproval_id") or "")
+
 
 def _payer(payer: Payer) -> dict[str, Any]:
     data: dict[str, Any] = {"email": payer.email}
@@ -343,6 +351,7 @@ class FakeMercadoPago:
     subscriptions: dict[str, Subscription] = field(default_factory=dict)
     created: list[dict[str, Any]] = field(default_factory=list)
     cancelled: list[str] = field(default_factory=list)
+    authorized_payments: dict[str, str] = field(default_factory=dict)
     fail_next: MercadoPagoError | None = None
 
     def _check(self, token: str) -> None:
@@ -415,6 +424,19 @@ class FakeMercadoPago:
     def cancel_subscription(self, token: str, preapproval_id: str) -> None:
         self._check(token)
         self.cancelled.append(preapproval_id)
+        sub = self.subscriptions.get(preapproval_id)
+        if sub is not None:
+            self.subscriptions[preapproval_id] = Subscription(
+                preapproval_id=sub.preapproval_id,
+                status="cancelled",
+                external_reference=sub.external_reference,
+                init_point=sub.init_point,
+                next_payment_date=sub.next_payment_date,
+            )
+
+    def authorized_payment_subscription(self, token: str, payment_id: str) -> str:
+        self._check(token)
+        return self.authorized_payments.get(payment_id, "")
 
 
 @cache

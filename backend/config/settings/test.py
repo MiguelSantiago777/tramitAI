@@ -19,7 +19,11 @@ DATABASE_OWNER = env.db("DATABASE_OWNER_URL")
 
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,  # noqa: F405
-    "DEFAULT_THROTTLE_RATES": {"login": "10000/min", "password_reset": "10000/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "10000/min",
+        "password_reset": "10000/min",
+        "signup": "10000/min",
+    },
 }
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 CELERY_TASK_ALWAYS_EAGER = True

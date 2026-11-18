@@ -3,6 +3,7 @@ from django.db import transaction
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.cobranca.webhook import SubscriptionWebhookView
 from apps.core.views import HealthView
 from apps.financeiro.webhook import MercadoPagoWebhookView
 from apps.whatsapp.webhook import BridgeWebhookView, WhatsAppWebhookView
@@ -21,6 +22,8 @@ api_v1 = [
     path("", include("apps.funil.api.urls")),
     path("", include("apps.documentos.api.urls")),
     path("", include("apps.financeiro.api.urls")),
+    path("", include("apps.cobranca.api.urls")),
+    path("", include("apps.relatorios.api.urls")),
 ]
 
 urlpatterns = [
@@ -32,6 +35,11 @@ urlpatterns = [
     path("api/v1/", include(api_v1)),
     path("api/webhooks/whatsapp/", WhatsAppWebhookView.as_view(), name="whatsapp-webhook"),
     path("api/webhooks/bridge/", BridgeWebhookView.as_view(), name="bridge-webhook"),
+    path(
+        "api/webhooks/mercadopago-assinatura/",
+        SubscriptionWebhookView.as_view(),
+        name="mercadopago-subscription-webhook",
+    ),
     path(
         "api/webhooks/mercadopago/<str:token>/",
         MercadoPagoWebhookView.as_view(),

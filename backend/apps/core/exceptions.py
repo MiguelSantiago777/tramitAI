@@ -37,6 +37,17 @@ class ApiError(exceptions.APIException):
         self.details = details
 
 
+class SubscriptionRequired(ApiError):
+    """Teste grátis ou assinatura vencidos: o frontend leva para a página de assinatura."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "A assinatura do escritório venceu. Regularize para continuar usando.",
+            code="subscription_required",
+            status_code=402,
+        )
+
+
 def error_body(code: str, message: str, details: Any = None) -> dict[str, Any]:
     body: dict[str, Any] = {"code": code, "message": message}
     if details:

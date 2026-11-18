@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from apps.aprovacoes import services as approvals
 from apps.aprovacoes.models import OutboundDraft
+from apps.cobranca.services import is_blocked
 from apps.core import audit
 from apps.core.tenancy import tenant_atomic
 from apps.tenants.models import ClientTermVersion, TenantSettings
@@ -75,6 +76,8 @@ def _prepare(conversation_id: uuid.UUID, message_id: uuid.UUID) -> tuple[str, _P
     settings_ = TenantSettings.objects.first()
     if settings_ is not None and not settings_.ai_triage_enabled:
         return "ai_disabled", None
+    if is_blocked(conversation.tenant_id):
+        return "subscription_blocked", None  # sem assinatura, sem custo de IA
 
     term = active_term_version()
     if term is None:

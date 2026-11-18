@@ -11,6 +11,8 @@ from .models import Membership
 from .selectors import active_membership
 
 TENANT_CLAIM = "tid"
+# Com a assinatura vencida, só dá para entrar, ver a sessão e pagar.
+OPEN_WHEN_BLOCKED = ("/api/v1/auth/", "/api/v1/billing/")
 
 
 class TenantJWTAuthentication(JWTAuthentication):
@@ -39,6 +41,13 @@ class TenantJWTAuthentication(JWTAuthentication):
 
         activate_tenant(membership.tenant_id)
         request.membership = membership  # type: ignore[attr-defined]
+
+        # Imports aqui: este módulo carrega junto com as settings do DRF (evita ciclo).
+        from apps.cobranca.services import is_blocked
+        from apps.core.exceptions import SubscriptionRequired
+
+        if not request.path.startswith(OPEN_WHEN_BLOCKED) and is_blocked(membership.tenant_id):
+            raise SubscriptionRequired()
         return user, token
 
 

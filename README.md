@@ -145,6 +145,18 @@ Depois: entre em `https://SEU_DOMINIO`, abra **WhatsApp** e leia o QR Code.
 - **Logs**: `docker compose -f docker-compose.prod.yml logs -f backend worker bridge`
   (rotacionados, 50 MB por serviço). Sem conteúdo de mensagem.
 
+## Venda (assinatura) e financeiro
+
+- **Cadastro self-service**: `/cadastro` cria o escritório em teste grátis (`TRIAL_DAYS`).
+  Página pública em `/conheca` e termos em `/termos` (revise o texto com assessoria jurídica).
+- **Assinatura**: preencha `MERCADOPAGO_PLATFORM_TOKEN` (Access Token de produção da sua
+  conta). O titular assina em **Assinatura**; o Mercado Pago cobra todo mês e avisa em
+  `/api/webhooks/mercadopago-assinatura/`. Preço e planos: admin → **Planos**. Com o teste ou o
+  pagamento vencidos (+ `SUBSCRIPTION_GRACE_DAYS`), a API responde 402 e só a página de
+  assinatura funciona. Escritórios criados antes disso ficam **isentos** (admin → Assinaturas).
+- **Financeiro dos escritórios**: cada escritório conecta a própria conta do Mercado Pago em
+  Configurações → Mercado Pago; Pix e links de pagamento das parcelas caem direto nela.
+
 ## Testes e lint
 
 ```bash

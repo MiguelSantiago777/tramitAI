@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.funil",
     "apps.documentos",
     "apps.financeiro",
+    "apps.relatorios",
     "apps.cobranca",
 ]
 
@@ -134,6 +135,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "login": env("LOGIN_THROTTLE_RATE", default="10/min"),
         "password_reset": env("PASSWORD_RESET_THROTTLE_RATE", default="5/hour"),
+        "signup": env("SIGNUP_THROTTLE_RATE", default="5/hour"),
     },
 }
 
@@ -203,6 +205,11 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.financeiro.tasks.create_payment_reminders",
         "schedule": crontab(hour=12, minute=0),
     },
+    # Confere as assinaturas no Mercado Pago (cobre aviso perdido).
+    "refresh-subscriptions": {
+        "task": "apps.cobranca.tasks.refresh_subscriptions",
+        "schedule": crontab(hour=9, minute=30),
+    },
 }
 
 # --------------------------------------------------------------------------- Mercado Pago
@@ -212,6 +219,12 @@ MERCADOPAGO_CLIENT: str = env("MERCADOPAGO_CLIENT", default="fake")
 MERCADOPAGO_API_URL: str = env("MERCADOPAGO_API_URL", default="https://api.mercadopago.com")
 MERCADOPAGO_TIMEOUT: float = env.float("MERCADOPAGO_TIMEOUT", default=20.0)
 MERCADOPAGO_STATEMENT: str = env("MERCADOPAGO_STATEMENT", default="HONORARIOS")
+# Assinatura do TramitAI: token da SUA conta do Mercado Pago (quem recebe dos escritórios).
+MERCADOPAGO_PLATFORM_TOKEN: str = env("MERCADOPAGO_PLATFORM_TOKEN", default="")
+SIGNUP_ENABLED: bool = env.bool("SIGNUP_ENABLED", default=True)
+TRIAL_DAYS: int = env.int("TRIAL_DAYS", default=14)
+# Dias de tolerância depois do vencimento antes de bloquear o acesso.
+SUBSCRIPTION_GRACE_DAYS: int = env.int("SUBSCRIPTION_GRACE_DAYS", default=5)
 # Endereço público da API (o MP chama de volta aqui). Padrão: o mesmo domínio do site.
 PUBLIC_API_URL: str = env("PUBLIC_API_URL", default=FRONTEND_URL)
 
