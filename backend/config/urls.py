@@ -4,6 +4,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.core.views import HealthView
+from apps.financeiro.webhook import MercadoPagoWebhookView
 from apps.whatsapp.webhook import BridgeWebhookView, WhatsAppWebhookView
 
 handler404 = "apps.core.views.not_found"
@@ -19,6 +20,7 @@ api_v1 = [
     path("", include("apps.agenda.api.urls")),
     path("", include("apps.funil.api.urls")),
     path("", include("apps.documentos.api.urls")),
+    path("", include("apps.financeiro.api.urls")),
 ]
 
 urlpatterns = [
@@ -30,4 +32,9 @@ urlpatterns = [
     path("api/v1/", include(api_v1)),
     path("api/webhooks/whatsapp/", WhatsAppWebhookView.as_view(), name="whatsapp-webhook"),
     path("api/webhooks/bridge/", BridgeWebhookView.as_view(), name="bridge-webhook"),
+    path(
+        "api/webhooks/mercadopago/<str:token>/",
+        MercadoPagoWebhookView.as_view(),
+        name="mercadopago-webhook",
+    ),
 ]

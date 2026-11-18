@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -35,6 +36,7 @@ INSTALLED_APPS = [
     "apps.agenda",
     "apps.funil",
     "apps.documentos",
+    "apps.financeiro",
     "apps.cobranca",
 ]
 
@@ -196,7 +198,22 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.processos.tasks.schedule_case_checks",
         "schedule": 60 * 60,
     },
+    # 9h de Brasília: lembretes de parcela viram rascunho para aprovação.
+    "payment-reminders": {
+        "task": "apps.financeiro.tasks.create_payment_reminders",
+        "schedule": crontab(hour=12, minute=0),
+    },
 }
+
+# --------------------------------------------------------------------------- Mercado Pago
+# "http" (API real) ou "fake" (dev/testes). Cada escritório usa o próprio access token
+# (financeiro); a assinatura do TramitAI usa MERCADOPAGO_PLATFORM_TOKEN (cobranca).
+MERCADOPAGO_CLIENT: str = env("MERCADOPAGO_CLIENT", default="fake")
+MERCADOPAGO_API_URL: str = env("MERCADOPAGO_API_URL", default="https://api.mercadopago.com")
+MERCADOPAGO_TIMEOUT: float = env.float("MERCADOPAGO_TIMEOUT", default=20.0)
+MERCADOPAGO_STATEMENT: str = env("MERCADOPAGO_STATEMENT", default="HONORARIOS")
+# Endereço público da API (o MP chama de volta aqui). Padrão: o mesmo domínio do site.
+PUBLIC_API_URL: str = env("PUBLIC_API_URL", default=FRONTEND_URL)
 
 # --------------------------------------------------------------------------- segredos
 # Chaves Fernet (urlsafe base64, 32 bytes) separadas por vírgula. A primeira cifra; todas

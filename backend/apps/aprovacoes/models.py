@@ -18,6 +18,7 @@ class OutboundDraft(TenantModel):
         TERM_REQUEST = "TERM_REQUEST", "Termo de ciência"
         MOVEMENT_UPDATE = "MOVEMENT_UPDATE", "Atualização de processo"
         EVENT_REMINDER = "EVENT_REMINDER", "Lembrete de compromisso"
+        PAYMENT_REMINDER = "PAYMENT_REMINDER", "Lembrete de pagamento"
 
     class Status(models.TextChoices):
         DRAFT = "DRAFT", "Rascunho"
