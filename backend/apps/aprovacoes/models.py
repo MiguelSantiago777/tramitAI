@@ -75,6 +75,9 @@ class OutboundDraft(TenantModel):
         related_name="draft",
     )
 
+    # Enviado pela Lia sem aprovação (triagem de contato novo, se o escritório ligou).
+    auto_sent = models.BooleanField(default=False)
+
     # Triagem (só para o escritório; não vai ao cliente).
     intent = models.CharField(max_length=20, blank=True, default="")
     urgency = models.CharField(max_length=10, blank=True, default="")

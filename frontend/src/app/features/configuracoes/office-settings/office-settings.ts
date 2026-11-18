@@ -51,6 +51,19 @@ import { TenantService } from '../../../core/tenant/tenant.service';
         </span>
       </div>
 
+      <h2>Triagem automática</h2>
+      <div class="setting">
+        <mat-slide-toggle formControlName="auto_send_simple_replies">
+          Lia conversa sozinha com contatos novos até entender o caso
+        </mat-slide-toggle>
+        <span class="muted small">
+          Só com quem ainda não é cliente e já aceitou o termo de IA. A Lia pergunta nome e o que
+          aconteceu, sem dar orientação jurídica. Quando tiver o resumo (ou se for urgente), avisa o
+          contato que passou para o advogado e a resposta seguinte espera a sua aprovação. Clientes
+          com processo continuam sempre com aprovação.
+        </span>
+      </div>
+
       <h2>Aprovação de mensagens</h2>
       <div class="setting">
         <mat-slide-toggle formControlName="staff_can_approve">
@@ -97,6 +110,7 @@ export class OfficeSettingsPage {
   readonly form = inject(NonNullableFormBuilder).group({
     tenant_name: ['', [Validators.required, Validators.maxLength(200)]],
     ai_triage_enabled: [true],
+    auto_send_simple_replies: [false],
     staff_can_approve: [false],
   });
 
@@ -106,6 +120,7 @@ export class OfficeSettingsPage {
         this.form.reset({
           tenant_name: s.tenant_name,
           ai_triage_enabled: s.ai_triage_enabled,
+          auto_send_simple_replies: s.auto_send_simple_replies,
           staff_can_approve: s.staff_can_approve,
         });
         if (!this.canEdit()) {
@@ -129,6 +144,7 @@ export class OfficeSettingsPage {
         this.form.reset({
           tenant_name: s.tenant_name,
           ai_triage_enabled: s.ai_triage_enabled,
+          auto_send_simple_replies: s.auto_send_simple_replies,
           staff_can_approve: s.staff_can_approve,
         });
         this.snackBar.open('Configurações salvas.', undefined, { duration: 3000 });

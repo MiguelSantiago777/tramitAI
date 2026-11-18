@@ -147,7 +147,10 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def get_sent_by_name(self, obj: Message) -> str:
         user = obj.sent_by
-        return (user.full_name or user.email) if user else ""
+        if user:
+            return user.full_name or user.email
+        # Saída sem pessoa: a Lia (triagem automática) ou o sistema.
+        return "Lia" if obj.direction == Message.Direction.OUTBOUND else ""
 
 
 class SendMessageSerializer(serializers.Serializer):

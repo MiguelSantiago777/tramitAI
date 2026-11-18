@@ -9,6 +9,8 @@ Três fases, como manda a regra do projeto:
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 
@@ -213,7 +215,8 @@ def _store(
         return "superseded_after_generation"
 
     Conversation.objects.filter(pk=conversation.pk).update(ai_failed_at=None)
-    approvals.create_draft(
+    auto_mode = _auto_triage_enabled() and _is_new_contact(conversation)
+    draft = approvals.create_draft(
         conversation=conversation,
         origin=OutboundDraft.Origin.AI_REPLY,
         body=SAFE_REPLY if flags else triage.reply,
@@ -226,9 +229,66 @@ def _store(
         summary=triage.summary_for_lawyer,
         guardrail_flags=flags,
     )
+    outcome = "draft_created"
+    if auto_mode and _can_auto_send(conversation, triage, flags) and approvals.auto_send(draft):
+        outcome = "auto_sent"
+    elif auto_mode:
+        # Triagem terminou (ou precisa do advogado): o cliente fica sabendo na hora, e o
+        # rascunho da Lia espera a aprovação.
+        _acknowledge_handoff(conversation)
     if triage.intent == "new_matter":
         # Pessoa querendo contratar: entra no funil de novos clientes.
         from apps.funil.services import ensure_whatsapp_opportunity
 
         ensure_whatsapp_opportunity(conversation, triage.summary_for_lawyer)
-    return "draft_created"
+    return outcome
+
+
+# ---------------------------------------------------------------- triagem automática
+
+# Teto de mensagens que a Lia manda sozinha numa conversa em 24h (evita conversa em loop).
+MAX_AUTO_REPLIES_PER_DAY = 8
+HANDOFF_ACK = (
+    "Obrigada pelas informações! Já passei tudo para o(a) advogado(a) do escritório, "
+    "que vai analisar e te responder por aqui."
+)
+
+
+def _auto_triage_enabled() -> bool:
+    settings_ = TenantSettings.objects.first()
+    return bool(settings_ and settings_.auto_send_simple_replies)
+
+
+def _is_new_contact(conversation: Conversation) -> bool:
+    """Só contato novo (sem cliente ou lead). Cliente com processo continua com aprovação."""
+    from apps.clientes.models import Client
+
+    client = conversation.client
+    return client is None or client.status == Client.Status.LEAD
+
+
+def _can_auto_send(conversation: Conversation, triage: Any, flags: list[str]) -> bool:
+    if flags or triage.needs_lawyer or triage.triage_complete or triage.urgency == "high":
+        return False
+    since = timezone.now() - timedelta(hours=24)
+    sent_today = OutboundDraft.objects.filter(
+        conversation=conversation, auto_sent=True, created_at__gte=since
+    ).count()
+    return sent_today < MAX_AUTO_REPLIES_PER_DAY
+
+
+def _acknowledge_handoff(conversation: Conversation) -> None:
+    from apps.core.exceptions import ApiError
+    from apps.whatsapp.services import queue_text
+
+    last_out = (
+        Message.objects.filter(conversation=conversation, direction=Message.Direction.OUTBOUND)
+        .order_by("-created_at")
+        .first()
+    )
+    if last_out is not None and last_out.body == HANDOFF_ACK:
+        return  # já avisou; não repete a cada mensagem
+    try:
+        queue_text(conversation=conversation, body=HANDOFF_ACK, sent_by=None)
+    except ApiError:
+        logger.info("triage: aviso de encaminhamento não enviado (janela fechada)")

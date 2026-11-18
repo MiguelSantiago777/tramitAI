@@ -12,11 +12,19 @@ TRIAGE_SCHEMA: dict[str, Any] = {
     "properties": {
         "intent": {"type": "string", "enum": INTENTS},
         "needs_lawyer": {"type": "boolean"},
+        "triage_complete": {"type": "boolean"},
         "urgency": {"type": "string", "enum": URGENCIES},
         "summary_for_lawyer": {"type": "string"},
         "reply": {"type": "string"},
     },
-    "required": ["intent", "needs_lawyer", "urgency", "summary_for_lawyer", "reply"],
+    "required": [
+        "intent",
+        "needs_lawyer",
+        "triage_complete",
+        "urgency",
+        "summary_for_lawyer",
+        "reply",
+    ],
     "additionalProperties": False,
 }
 
@@ -28,6 +36,8 @@ class TriageResult:
     urgency: str
     summary_for_lawyer: str
     reply: str
+    # Triagem de contato novo terminou (já tem nome e resumo): vai para o advogado.
+    triage_complete: bool = True
 
 
 class InvalidTriage(ValueError):
@@ -46,6 +56,10 @@ def parse_triage(data: dict[str, Any]) -> TriageResult:
         raise InvalidTriage("campos ausentes") from exc
     if not isinstance(needs_lawyer, bool):
         raise InvalidTriage("needs_lawyer não é booleano")
+    # Ausente ou inválido = "terminou": o caminho seguro é a aprovação do advogado.
+    triage_complete = data.get("triage_complete", True)
+    if not isinstance(triage_complete, bool):
+        triage_complete = True
     if not reply:
         raise InvalidTriage("resposta vazia")
     return TriageResult(
@@ -54,4 +68,5 @@ def parse_triage(data: dict[str, Any]) -> TriageResult:
         urgency=urgency if urgency in URGENCIES else "normal",
         summary_for_lawyer=summary[:1000],
         reply=reply[:MAX_REPLY_LENGTH],
+        triage_complete=triage_complete,
     )

@@ -29,10 +29,9 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             "timezone",
             "updated_at",
         ]
-        # A IA nunca envia sozinha: auto_send fica só leitura (sempre desligado por ora).
+        # auto_send_simple_replies: Lia responde sozinha na triagem de contato novo.
         read_only_fields = [
             "id",
-            "auto_send_simple_replies",
             "data_retention_days",
             "message_retention_days",
             "timezone",

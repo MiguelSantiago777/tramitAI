@@ -139,11 +139,13 @@ def test_owner_edits_office_settings(tenant_a, api_client, login):
         assert TenantSettings.objects.get().staff_can_approve is True
 
 
-def test_auto_send_stays_off(tenant_a, api_client, login):
+def test_owner_turns_on_automatic_triage(tenant_a, api_client, login):
     login(tenant_a.owner.email)
+    with tenant_context(tenant_a.tenant.id):
+        assert TenantSettings.objects.get().auto_send_simple_replies is False  # começa desligado
     api_client.patch(SETTINGS, {"auto_send_simple_replies": True}, format="json")
     with tenant_context(tenant_a.tenant.id):
-        assert TenantSettings.objects.get().auto_send_simple_replies is False
+        assert TenantSettings.objects.get().auto_send_simple_replies is True
 
 
 def test_lawyer_cannot_edit_settings(tenant_a, api_client, login):

@@ -105,6 +105,39 @@ def _lock_pending(draft_id: Any) -> OutboundDraft:
     return draft
 
 
+def auto_send(draft: OutboundDraft) -> bool:
+    """Lia envia o rascunho sem aprovação (só na triagem de contato novo). Se não der para
+    enviar agora (ex.: janela da Meta fechada), o rascunho fica pendente para a equipe."""
+    try:
+        message = whatsapp.queue_text(
+            conversation=draft.conversation, body=draft.generated_body, sent_by=None
+        )
+    except ApiError:
+        return False
+    draft.status = OutboundDraft.Status.APPROVED
+    draft.final_body = draft.generated_body
+    draft.decided_at = timezone.now()
+    draft.sent_message = message
+    draft.auto_sent = True
+    draft.save(
+        update_fields=[
+            "status",
+            "final_body",
+            "decided_at",
+            "sent_message",
+            "auto_sent",
+            "updated_at",
+        ]
+    )
+    audit.record(
+        "draft.auto_sent",
+        draft,
+        actor_type=audit.Actor.AI,
+        data={"message_id": str(message.pk), "intent": draft.intent},
+    )
+    return True
+
+
 def approve_draft(
     *, draft: OutboundDraft, user: User, membership: Membership, body: str | None = None
 ) -> OutboundDraft:

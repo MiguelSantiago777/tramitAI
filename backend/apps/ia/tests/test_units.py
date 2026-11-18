@@ -75,7 +75,9 @@ def test_parse_triage_rejects_invalid(data):
 
 def test_prompts_are_versioned_files():
     prompt = load_prompt("triage")
-    assert prompt.version == "v1"
+    assert prompt.version == "v2"
+    assert "triage_complete" in prompt.text
+    assert load_prompt("triage", "v1").version == "v1"  # versões antigas ficam (auditoria)
     assert "Nunca inventa" in prompt.text
     assert "{termo}" in load_prompt("term_request").text
 
