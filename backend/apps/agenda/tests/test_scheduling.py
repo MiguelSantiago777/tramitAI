@@ -157,7 +157,7 @@ def test_taken_slot_goes_to_lawyer(
     fake_llm.queue.append(
         _llm("Pré-reservei!", scheduling_step="book", booking_slot="H1", booking_mode="presencial")
     )
-    inbound("A primeira")
+    inbound("A primeira, presencial")
     pending = drafts(origin=AI, status=OutboundDraft.Status.DRAFT)
     assert len(pending) == 1
     assert pending[0].needs_lawyer is True
@@ -186,3 +186,81 @@ def test_decline_and_settings_api(tenant_a, login, api_client):
     assert ok["business_hours"]["0"] == [["08:00", "17:00"]]
     assert ok["scheduling_enabled"] is True
     assert ok["consult_minutes"] == 30
+
+
+def test_only_mode_does_not_book_first_slot(
+    tenant_a, account_a, scheduling_on, inbound, approve, drafts, fake_llm, fake_gateway
+):
+    """Cliente responde só "online": a IA chuta H1, mas o sistema pergunta o horário."""
+    inbound("Oi")
+    approve(drafts(origin=TERM)[0])
+    fake_llm.queue.append(_llm("H1, H2 ou H3? Presencial ou online?", scheduling_step="offer"))
+    inbound("Aceito")
+    fake_llm.queue.append(
+        _llm("Pré-reservei!", scheduling_step="book", booking_slot="H1", booking_mode="online")
+    )
+    inbound("Online")
+    reply = drafts(origin=AI)[-1]
+    assert reply.generated_body.startswith("Combinado, online! Qual destes horários fica melhor")
+    assert reply.auto_sent is True  # pergunta de agendamento sai sozinha
+    with tenant_context(tenant_a.tenant.id):
+        assert not Event.objects.exists()
+        assert len(Conversation.objects.get().offered_slots) == 3  # oferta continua valendo
+
+
+def _say(conversation, direction, body, minute):
+    from apps.whatsapp.models import Message
+
+    msg = Message.objects.create(
+        conversation=conversation,
+        direction=direction,
+        body=body,
+        status=Message.Status.RECEIVED if direction == "IN" else Message.Status.SENT,
+    )
+    Message.objects.filter(pk=msg.pk).update(created_at=MONDAY_8H + timedelta(minutes=minute))
+
+
+def test_booking_check_reads_what_client_said(tenant_a, account_a, monkeypatch):
+    from apps.ia.booking_check import check
+
+    _cfg(tenant_a, scheduling_enabled=True, consult_minutes=60)
+    monkeypatch.setattr(timezone, "now", lambda: MONDAY_8H)
+    with tenant_atomic(tenant_a.tenant.id):
+        conv = Conversation.objects.create(account=account_a, wa_id="5521911113333")
+        build_triage_context(conv)
+        conv.refresh_from_db()
+        labels = [
+            scheduling.slot_label(datetime.fromisoformat(o["start"])) for o in conv.offered_slots
+        ]
+        assert labels == [
+            "segunda, 23/11 às 10:00",
+            "segunda, 23/11 às 13:00",
+            "terça, 24/11 às 09:00",
+        ]
+        _say(conv, "IN", "Fui demitido na segunda passada", 1)
+        _say(conv, "OUT", f"Tenho {', '.join(labels)}. Presencial ou online?", 2)
+
+        _say(conv, "IN", "online", 3)
+        only_mode = check(conv, "H1", "online")
+        assert (only_mode.ok, only_mode.slot_id, only_mode.mode) == (False, None, "online")
+        assert "Qual destes horários" in only_mode.reply
+
+        _say(conv, "IN", "segunda", 4)  # dois horários na segunda: ambíguo
+        assert check(conv, "H1", "online").slot_id is None
+
+        _say(conv, "IN", "terça às 9h", 5)
+        assert check(conv, "H3", "online").ok is True
+        wrong = check(conv, "H1", "online")  # a IA escolheu outro
+        assert wrong.ok is False
+        assert wrong.reply == (
+            "Só para confirmar: posso pré-reservar terça, 24/11 às 09:00, online?"
+        )
+
+        _say(conv, "OUT", wrong.reply, 6)
+        _say(conv, "IN", "Sim", 7)
+        assert check(conv, "H3", "online").ok is True
+
+        _say(conv, "OUT", "Tenho as mesmas opções de antes: 10:00, 13:00 ou 09:00.", 8)
+        _say(conv, "IN", "a segunda opção, vou no escritório", 9)
+        second = check(conv, "H2", "presencial")
+        assert (second.ok, second.slot_id, second.mode) == (True, "H2", "presencial")

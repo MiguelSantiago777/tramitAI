@@ -234,6 +234,8 @@ def _store(
     auto_mode = _auto_triage_enabled() and _is_new_contact(conversation)
     booking_failed = False
     if triage.scheduling_step == "book" and not flags:
+        triage = _check_booking(conversation, triage)
+    if triage.scheduling_step == "book" and not flags:
         booking_failed = not _prebook(conversation, triage)
     draft = approvals.create_draft(
         conversation=conversation,
@@ -291,6 +293,40 @@ def _auto_triage_enabled() -> bool:
 def _scheduling_enabled() -> bool:
     settings_ = TenantSettings.objects.first()
     return bool(settings_ and settings_.scheduling_enabled)
+
+
+def _check_booking(conversation: Conversation, triage: Any) -> Any:
+    """A IA quer reservar: confere no texto do cliente se ele escolheu esse horário e formato.
+
+    Se não bater (ex.: cliente disse só "online" e a IA pegou o primeiro horário), não reserva:
+    a resposta vira uma pergunta só sobre o que falta.
+    """
+    from dataclasses import replace
+
+    from . import booking_check
+
+    result = booking_check.check(conversation, triage.booking_slot, triage.booking_mode)
+    if result.ok:
+        return triage
+    audit.record(
+        "ai.booking_not_confirmed",
+        conversation,
+        actor_type=audit.Actor.AI,
+        data={
+            "ai_slot": triage.booking_slot,
+            "ai_mode": triage.booking_mode,
+            "client_slot": result.slot_id or "",
+            "client_mode": result.mode or "",
+        },
+    )
+    return replace(
+        triage,
+        scheduling_step="none" if result.needs_lawyer else "offer",
+        booking_slot="",
+        booking_mode="",
+        reply=result.reply,
+        needs_lawyer=triage.needs_lawyer or result.needs_lawyer,
+    )
 
 
 def _prebook(conversation: Conversation, triage: Any) -> bool:

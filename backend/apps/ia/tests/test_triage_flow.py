@@ -104,7 +104,7 @@ def test_acceptance_creates_lead_records_consent_and_triages(
     assert ai_draft.client_id == lead.id
     assert ai_draft.intent == "case_status"
     assert ai_draft.generation.status == AiGeneration.Status.OK
-    assert ai_draft.generation.prompt_version == "v3"
+    assert ai_draft.generation.prompt_version == "v4"
 
     [call] = fake_llm.calls
     assert "aposentadoria" in call.user_content  # histórico antes do aceite entra na triagem
