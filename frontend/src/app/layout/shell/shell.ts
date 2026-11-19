@@ -12,6 +12,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { PtBrPaginatorIntl } from '../../core/i18n/paginator-intl';
 import { PendingDraftsCounter } from '../../features/aprovacoes/pending-counter';
 import { BillingService, billingNotice } from '../../features/assinatura/billing.service';
+import { PublicationsService } from '../../features/publicacoes/publications.service';
 import { initialsOf } from '../../shared/initials';
 
 interface NavLink {
@@ -52,6 +53,7 @@ export class Shell {
   readonly records: NavLink[] = [
     { path: '/clientes', label: 'Clientes', icon: 'group' },
     { path: '/processos', label: 'Processos', icon: 'gavel' },
+    { path: '/publicacoes', label: 'Publicações', icon: 'newspaper' },
     { path: '/financeiro', label: 'Financeiro', icon: 'payments' },
     { path: '/relatorios', label: 'Relatórios', icon: 'monitoring' },
   ];
@@ -77,6 +79,9 @@ export class Shell {
   };
   readonly session = this.auth.session;
   readonly pending = this.counter.count;
+  private readonly publications = inject(PublicationsService);
+  /** Publicações novas do Diário (0 se o plano não inclui). */
+  readonly newPublications = signal(0);
   /** Menu lateral aberto no celular. */
   readonly menuOpen = signal(false);
 
@@ -95,6 +100,14 @@ export class Shell {
     interval(30_000)
       .pipe(startWith(0), takeUntilDestroyed())
       .subscribe(() => this.counter.refresh());
+    interval(60_000)
+      .pipe(startWith(0), takeUntilDestroyed())
+      .subscribe(() =>
+        this.publications.summary().subscribe({
+          next: (s) => this.newPublications.set(s.new),
+          error: () => this.newPublications.set(0),
+        }),
+      );
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),

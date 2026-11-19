@@ -21,6 +21,7 @@ class Plan(models.Model):
     monthly_ai_limit = models.PositiveIntegerField(
         "mensagens da Lia por mês", null=True, blank=True, help_text="Vazio = sem limite."
     )
+    includes_publications = models.BooleanField("publicações do Diário (DJEN)", default=False)
     is_active = models.BooleanField("disponível para assinar", default=True)
     sort = models.PositiveSmallIntegerField(default=0)
 

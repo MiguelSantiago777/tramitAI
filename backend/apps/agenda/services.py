@@ -14,7 +14,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.core import audit
 from apps.core.tenancy import tenant_atomic
-from apps.processos.models import CaseMovement, LegalCase
+from apps.processos.models import CaseMovement, LegalCase, Publication
 from apps.tenants.models import Tenant
 
 from .models import Event, Task
@@ -101,6 +101,66 @@ def create_tasks_for_movements(case: LegalCase) -> int:
             task,
             actor_type=audit.Actor.SYSTEM,
             data={"source": "movement", "movement_id": str(movement.pk)},
+        )
+        created += 1
+    return created
+
+
+_PUBLICATION_DEADLINE = re.compile(r"intima|citac|notifica")
+
+
+def create_tasks_for_publications(publications: list[Publication]) -> int:
+    """Uma tarefa por publicação nova do Diário (tenant ativo, idempotente). Nunca calcula prazo."""
+    done = set(
+        Task.objects.filter(source_publication__in=publications).values_list(
+            "source_publication_id", flat=True
+        )
+    )
+    created = 0
+    for pub in publications:
+        if pub.pk in done:
+            continue
+        case = pub.legal_case
+        kind_label = pub.kind or "Publicação"
+        number = pub.cnj_formatted or "sem número"
+        is_deadline = bool(_PUBLICATION_DEADLINE.search(_plain(kind_label)))
+        title = (
+            f"Verificar prazo: {kind_label} — {number}"
+            if is_deadline
+            else f"Ler publicação: {kind_label} — {number}"
+        )
+        lines = [
+            f"Publicada no Diário (DJEN) em {pub.available_on:%d/%m/%Y}"
+            + (f", {pub.tribunal}" if pub.tribunal else "")
+            + (f" — {pub.orgao}" if pub.orgao else "")
+            + ".",
+        ]
+        if pub.deadline_hints:
+            lines.append("O texto menciona prazo de " + ", ".join(pub.deadline_hints) + ".")
+        if case is None:
+            lines.append("Processo ainda não cadastrado: cadastre pela tela Publicações.")
+        lines.append(
+            "Confira no processo se abre prazo e, se abrir, registre aqui a data limite. "
+            "O TramitAI não calcula prazos."
+        )
+        task = Task.objects.create(
+            title=title[:200],
+            description="\n".join(lines),
+            kind=Task.Kind.DEADLINE if is_deadline else Task.Kind.TASK,
+            priority=Task.Priority.HIGH,
+            due_date=today(),
+            assignee=(case.responsible if case and case.responsible else None)
+            or (pub.oab.user if pub.oab else None),
+            legal_case=case,
+            client=_main_client(case) if case else None,
+            source=Task.Source.PUBLICATION,
+            source_publication=pub,
+        )
+        audit.record(
+            "task.created",
+            task,
+            actor_type=audit.Actor.SYSTEM,
+            data={"source": "publication", "publication_id": str(pub.pk)},
         )
         created += 1
     return created

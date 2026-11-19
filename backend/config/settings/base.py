@@ -200,6 +200,11 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.processos.tasks.schedule_case_checks",
         "schedule": 60 * 60,
     },
+    # Diário (DJEN): busca as publicações das OABs monitoradas a cada 2h.
+    "schedule-publication-checks": {
+        "task": "apps.processos.tasks.schedule_publication_checks",
+        "schedule": 60 * 60 * 2,
+    },
     # 9h de Brasília: lembretes de parcela viram rascunho para aprovação.
     "payment-reminders": {
         "task": "apps.financeiro.tasks.create_payment_reminders",
@@ -289,10 +294,18 @@ DATAJUD_URL: str = env("DATAJUD_URL", default="https://api-publica.datajud.cnj.j
 DATAJUD_API_KEY: str = env("DATAJUD_API_KEY", default="")
 DATAJUD_TIMEOUT: float = env.float("DATAJUD_TIMEOUT", default=30.0)
 # Cada processo ativo é consultado no máximo a cada N horas.
-CASE_CHECK_INTERVAL_HOURS: int = env.int("CASE_CHECK_INTERVAL_HOURS", default=12)
+CASE_CHECK_INTERVAL_HOURS: int = env.int("CASE_CHECK_INTERVAL_HOURS", default=2)
 CASE_CHECKS_PER_RUN: int = env.int("CASE_CHECKS_PER_RUN", default=300)
 # Intervalo entre consultas agendadas no mesmo ciclo (o DataJud devolve 429 fácil).
 CASE_CHECK_SPACING_SECONDS: int = env.int("CASE_CHECK_SPACING_SECONDS", default=3)
+# Publicações do Diário (DJEN) por OAB: "djen" (API pública do CNJ, sem chave) ou "fake".
+PUBLICATION_SOURCE: str = env("PUBLICATION_SOURCE", default="djen")
+DJEN_URL: str = env("DJEN_URL", default="https://comunicaapi.pje.jus.br")
+DJEN_TIMEOUT: float = env.float("DJEN_TIMEOUT", default=30.0)
+# O DJEN aceita ~20 requisições por janela: uma OAB por vez, espaçadas.
+PUBLICATION_CHECK_SPACING_SECONDS: int = env.int("PUBLICATION_CHECK_SPACING_SECONDS", default=10)
+# Primeira busca de uma OAB recém-cadastrada olha esses dias para trás.
+PUBLICATION_INITIAL_DAYS: int = env.int("PUBLICATION_INITIAL_DAYS", default=7)
 # Andamento novo para nós, mas mais velho que isso, não vira aviso (reindexação da fonte).
 MOVEMENT_NOTIFY_MAX_AGE_DAYS: int = env.int("MOVEMENT_NOTIFY_MAX_AGE_DAYS", default=30)
 

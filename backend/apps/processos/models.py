@@ -137,3 +137,104 @@ class CaseMovement(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.name} em {self.occurred_at:%d/%m/%Y}"
+
+
+# fmt: off
+UFS = [
+    "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA",
+    "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
+]
+# fmt: on
+
+
+class MonitoredOab(TenantModel):
+    """OAB cujas publicações no Diário (DJEN) o escritório acompanha."""
+
+    number = models.CharField("número OAB", max_length=10)
+    uf = models.CharField("UF", max_length=2, choices=[(u, u) for u in UFS])
+    lawyer_name = models.CharField("advogado(a)", max_length=200, blank=True, default="")
+    # Quem recebe as tarefas das publicações sem processo cadastrado.
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="usuário",
+    )
+    is_active = models.BooleanField("monitorar", default=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
+    # Até que dia (inclusive) já buscamos com sucesso. A próxima busca recomeça 1 dia antes.
+    fetched_until = models.DateField(null=True, blank=True, editable=False)
+    last_error = models.CharField(max_length=64, blank=True, default="", editable=False)
+
+    class Meta:
+        verbose_name = "OAB monitorada"
+        ordering = ["uf", "number"]
+        constraints = [
+            models.UniqueConstraint(fields=["tenant", "number", "uf"], name="monitored_oab_unique"),
+        ]
+
+    def __str__(self) -> str:
+        return f"OAB {self.number}/{self.uf}"
+
+
+class Publication(TenantModel):
+    """Comunicação publicada no Diário de Justiça Eletrônico Nacional (intimação, citação...).
+
+    Texto já convertido para texto puro (nunca HTML). Dado público do tribunal.
+    """
+
+    class Status(models.TextChoices):
+        NEW = "NEW", "Nova"
+        DONE = "DONE", "Tratada"
+        IGNORED = "IGNORED", "Ignorada"
+
+    djen_id = models.BigIntegerField()
+    oab = models.ForeignKey(
+        MonitoredOab, on_delete=models.SET_NULL, null=True, blank=True, related_name="publications"
+    )
+    legal_case = models.ForeignKey(
+        LegalCase,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="publications",
+    )
+    cnj_number = models.CharField(max_length=20, blank=True, default="")
+    tribunal = models.CharField(max_length=20, blank=True, default="")
+    kind = models.CharField("tipo", max_length=60, blank=True, default="")
+    document_type = models.CharField(max_length=120, blank=True, default="")
+    orgao = models.CharField("órgão", max_length=255, blank=True, default="")
+    classe = models.CharField(max_length=255, blank=True, default="")
+    available_on = models.DateField("disponibilizada em")
+    text = models.TextField(blank=True, default="")
+    link = models.URLField(max_length=1000, blank=True, default="")
+    recipients = models.JSONField(default=list, blank=True)
+    deadline_hints = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
+    handled_at = models.DateTimeField(null=True, blank=True)
+    handled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = "publicação"
+        verbose_name_plural = "publicações"
+        ordering = ["-available_on", "-djen_id"]
+        constraints = [
+            models.UniqueConstraint(fields=["tenant", "djen_id"], name="publication_djen_unique"),
+        ]
+        indexes = [
+            models.Index(
+                fields=["tenant", "status", "-available_on"], name="publication_status_idx"
+            ),
+            models.Index(fields=["tenant", "cnj_number"], name="publication_cnj_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.kind or 'Publicação'} em {self.available_on:%d/%m/%Y}"
+
+    @property
+    def cnj_formatted(self) -> str:
+        return format_cnj(self.cnj_number) if self.cnj_number else ""

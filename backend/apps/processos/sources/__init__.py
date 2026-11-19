@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import CaseSnapshot, Movement, ProcessSource, SourceError
+from .djen import PublicationSource
 from .fake import FakeProcessSource
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "ProcessSource",
     "SourceError",
     "get_process_source",
+    "get_publication_source",
 ]
 
 
@@ -29,3 +31,19 @@ def _build(name: str) -> ProcessSource:
 
 def get_process_source() -> ProcessSource:
     return _build(settings.PROCESS_SOURCE)
+
+
+@cache
+def _build_publications(name: str) -> PublicationSource:
+    from .djen import DjenSource, FakeDjenSource
+
+    if name == "fake":
+        return FakeDjenSource()
+    if name == "djen":
+        return DjenSource()
+    raise ImproperlyConfigured(f"PUBLICATION_SOURCE desconhecido: {name}")
+
+
+def get_publication_source() -> PublicationSource:
+    """Fonte das publicações do Diário (DJEN), por OAB."""
+    return _build_publications(settings.PUBLICATION_SOURCE)

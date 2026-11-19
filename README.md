@@ -102,6 +102,24 @@ docker compose exec backend uv run python manage.py simulate_movement \
   --tenant escritorio-demo --cnj 0004242-57.2024.8.19.0001 --name "Conclusão"
 ```
 
+O DataJud é consultado a cada 2h (`CASE_CHECK_INTERVAL_HOURS`), mas recebe os dados dos
+tribunais com dias de atraso.
+
+### Publicações do Diário (DJEN)
+
+Em **Publicações**, o escritório cadastra as OABs (número + UF). A cada 2h o beat busca no
+Diário de Justiça Eletrônico Nacional (API pública do CNJ, sem chave, `PUBLICATION_SOURCE=djen`)
+as intimações/citações do dia. Cada publicação nova:
+
+- entra na lista (texto já convertido para texto puro; o HTML do diário nunca é renderizado);
+- é ligada ao processo pelo número CNJ, ou fica com o botão "Cadastrar processo";
+- vira tarefa "Verificar prazo" para o responsável, com a dica "o texto menciona prazo de N
+  dias". O TramitAI **não calcula** prazos.
+
+A primeira busca de uma OAB olha os últimos 7 dias. O DJEN limita ~20 requisições por janela,
+então as OABs são consultadas uma por vez (`PUBLICATION_CHECK_SPACING_SECONDS`). Só nos planos
+com "publicações do Diário" marcado (Escritório e Equipe).
+
 ## Deploy (produção, um servidor)
 
 Pré-requisitos: VPS Ubuntu 24.04 (2 vCPU / 4 GB), um domínio com registro **A** apontando para o

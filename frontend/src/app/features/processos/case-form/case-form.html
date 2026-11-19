@@ -137,5 +137,6 @@
 
 @if (current(); as legalCase) {
   <app-case-movements [legalCase]="legalCase" (refresh)="refreshCase()" />
+  <app-case-publications [caseId]="legalCase.id" />
   <app-documents-panel [caseId]="legalCase.id" />
 }

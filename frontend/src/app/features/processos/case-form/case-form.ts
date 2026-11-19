@@ -36,6 +36,7 @@ import {
   LegalCase,
   LegalCaseInput,
 } from '../case.models';
+import { CasePublications } from '../../publicacoes/case-publications';
 import { CaseMovements } from '../case-movements/case-movements';
 import { CasesService } from '../cases.service';
 
@@ -49,6 +50,7 @@ import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 @Component({
   selector: 'app-case-form',
   imports: [
+    CasePublications,
     DatePipe,
     ReactiveFormsModule,
     RouterLink,

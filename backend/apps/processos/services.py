@@ -16,8 +16,11 @@ class ClientLink:
 
 @transaction.atomic
 def create_case(*, links: list[ClientLink], **data: Any) -> LegalCase:
+    from .publications import link_case
+
     case = LegalCase.objects.create(**data)
     _replace_links(case, links)
+    link_case(case)
     return case
 
 

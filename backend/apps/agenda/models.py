@@ -29,6 +29,7 @@ class Task(TenantModel):
     class Source(models.TextChoices):
         MANUAL = "MANUAL", "Manual"
         MOVEMENT = "MOVEMENT", "Andamento do processo"
+        PUBLICATION = "PUBLICATION", "Publicação no Diário"
 
     title = models.CharField("título", max_length=200)
     description = models.TextField("descrição", blank=True, default="")
@@ -55,9 +56,16 @@ class Task(TenantModel):
         blank=True,
         related_name="tasks",
     )
-    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
+    source = models.CharField(max_length=12, choices=Source.choices, default=Source.MANUAL)
     source_movement = models.ForeignKey(
         "processos.CaseMovement",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    source_publication = models.ForeignKey(
+        "processos.Publication",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -79,6 +87,11 @@ class Task(TenantModel):
                 fields=["tenant", "source_movement"],
                 condition=models.Q(source_movement__isnull=False),
                 name="task_one_per_movement",
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "source_publication"],
+                condition=models.Q(source_publication__isnull=False),
+                name="task_one_per_publication",
             ),
         ]
         indexes = [

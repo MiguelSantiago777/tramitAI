@@ -41,6 +41,7 @@ MERCADOPAGO_CLIENT = "fake"
 GOOGLE_CALENDAR_CLIENT = "fake"
 PUBLIC_API_URL = "https://app.tramitai.test"
 PROCESS_SOURCE = "fake"
+PUBLICATION_SOURCE = "fake"
 TRIAGE_DEBOUNCE_SECONDS = 0
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},

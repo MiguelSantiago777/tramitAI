@@ -1,0 +1,245 @@
+<header class="page-header">
+  <div>
+    <h1>Publicações do Diário</h1>
+    <p>
+      Intimações e citações publicadas no Diário de Justiça Eletrônico Nacional (DJEN) para as OABs
+      do escritório. Buscamos sozinhos a cada 2 horas.
+    </p>
+  </div>
+</header>
+
+@if (error(); as message) {
+  <p class="error-text" role="alert">{{ message }}</p>
+}
+
+@if (locked()) {
+  <section class="card locked">
+    <span class="icon">lock</span>
+    <div>
+      <strong>Disponível nos planos Escritório e Equipe.</strong>
+      <p class="muted">
+        <a routerLink="/assinatura">Mude de plano</a> para receber as intimações do Diário aqui, com
+        tarefa de prazo criada na hora.
+      </p>
+    </div>
+  </section>
+} @else {
+  <section class="card oabs" aria-labelledby="oabs-title">
+    <h2 id="oabs-title">OABs monitoradas</h2>
+
+    @for (o of oabs(); track o.id) {
+      <div class="oab" [class.oab--off]="!o.is_active">
+        <div class="oab__who">
+          <strong>OAB {{ o.number }}/{{ o.uf }}</strong>
+          @if (o.lawyer_name) {
+            <span> · {{ o.lawyer_name }}</span>
+          }
+          <div class="muted small">
+            @if (!o.is_active) {
+              Pausada
+            } @else if (o.last_checked_at; as checked) {
+              Última busca {{ checked | date: 'dd/MM HH:mm' }}
+            } @else {
+              Primeira busca em andamento…
+            }
+            @if (o.new_count > 0) {
+              · <strong class="news">{{ o.new_count }} nova(s)</strong>
+            }
+          </div>
+          @if (oabError(o); as problem) {
+            <div class="small warn">{{ problem }}</div>
+          }
+        </div>
+        <div class="oab__actions">
+          @if (o.is_active) {
+            <button mat-button type="button" [disabled]="oabBusy()" (click)="checkOab(o)">
+              Buscar agora
+            </button>
+          }
+          <button mat-button type="button" [disabled]="oabBusy()" (click)="toggleOab(o)">
+            {{ o.is_active ? 'Pausar' : 'Retomar' }}
+          </button>
+          <button
+            mat-button
+            type="button"
+            class="danger"
+            [disabled]="oabBusy()"
+            (click)="removeOab(o)"
+          >
+            Remover
+          </button>
+        </div>
+      </div>
+    } @empty {
+      <p class="muted">
+        Cadastre a OAB de cada advogado do escritório. A primeira busca traz os últimos 7 dias.
+      </p>
+    }
+
+    <form class="oab-form" (ngSubmit)="addOab()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="oab-form__number">
+        <mat-label>Número da OAB</mat-label>
+        <input matInput [formControl]="number" inputmode="numeric" placeholder="123456" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="oab-form__uf">
+        <mat-label>UF</mat-label>
+        <mat-select [formControl]="uf">
+          @for (u of ufs; track u) {
+            <mat-option [value]="u">{{ u }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+        <mat-label>Advogado(a) (opcional)</mat-label>
+        <input matInput [formControl]="lawyerName" maxlength="200" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="oabBusy()">Adicionar OAB</button>
+    </form>
+  </section>
+
+  <div class="filters">
+    <mat-form-field appearance="outline" class="filters__search" subscriptSizing="dynamic">
+      <span matPrefix class="icon search-icon">search</span>
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="search" placeholder="Número do processo, órgão ou tipo" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Mostrar</mat-label>
+      <mat-select [formControl]="status">
+        <mat-option value="">Todas</mat-option>
+        @for (option of statusOptions; track option[0]) {
+          <mat-option [value]="option[0]">{{ option[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="pubs">
+    @for (p of rows(); track p.id) {
+      <article class="card pub" [attr.data-status]="p.status">
+        <header class="pub__head">
+          <span class="pub__date">{{ p.available_on | date: 'dd/MM/yyyy' }}</span>
+          <strong>{{ p.kind || 'Publicação' }}</strong>
+          @if (p.document_type) {
+            <span class="muted">· {{ p.document_type }}</span>
+          }
+          <span class="spacer"></span>
+          @if (p.status !== 'NEW') {
+            <span class="badge" [attr.data-status]="p.status">
+              {{ p.status === 'DONE' ? 'Tratada' : 'Ignorada' }}
+              @if (p.handled_by_name) {
+                por {{ p.handled_by_name }}
+              }
+            </span>
+          }
+        </header>
+
+        <div class="pub__meta">
+          @if (p.cnj_formatted) {
+            @if (p.case_id) {
+              <a class="mono" [routerLink]="['/processos', p.case_id]">{{ p.cnj_formatted }}</a>
+            } @else {
+              <span class="mono">{{ p.cnj_formatted }}</span>
+              <span class="muted small"> (não cadastrado)</span>
+            }
+          }
+          <div class="muted small">
+            {{ p.tribunal }}{{ p.orgao ? ' · ' + p.orgao : ''
+            }}{{ p.oab_label ? ' · ' + p.oab_label : '' }}
+          </div>
+          @if (p.recipients.length > 0) {
+            <div class="muted small">Destinatários: {{ p.recipients.join('; ') }}</div>
+          }
+        </div>
+
+        @if (p.deadline_hints.length > 0) {
+          <p class="hint">
+            <span class="icon">schedule</span>
+            O texto menciona prazo de {{ p.deadline_hints.join(', ') }}. Confira no processo: o
+            TramitAI não calcula prazos.
+          </p>
+        }
+
+        <p class="pub__text">{{ preview(p) }}</p>
+        @if (isLong(p)) {
+          <button mat-button type="button" class="pub__more" (click)="toggleText(p)">
+            {{ isExpanded(p) ? 'Mostrar menos' : 'Ler tudo' }}
+          </button>
+        }
+
+        <footer class="pub__actions">
+          @if (p.case_id) {
+            <a mat-stroked-button [routerLink]="['/processos', p.case_id]">Abrir processo</a>
+          } @else if (p.cnj_number) {
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="busyId() === p.id"
+              (click)="createCase(p)"
+            >
+              Cadastrar processo
+            </button>
+          }
+          @if (p.link) {
+            <a mat-button [href]="p.link" target="_blank" rel="noopener noreferrer"
+              >Ver no tribunal</a
+            >
+          }
+          <span class="spacer"></span>
+          @if (p.status === 'NEW') {
+            <button
+              mat-button
+              type="button"
+              [disabled]="busyId() === p.id"
+              (click)="mark(p, 'IGNORED')"
+            >
+              Ignorar
+            </button>
+            <button
+              mat-flat-button
+              type="button"
+              [disabled]="busyId() === p.id"
+              (click)="mark(p, 'DONE')"
+            >
+              Marcar como tratada
+            </button>
+          } @else {
+            <button
+              mat-button
+              type="button"
+              [disabled]="busyId() === p.id"
+              (click)="mark(p, 'NEW')"
+            >
+              Voltar para novas
+            </button>
+          }
+        </footer>
+      </article>
+    } @empty {
+      @if (!loading()) {
+        <div class="card empty-state">
+          <span class="icon">newspaper</span>
+          @if (status.value === 'NEW') {
+            Nenhuma publicação nova.
+          } @else {
+            Nenhuma publicação encontrada.
+          }
+        </div>
+      }
+    }
+  </div>
+
+  @if (total() > pageSize()) {
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[20, 50]"
+      (page)="onPage($event)"
+    />
+  }
+}

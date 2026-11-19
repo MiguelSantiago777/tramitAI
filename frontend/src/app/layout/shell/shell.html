@@ -85,5 +85,10 @@
     @if (link.path === '/aprovacoes' && pending() > 0) {
       <span class="nav__badge" [attr.aria-label]="pending() + ' pendentes'">{{ pending() }}</span>
     }
+    @if (link.path === '/publicacoes' && newPublications() > 0) {
+      <span class="nav__badge" [attr.aria-label]="newPublications() + ' publicações novas'">{{
+        newPublications()
+      }}</span>
+    }
   </a>
 </ng-template>

@@ -78,6 +78,12 @@ export const routes: Routes = [
           import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
       },
       {
+        path: 'publicacoes',
+        title: 'Publicações · TramitAI',
+        loadComponent: () =>
+          import('./features/publicacoes/publications-page').then((m) => m.PublicationsPage),
+      },
+      {
         path: 'funil',
         title: 'Funil · TramitAI',
         loadComponent: () => import('./features/funil/board/board').then((m) => m.Board),

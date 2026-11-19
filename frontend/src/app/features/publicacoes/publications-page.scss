@@ -1,0 +1,154 @@
+h2 {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-medium);
+}
+
+.locked {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 24px;
+
+  p {
+    margin: 4px 0 0;
+  }
+}
+
+.oabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.oab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.oab--off .oab__who {
+  opacity: 0.6;
+}
+
+.oab__who {
+  flex: 1;
+  min-width: 200px;
+}
+
+.oab__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.oab-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding-top: 12px;
+}
+
+.oab-form__number {
+  width: 160px;
+}
+
+.oab-form__uf {
+  width: 96px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 180px;
+}
+
+.news {
+  color: var(--mat-sys-primary);
+}
+
+.warn {
+  color: var(--tm-danger);
+}
+
+.danger {
+  color: var(--tm-danger);
+}
+
+.pubs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.pub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--mat-sys-primary);
+
+  &[data-status='DONE'],
+  &[data-status='IGNORED'] {
+    border-left-color: var(--mat-sys-outline-variant);
+  }
+
+  @media (max-width: 600px) {
+    padding: 14px 16px;
+  }
+}
+
+.pub__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.pub__date {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pub__meta a {
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.hint {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--tm-radius);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font: var(--mat-sys-body-medium);
+}
+
+.pub__text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font: var(--mat-sys-body-medium);
+}
+
+.pub__more {
+  align-self: flex-start;
+}
+
+.pub__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
