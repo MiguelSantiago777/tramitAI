@@ -23,7 +23,11 @@
 		root * /srv
 		@assets path *.js *.css *.woff2 *.png *.svg *.ico
 		header @assets Cache-Control "public, max-age=31536000, immutable"
-		header /index.html Cache-Control "no-cache"
+		# Todo o resto (/, /publicacoes, /index.html...) é o index.html do Angular: sempre
+		# revalidar, senão o navegador continua com a versão antiga depois de um deploy.
+		# (O matcher olha o caminho pedido, antes do try_files; "/index.html" sozinho não pegava.)
+		@page not path *.js *.css *.woff2 *.png *.svg *.ico *.mp4 *.webm *.webp *.jpg
+		header @page Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
 	}

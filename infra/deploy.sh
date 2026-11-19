@@ -26,6 +26,9 @@ if [ -d .git ]; then
 fi
 "${COMPOSE[@]}" build
 "${COMPOSE[@]}" up -d --remove-orphans
+# O Caddyfile é montado como arquivo: mudou no git, mas o container segue com a config antiga.
+"${COMPOSE[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile \
+  || echo "AVISO: não consegui recarregar o Caddy (rode: docker compose -f docker-compose.prod.yml restart caddy)" >&2
 "${COMPOSE[@]}" ps
 echo
 echo "Pronto. Confira: https://$(grep '^DOMAIN=' .env | cut -d= -f2)/api/health/"
