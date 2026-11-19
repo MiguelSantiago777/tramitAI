@@ -37,3 +37,15 @@ def sync_oab_task(self: Any, tenant_id: str, oab_id: str) -> str:
 @shared_task
 def schedule_publication_checks() -> int:
     return publications.schedule_due_checks()
+
+
+@shared_task(bind=True, max_retries=3, acks_late=True)
+def discover_oab_task(self: Any, tenant_id: str, oab_id: str) -> str:
+    """Varre 12 meses do Diário de uma OAB. Idempotente (dedupe pelo id do DJEN)."""
+    try:
+        return publications.discover(uuid.UUID(tenant_id), uuid.UUID(oab_id))
+    except monitoring.RetryableSyncError as exc:
+        if self.request.retries >= self.max_retries:
+            publications.finish_discovery(uuid.UUID(tenant_id), uuid.UUID(oab_id))
+            return f"gave_up:{exc}"
+        raise self.retry(exc=exc, countdown=300 * (self.request.retries + 1)) from exc

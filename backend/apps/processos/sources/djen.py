@@ -9,6 +9,7 @@ de fora, então não há como entrar script por uma publicação.
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
@@ -69,6 +70,8 @@ class DjenSource:
                 "itensPorPagina": PAGE_SIZE,
                 "pagina": page,
             }
+            if page > 1:
+                time.sleep(settings.DJEN_PAGE_PAUSE_SECONDS)
             data = self._get(url, params)
             items = data.get("items") or []
             for raw in items:
@@ -83,10 +86,22 @@ class DjenSource:
         return found
 
     def _get(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
+        # 429 = passou do limite da janela: espera e tenta a mesma página (busca longa não
+        # recomeça do zero por causa de um limite momentâneo).
+        for _ in range(3):
+            response = self._request(url, params)
+            if response.status_code != 429:
+                break
+            time.sleep(settings.DJEN_RATE_LIMIT_WAIT_SECONDS)
+        return self._parse(response)
+
+    def _request(self, url: str, params: dict[str, Any]) -> httpx.Response:
         try:
-            response = self._client.get(url, params=params)
+            return self._client.get(url, params=params)
         except httpx.HTTPError as exc:
             raise SourceError("network", retryable=True, detail=type(exc).__name__) from exc
+
+    def _parse(self, response: httpx.Response) -> dict[str, Any]:
         if not response.is_success:
             logger.warning("djen: http %s", response.status_code)
             raise SourceError(

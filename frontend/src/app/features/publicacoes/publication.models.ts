@@ -1,9 +1,10 @@
-export type PublicationStatus = 'NEW' | 'DONE' | 'IGNORED';
+export type PublicationStatus = 'NEW' | 'DONE' | 'IGNORED' | 'HISTORY';
 
 export const PUBLICATION_STATUS_LABELS: Record<PublicationStatus, string> = {
   NEW: 'Novas',
   DONE: 'Tratadas',
   IGNORED: 'Ignoradas',
+  HISTORY: 'Histórico (mais de 7 dias)',
 };
 
 export const UFS = [
@@ -48,6 +49,10 @@ export interface MonitoredOab {
   fetched_until: string | null;
   last_error: string;
   new_count: number;
+  total_count: number;
+  /** Varredura de 12 meses em andamento. */
+  discovering: boolean;
+  discovered_at: string | null;
   created_at: string;
 }
 
@@ -81,4 +86,16 @@ export interface Publication {
   handled_at: string | null;
   handled_by_name: string;
   created_at: string;
+}
+
+/** Processo que aparece no Diário e ainda não está cadastrado. */
+export interface FoundCase {
+  cnj_number: string;
+  cnj_formatted: string;
+  tribunal: string;
+  classe: string;
+  orgao: string;
+  last_on: string;
+  count: number;
+  oab_label: string;
 }

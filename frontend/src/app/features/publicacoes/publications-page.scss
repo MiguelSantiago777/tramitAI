@@ -152,3 +152,53 @@ h2 {
   gap: 8px;
   align-items: center;
 }
+
+.found {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--mat-sys-tertiary, var(--mat-sys-primary));
+}
+
+.found__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  p {
+    margin: 2px 0 0;
+  }
+}
+
+.found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.found__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.found__item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 4px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  cursor: pointer;
+
+  input {
+    margin-top: 4px;
+  }
+}
+
+.block {
+  display: block;
+}

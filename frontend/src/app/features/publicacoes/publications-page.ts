@@ -1,5 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +21,7 @@ import { Observable, debounceTime, distinctUntilChanged, merge, timer } from 'rx
 
 import { toApiError } from '../../core/http/api-error';
 import {
+  FoundCase,
   MonitoredOab,
   PUBLICATION_STATUS_LABELS,
   Publication,
@@ -23,6 +31,9 @@ import {
 import { PublicationsService } from './publications.service';
 
 const PREVIEW = 420;
+const FOUND_PREVIEW = 30;
+/** Enquanto alguma OAB está varrendo 12 meses, recarrega a cada tanto. */
+const DISCOVERY_POLL_MS = 10_000;
 
 /** Intimações e citações do Diário (DJEN) das OABs do escritório. */
 @Component({
@@ -78,6 +89,19 @@ export class PublicationsPage {
   /** Plano sem publicações (402): mostra só o aviso. */
   readonly locked = signal(false);
 
+  // Processos encontrados no Diário (ainda não cadastrados)
+  readonly found = signal<FoundCase[]>([]);
+  readonly selected = signal<ReadonlySet<string>>(new Set());
+  readonly importing = signal(false);
+  readonly showAllFound = signal(false);
+  readonly visibleFound = computed(() =>
+    this.showAllFound() ? this.found() : this.found().slice(0, FOUND_PREVIEW),
+  );
+  readonly allSelected = computed(
+    () => this.found().length > 0 && this.selected().size === this.found().length,
+  );
+  private polling = false;
+
   constructor() {
     merge(
       this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged()),
@@ -90,6 +114,7 @@ export class PublicationsPage {
       });
     this.loadOabs();
     this.load();
+    this.loadFound();
   }
 
   // ------------------------------------------------------------------ OABs
@@ -109,10 +134,11 @@ export class PublicationsPage {
       () => {
         this.number.reset('');
         this.lawyerName.reset('');
-        this.snackBar.open('OAB cadastrada. Buscando as publicações dos últimos 7 dias…', 'OK', {
-          duration: 5000,
-        });
-        this.refreshSoon();
+        this.snackBar.open(
+          'OAB cadastrada. Buscando os últimos 12 meses do Diário (leva alguns minutos)…',
+          'OK',
+          { duration: 6000 },
+        );
       },
     );
   }
@@ -135,6 +161,61 @@ export class PublicationsPage {
         duration: 4000,
       });
       this.refreshSoon();
+    });
+  }
+
+  discoverOab(oab: MonitoredOab): void {
+    this.runOab(this.api.discoverOab(oab.id), () =>
+      this.snackBar.open('Buscando os últimos 12 meses do Diário… leva alguns minutos.', 'OK', {
+        duration: 5000,
+      }),
+    );
+  }
+
+  // ------------------------------------------------------------------ processos encontrados
+
+  toggle(cnj: string): void {
+    const next = new Set(this.selected());
+    if (next.has(cnj)) {
+      next.delete(cnj);
+    } else {
+      next.add(cnj);
+    }
+    this.selected.set(next);
+  }
+
+  toggleAll(): void {
+    this.selected.set(
+      this.allSelected() ? new Set() : new Set(this.found().map((f) => f.cnj_number)),
+    );
+  }
+
+  importSelected(): void {
+    const cnjs = [...this.selected()];
+    if (cnjs.length === 0) {
+      return;
+    }
+    this.importing.set(true);
+    this.error.set(null);
+    this.api.importCases(cnjs).subscribe({
+      next: ({ created }) => {
+        this.importing.set(false);
+        this.selected.set(new Set());
+        this.snackBar
+          .open(
+            `${created} processo(s) cadastrado(s). O andamento passa a ser acompanhado.`,
+            'Ver processos',
+            { duration: 6000 },
+          )
+          .onAction()
+          .subscribe(() => void this.router.navigate(['/processos']));
+        this.loadFound();
+        this.load();
+      },
+      error: (err: unknown) => {
+        this.importing.set(false);
+        this.handleError(err);
+      },
     });
   }
 
@@ -222,8 +303,44 @@ export class PublicationsPage {
 
   private loadOabs(): void {
     this.api.listOabs().subscribe({
-      next: (page) => this.oabs.set(page.results),
+      next: (page) => {
+        const wasDiscovering = this.oabs().some((o) => o.discovering);
+        this.oabs.set(page.results);
+        const discovering = page.results.some((o) => o.discovering);
+        if (wasDiscovering && !discovering) {
+          this.loadFound();
+          this.load();
+        }
+        if (discovering) {
+          this.pollOabs();
+        }
+      },
       error: (err: unknown) => this.handleError(err),
+    });
+  }
+
+  /** Recarrega as OABs até a varredura de 12 meses terminar. */
+  private pollOabs(): void {
+    if (this.polling) {
+      return;
+    }
+    this.polling = true;
+    timer(DISCOVERY_POLL_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.polling = false;
+        this.loadOabs();
+      });
+  }
+
+  private loadFound(): void {
+    this.api.foundCases().subscribe({
+      next: (list) => {
+        this.found.set(list);
+        const still = new Set(list.map((f) => f.cnj_number));
+        this.selected.set(new Set([...this.selected()].filter((c) => still.has(c))));
+      },
+      error: () => this.found.set([]),
     });
   }
 
@@ -234,6 +351,7 @@ export class PublicationsPage {
       .subscribe(() => {
         this.loadOabs();
         this.load();
+        this.loadFound();
       });
   }
 

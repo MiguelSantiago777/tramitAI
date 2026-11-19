@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { Page, listParams } from '../../core/http/page';
 import {
+  FoundCase,
   MonitoredOab,
   MonitoredOabInput,
   Publication,
@@ -38,6 +39,21 @@ export class PublicationsService {
 
   deleteOab(id: string): Observable<void> {
     return this.http.delete<void>(`${OABS}${id}/`);
+  }
+
+  /** Varre os últimos 12 meses do Diário (alguns minutos, assíncrona: 202). */
+  discoverOab(id: string): Observable<void> {
+    return this.http.post<void>(`${OABS}${id}/discover/`, {});
+  }
+
+  foundCases(): Observable<FoundCase[]> {
+    return this.http.get<FoundCase[]>(`${PUBS}found-cases/`);
+  }
+
+  importCases(cnjNumbers: string[]): Observable<{ created: number; skipped: number }> {
+    return this.http.post<{ created: number; skipped: number }>(`${PUBS}import-cases/`, {
+      cnj_numbers: cnjNumbers,
+    });
   }
 
   /** Busca agora no DJEN (assíncrona: 202). */

@@ -172,6 +172,9 @@ class MonitoredOab(TenantModel):
     # Até que dia (inclusive) já buscamos com sucesso. A próxima busca recomeça 1 dia antes.
     fetched_until = models.DateField(null=True, blank=True, editable=False)
     last_error = models.CharField(max_length=64, blank=True, default="", editable=False)
+    # "Buscar processos" (varredura de 12 meses): começou / terminou.
+    discovery_started_at = models.DateTimeField(null=True, blank=True, editable=False)
+    discovered_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "OAB monitorada"
@@ -194,6 +197,8 @@ class Publication(TenantModel):
         NEW = "NEW", "Nova"
         DONE = "DONE", "Tratada"
         IGNORED = "IGNORED", "Ignorada"
+        # Mais antiga que 7 dias quando chegou (busca de 12 meses): só registro, sem tarefa.
+        HISTORY = "HISTORY", "Histórico"
 
     djen_id = models.BigIntegerField()
     oab = models.ForeignKey(

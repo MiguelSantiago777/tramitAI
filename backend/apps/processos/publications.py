@@ -10,6 +10,7 @@ costuma aparecer lá dias depois, mas não custa tentar).
 
 import logging
 import uuid
+from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import partial
 
@@ -113,6 +114,7 @@ def ingest(
     )
     cnjs = {i.cnj_number for i in items if i.cnj_number}
     cases = {c.cnj_number: c for c in LegalCase.objects.filter(cnj_number__in=cnjs)}
+    recent_from = today - timedelta(days=TASK_MAX_AGE_DAYS)
 
     new: list[Publication] = []
     for item in items:
@@ -134,6 +136,10 @@ def ingest(
             link=item.link,
             recipients=list(item.recipients),
             deadline_hints=deadline_hints(item.text),
+            # Mais velha que 7 dias (ex.: busca de 12 meses): entra como histórico, sem tarefa.
+            status=Publication.Status.NEW
+            if item.available_on >= recent_from
+            else Publication.Status.HISTORY,
         )
         try:
             # Outra OAB do escritório pode ter gravado a mesma publicação agora.
@@ -144,7 +150,8 @@ def ingest(
         new.append(publication)
 
     oab.last_checked_at = timezone.now()
-    oab.fetched_until = fetched_until
+    if oab.fetched_until is None or fetched_until > oab.fetched_until:
+        oab.fetched_until = fetched_until
     oab.last_error = ""
     oab.save(update_fields=["last_checked_at", "fetched_until", "last_error", "updated_at"])
 
@@ -155,10 +162,10 @@ def ingest(
             actor_type=audit.Actor.SYSTEM,
             data={"count": len(new)},
         )
-        recent = [p for p in new if p.available_on >= today - timedelta(days=TASK_MAX_AGE_DAYS)]
+        recent = [p for p in new if p.available_on >= recent_from]
         if recent:
             publications_detected.send(sender=Publication, publications=recent)
-        _refresh_cases({p.legal_case for p in new if p.legal_case is not None})
+        _refresh_cases({p.legal_case for p in recent if p.legal_case is not None})
     return new
 
 
@@ -169,6 +176,176 @@ def _refresh_cases(cases: set[LegalCase]) -> None:
         if case.status == LegalCase.Status.ACTIVE and case.monitoring_enabled:
             args = [str(case.tenant_id), str(case.pk)]
             transaction.on_commit(partial(sync_case_task.apply_async, args=args))
+
+
+# ------------------------------------------------------------- buscar processos (12 meses)
+
+DISCOVERY_WINDOW_DAYS = 30
+DISCOVERY_COOLDOWN = timedelta(hours=1)
+MAX_IMPORT = 500
+
+
+def discover(tenant_id: uuid.UUID, oab_id: uuid.UUID) -> str:
+    """Varre o Diário dos últimos 12 meses da OAB, em janelas de 30 dias.
+
+    O que tiver mais de 7 dias entra como histórico (sem tarefa); os números de processo
+    viram a lista "Processos encontrados" para o escritório cadastrar de uma vez.
+    """
+    today = _today()
+    with tenant_atomic(tenant_id):
+        oab = MonitoredOab.objects.filter(pk=oab_id, is_active=True).first()
+        if oab is None:
+            return "missing"
+        number, uf = oab.number, oab.uf
+
+    source = get_publication_source()
+    items: list[Communication] = []
+    start = today - timedelta(days=settings.PUBLICATION_DISCOVERY_DAYS)
+    try:
+        while start <= today:
+            end = min(start + timedelta(days=DISCOVERY_WINDOW_DAYS - 1), today)
+            items.extend(source.fetch(number, uf, start, end))
+            start = end + timedelta(days=1)
+    except SourceError as exc:
+        with tenant_atomic(tenant_id):
+            MonitoredOab.objects.filter(pk=oab_id).update(last_error=exc.code[:64])
+        logger.warning("publicacoes: busca de processos oab %s erro %s", oab_id, exc.code)
+        if exc.retryable:
+            raise RetryableSyncError(exc.code) from exc
+        finish_discovery(tenant_id, oab_id)
+        return f"error:{exc.code}"
+
+    with tenant_atomic(tenant_id):
+        new = ingest(oab_id, items, fetched_until=today, today=today)
+        MonitoredOab.objects.filter(pk=oab_id).update(discovered_at=timezone.now())
+    logger.info("publicacoes: busca de processos oab %s → %s nova(s)", oab_id, len(new))
+    return f"new:{len(new)}"
+
+
+def finish_discovery(tenant_id: uuid.UUID, oab_id: uuid.UUID) -> None:
+    """Marca a varredura como terminada (também quando a task desiste)."""
+    with tenant_atomic(tenant_id):
+        MonitoredOab.objects.filter(pk=oab_id).update(discovered_at=timezone.now())
+
+
+def is_discovering(oab: MonitoredOab) -> bool:
+    started, done = oab.discovery_started_at, oab.discovered_at
+    return started is not None and (done is None or done < started)
+
+
+def start_discovery(oab: MonitoredOab, *, user: User | None) -> None:
+    """Agenda a varredura de 12 meses (tenant ativo, dentro de transação)."""
+    from .tasks import discover_oab_task
+
+    oab.discovery_started_at = timezone.now()
+    oab.save(update_fields=["discovery_started_at", "updated_at"])
+    if user is not None:
+        audit.record("oab.discovery_requested", oab, actor_type=audit.Actor.USER, actor_user=user)
+    args = [str(oab.tenant_id), str(oab.pk)]
+    transaction.on_commit(lambda: discover_oab_task.apply_async(args=args))
+
+
+def request_discovery(oab: MonitoredOab, *, user: User) -> None:
+    """Botão "Buscar processos (12 meses)"."""
+    require_feature(oab.tenant_id)
+    if not oab.is_active:
+        raise ApiError(
+            "Ative o monitoramento desta OAB primeiro.",
+            code="monitoring_disabled",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
+    if is_discovering(oab):
+        raise ApiError(
+            "A busca desta OAB já está em andamento.",
+            code="discovery_running",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
+    if oab.discovered_at and timezone.now() - oab.discovered_at < DISCOVERY_COOLDOWN:
+        raise ApiError(
+            "Esta OAB foi varrida há pouco. Tente de novo daqui a uma hora.",
+            code="checked_recently",
+            status_code=http_status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    start_discovery(oab, user=user)
+
+
+@dataclass(frozen=True)
+class FoundCase:
+    cnj_number: str
+    tribunal: str
+    classe: str
+    orgao: str
+    last_on: date
+    count: int
+    oab_label: str
+    responsible_id: uuid.UUID | None
+
+
+def found_cases() -> list[FoundCase]:
+    """Processos que aparecem no Diário e ainda não estão cadastrados (tenant ativo)."""
+    pubs = (
+        Publication.objects.filter(legal_case__isnull=True)
+        .exclude(cnj_number="")
+        .exclude(status=Publication.Status.IGNORED)
+        .exclude(cnj_number__in=LegalCase.with_deleted.values("cnj_number"))
+        .select_related("oab")
+        .order_by("cnj_number", "-available_on")
+    )
+    grouped: dict[str, list[Publication]] = {}
+    for pub in pubs:
+        grouped.setdefault(pub.cnj_number, []).append(pub)
+    result = []
+    for cnj, items in grouped.items():
+        latest = items[0]
+        oab = latest.oab
+        result.append(
+            FoundCase(
+                cnj_number=cnj,
+                tribunal=latest.tribunal,
+                classe=_nice_case(next((p.classe for p in items if p.classe), "")),
+                orgao=latest.orgao,
+                last_on=latest.available_on,
+                count=len(items),
+                oab_label=f"OAB {oab.number}/{oab.uf}" if oab else "",
+                responsible_id=oab.user_id if oab else None,
+            )
+        )
+    result.sort(key=lambda f: f.last_on, reverse=True)
+    return result
+
+
+def import_cases(cnj_numbers: list[str], *, user: User) -> tuple[int, int]:
+    """Cadastra de uma vez os processos encontrados no Diário. Devolve (criados, pulados)."""
+    from .services import create_case
+
+    available = {f.cnj_number: f for f in found_cases()}
+    created = skipped = 0
+    for cnj in list(dict.fromkeys(cnj_numbers))[:MAX_IMPORT]:
+        found = available.get(cnj)
+        if found is None:
+            skipped += 1
+            continue
+        responsible = (
+            User.objects.filter(pk=found.responsible_id, is_active=True).first()
+            if found.responsible_id
+            else None
+        )
+        case = create_case(
+            links=[],
+            cnj_number=cnj,
+            classe=found.classe[:255],
+            orgao_julgador=found.orgao[:255],
+            responsible=responsible or user,
+        )
+        audit.record(
+            "case.created_from_publication",
+            case,
+            actor_type=audit.Actor.USER,
+            actor_user=user,
+            data={"bulk": True},
+        )
+        created += 1
+    return created, skipped
 
 
 def schedule_due_checks() -> int:

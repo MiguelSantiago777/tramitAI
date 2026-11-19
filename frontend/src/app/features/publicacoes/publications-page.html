@@ -37,11 +37,14 @@
           <div class="muted small">
             @if (!o.is_active) {
               Pausada
+            } @else if (o.discovering) {
+              <strong>Buscando os últimos 12 meses no Diário…</strong> leva alguns minutos.
             } @else if (o.last_checked_at; as checked) {
               Última busca {{ checked | date: 'dd/MM HH:mm' }}
             } @else {
               Primeira busca em andamento…
             }
+            · {{ o.total_count }} publicação(ões)
             @if (o.new_count > 0) {
               · <strong class="news">{{ o.new_count }} nova(s)</strong>
             }
@@ -54,6 +57,14 @@
           @if (o.is_active) {
             <button mat-button type="button" [disabled]="oabBusy()" (click)="checkOab(o)">
               Buscar agora
+            </button>
+            <button
+              mat-button
+              type="button"
+              [disabled]="oabBusy() || o.discovering"
+              (click)="discoverOab(o)"
+            >
+              Buscar processos (12 meses)
             </button>
           }
           <button mat-button type="button" [disabled]="oabBusy()" (click)="toggleOab(o)">
@@ -72,7 +83,8 @@
       </div>
     } @empty {
       <p class="muted">
-        Cadastre a OAB de cada advogado do escritório. A primeira busca traz os últimos 7 dias.
+        Cadastre a OAB de cada advogado do escritório. Na hora buscamos os últimos 12 meses do
+        Diário e listamos os processos encontrados para você cadastrar de uma vez.
       </p>
     }
 
@@ -96,6 +108,61 @@
       <button mat-flat-button type="submit" [disabled]="oabBusy()">Adicionar OAB</button>
     </form>
   </section>
+
+  @if (found().length > 0) {
+    <section class="card found" aria-labelledby="found-title">
+      <header class="found__head">
+        <div>
+          <h2 id="found-title">Processos encontrados no Diário ({{ found().length }})</h2>
+          <p class="muted small">
+            Aparecem nas publicações das OABs e ainda não estão cadastrados. Escolha e cadastre: o
+            andamento passa a ser acompanhado e você vincula o cliente depois.
+          </p>
+        </div>
+        <div class="found__actions">
+          <button mat-button type="button" (click)="toggleAll()">
+            {{ allSelected() ? 'Desmarcar todos' : 'Marcar todos' }}
+          </button>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="selected().size === 0 || importing()"
+            (click)="importSelected()"
+          >
+            Cadastrar {{ selected().size }} processo(s)
+          </button>
+        </div>
+      </header>
+      <ul class="found__list">
+        @for (f of visibleFound(); track f.cnj_number) {
+          <li>
+            <label class="found__item">
+              <input
+                type="checkbox"
+                [checked]="selected().has(f.cnj_number)"
+                (change)="toggle(f.cnj_number)"
+              />
+              <span>
+                <strong class="mono">{{ f.cnj_formatted }}</strong>
+                <span class="muted small">
+                  · {{ f.tribunal }}{{ f.classe ? ' · ' + f.classe : '' }}
+                </span>
+                <span class="muted small block">
+                  {{ f.orgao }} · {{ f.count }} publicação(ões), a última em
+                  {{ f.last_on | date: 'dd/MM/yyyy' }}
+                </span>
+              </span>
+            </label>
+          </li>
+        }
+      </ul>
+      @if (found().length > visibleFound().length) {
+        <button mat-button type="button" (click)="showAllFound.set(true)">
+          Ver todos ({{ found().length }})
+        </button>
+      }
+    </section>
+  }
 
   <div class="filters">
     <mat-form-field appearance="outline" class="filters__search" subscriptSizing="dynamic">

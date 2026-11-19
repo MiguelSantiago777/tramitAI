@@ -42,6 +42,8 @@ GOOGLE_CALENDAR_CLIENT = "fake"
 PUBLIC_API_URL = "https://app.tramitai.test"
 PROCESS_SOURCE = "fake"
 PUBLICATION_SOURCE = "fake"
+DJEN_PAGE_PAUSE_SECONDS = 0.0
+DJEN_RATE_LIMIT_WAIT_SECONDS = 0.0
 TRIAGE_DEBOUNCE_SECONDS = 0
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},

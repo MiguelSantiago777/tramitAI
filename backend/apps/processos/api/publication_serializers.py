@@ -14,6 +14,8 @@ class MonitoredOabSerializer(serializers.ModelSerializer):
     user_id = TenantMemberField(source="user", required=False, allow_null=True)
     user_name = serializers.SerializerMethodField()
     new_count = serializers.SerializerMethodField()
+    total_count = serializers.SerializerMethodField()
+    discovering = serializers.SerializerMethodField()
 
     class Meta:
         model = MonitoredOab
@@ -29,9 +31,28 @@ class MonitoredOabSerializer(serializers.ModelSerializer):
             "fetched_until",
             "last_error",
             "new_count",
+            "total_count",
+            "discovering",
+            "discovered_at",
             "created_at",
         ]
-        read_only_fields = ["id", "last_checked_at", "fetched_until", "last_error", "created_at"]
+        read_only_fields = [
+            "id",
+            "last_checked_at",
+            "fetched_until",
+            "last_error",
+            "discovered_at",
+            "created_at",
+        ]
+
+    def get_total_count(self, obj: MonitoredOab) -> int:
+        annotated = getattr(obj, "publication_count", None)
+        return int(annotated) if annotated is not None else 0
+
+    def get_discovering(self, obj: MonitoredOab) -> bool:
+        from apps.processos.publications import is_discovering
+
+        return is_discovering(obj)
 
     def get_user_name(self, obj: MonitoredOab) -> str:
         return (obj.user.full_name or obj.user.email) if obj.user else ""
@@ -117,3 +138,25 @@ class PublicationFilterSerializer(serializers.Serializer):
 
 class PublicationStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Publication.Status.choices)
+
+
+class FoundCaseSerializer(serializers.Serializer):
+    cnj_number = serializers.CharField()
+    cnj_formatted = serializers.SerializerMethodField()
+    tribunal = serializers.CharField()
+    classe = serializers.CharField()
+    orgao = serializers.CharField()
+    last_on = serializers.DateField()
+    count = serializers.IntegerField()
+    oab_label = serializers.CharField()
+
+    def get_cnj_formatted(self, obj: Any) -> str:
+        from apps.processos.cnj import format_cnj
+
+        return format_cnj(obj.cnj_number)
+
+
+class ImportCasesSerializer(serializers.Serializer):
+    cnj_numbers = serializers.ListField(
+        child=serializers.RegexField(r"^\d{20}$"), min_length=1, max_length=500
+    )

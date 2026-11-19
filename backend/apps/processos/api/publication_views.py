@@ -1,6 +1,5 @@
 from typing import Any, cast
 
-from django.db import transaction
 from django.db.models import Count, Q, QuerySet
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status, viewsets
@@ -18,6 +17,8 @@ from apps.processos import publications
 from apps.processos.models import MonitoredOab, Publication
 
 from .publication_serializers import (
+    FoundCaseSerializer,
+    ImportCasesSerializer,
     MonitoredOabSerializer,
     PublicationFilterSerializer,
     PublicationSerializer,
@@ -57,7 +58,8 @@ class MonitoredOabViewSet(
             .annotate(
                 new_publication_count=Count(
                     "publications", filter=Q(publications__status=Publication.Status.NEW)
-                )
+                ),
+                publication_count=Count("publications"),
             )
             .order_by("uf", "number")
         )
@@ -67,11 +69,9 @@ class MonitoredOabViewSet(
         extra = {} if "user" in serializer.validated_data else {"user": self.request.user}
         oab = serializer.save(**extra)
         audit.record("oab.created", oab, actor_type=audit.Actor.USER, actor_user=self.request.user)
-        # Primeira busca já na hora: o advogado vê o resultado sem esperar o ciclo de 2h.
-        from apps.processos.tasks import sync_oab_task
-
-        args = [str(oab.tenant_id), str(oab.pk)]
-        transaction.on_commit(lambda: sync_oab_task.apply_async(args=args))
+        # Primeira busca já na hora e de 12 meses: traz os processos do advogado, não só a
+        # última semana (o que tem mais de 7 dias entra como histórico, sem tarefa).
+        publications.start_discovery(oab, user=None)
 
     def perform_destroy(self, instance: MonitoredOab) -> None:
         audit.record(
@@ -84,6 +84,13 @@ class MonitoredOabViewSet(
     def check(self, request: Request, pk: str | None = None) -> Response:
         """Busca as publicações agora (fila; o resultado aparece em alguns segundos)."""
         publications.request_check(self.get_object(), user=cast(User, request.user))
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(request=None, responses={202: None})
+    @action(detail=True, methods=["post"])
+    def discover(self, request: Request, pk: str | None = None) -> Response:
+        """Varre os últimos 12 meses do Diário (alguns minutos) para achar os processos."""
+        publications.request_discovery(self.get_object(), user=cast(User, request.user))
         return Response(status=status.HTTP_202_ACCEPTED)
 
 
@@ -140,6 +147,29 @@ class PublicationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, _Plan
         """Cadastra o processo desta publicação (ou devolve o que já existe)."""
         case = publications.create_case_from(self.get_object(), user=cast(User, request.user))
         return Response({"case_id": str(case.pk)})
+
+    @extend_schema(responses=FoundCaseSerializer(many=True))
+    @action(detail=False, methods=["get"], url_path="found-cases", pagination_class=None)
+    def found_cases(self, request: Request) -> Response:
+        """Processos que aparecem no Diário e ainda não estão cadastrados."""
+        return Response(FoundCaseSerializer(publications.found_cases(), many=True).data)
+
+    @extend_schema(
+        request=ImportCasesSerializer,
+        responses=inline_serializer(
+            "ImportCasesResult",
+            {"created": serializers.IntegerField(), "skipped": serializers.IntegerField()},
+        ),
+    )
+    @action(detail=False, methods=["post"], url_path="import-cases")
+    def import_cases(self, request: Request) -> Response:
+        """Cadastra de uma vez os processos escolhidos da lista de encontrados."""
+        body = ImportCasesSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        created, skipped = publications.import_cases(
+            body.validated_data["cnj_numbers"], user=cast(User, request.user)
+        )
+        return Response({"created": created, "skipped": skipped})
 
     @extend_schema(
         responses=inline_serializer("PublicationSummary", {"new": serializers.IntegerField()})

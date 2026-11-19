@@ -19,6 +19,9 @@ const oab: MonitoredOab = {
   fetched_until: '2026-11-19',
   last_error: '',
   new_count: 1,
+  total_count: 5,
+  discovering: false,
+  discovered_at: '2026-11-19T12:00:00Z',
   created_at: '',
 };
 
@@ -59,6 +62,21 @@ describe('PublicationsPage', () => {
       mark: vi.fn(() => of({ ...pub, status: 'DONE' })),
       createCase: vi.fn(() => of({ case_id: 'c1' })),
       createOab: vi.fn(() => of(oab)),
+      foundCases: vi.fn(() =>
+        of([
+          {
+            cnj_number: '40008817220268260526',
+            cnj_formatted: '4000881-72.2026.8.26.0526',
+            tribunal: 'TJSP',
+            classe: 'Procedimento comum cível',
+            orgao: '1ª Vara',
+            last_on: '2026-11-10',
+            count: 3,
+            oab_label: 'OAB 123456/SP',
+          },
+        ]),
+      ),
+      importCases: vi.fn(() => of({ created: 1, skipped: 0 })),
       ...overrides,
     };
     await TestBed.configureTestingModule({
@@ -105,9 +123,19 @@ describe('PublicationsPage', () => {
             error: { error: { code: 'plan_feature', message: 'Planos Escritório e Equipe.' } },
           }),
       );
-    await setup({ listOabs: vi.fn(locked), list: vi.fn(locked) });
+    await setup({ listOabs: vi.fn(locked), list: vi.fn(locked), foundCases: vi.fn(locked) });
     fixture.detectChanges();
     expect(el().textContent).toContain('Disponível nos planos Escritório e Equipe');
     expect(button('Adicionar OAB')).toBeUndefined();
+  });
+
+  it('lista processos encontrados no Diário e cadastra os marcados', async () => {
+    await setup();
+    expect(el().textContent).toContain('Processos encontrados no Diário (1)');
+    expect(el().textContent).toContain('5 publicação(ões)');
+    button('Marcar todos')?.click();
+    fixture.detectChanges();
+    button('Cadastrar 1 processo(s)')?.click();
+    expect(api['importCases']).toHaveBeenCalledWith(['40008817220268260526']);
   });
 });

@@ -397,3 +397,117 @@ def test_json_roundtrip_of_hints_is_plain_list(
     _sync(tenant_a, oab, django_capture_on_commit_callbacks)
     with tenant_context(tenant_a.tenant.id):
         assert json.loads(json.dumps(Publication.objects.get().deadline_hints)) == ["10 dias"]
+
+
+# ------------------------------------------------------------------- buscar processos (12 meses)
+
+
+def test_new_oab_scans_12_months_and_old_items_are_history(
+    as_a, api_client, djen, django_capture_on_commit_callbacks
+):
+    today = timezone.localdate()
+    old_cnj, recent_cnj = make_cnj(sequence=811111), make_cnj(sequence=822222)
+    djen.items[("777", "SP")] = [
+        comm(1, old_cnj, day=today - timedelta(days=200), classe="PROCEDIMENTO COMUM CÍVEL"),
+        comm(2, old_cnj, day=today - timedelta(days=40)),
+        comm(3, recent_cnj, day=today - timedelta(days=2)),
+        comm(4, make_cnj(sequence=833333), day=today - timedelta(days=400)),  # fora dos 12 meses
+    ]
+    with django_capture_on_commit_callbacks(execute=True):
+        created = api_client.post(OABS, {"number": "777", "uf": "SP"}, format="json")
+    assert created.status_code == 201
+
+    # Varreu em janelas de 30 dias cobrindo 365 dias até hoje.
+    windows = [(c[2], c[3]) for c in djen.calls]
+    assert windows[0][0] == today - timedelta(days=365)
+    assert windows[-1][1] == today
+    assert all((end - start).days < 30 for start, end in windows)
+
+    oab = api_client.get(OABS).json()["results"][0]
+    assert oab["discovering"] is False
+    assert oab["discovered_at"]
+    assert oab["total_count"] == 3
+    assert oab["new_count"] == 1  # só a recente entra em "Novas"
+
+    with tenant_context(as_a.tenant.id):
+        assert Task.objects.count() == 1  # tarefa só da recente
+        statuses = dict(Publication.objects.values_list("djen_id", "status"))
+    assert statuses == {1: "HISTORY", 2: "HISTORY", 3: "NEW"}
+    assert api_client.get(PUBS + "summary/").json() == {"new": 1}
+
+    found = api_client.get(PUBS + "found-cases/").json()
+    assert [f["cnj_number"] for f in found] == [recent_cnj, old_cnj]
+    old = found[1]
+    assert old["count"] == 2
+    assert old["classe"] == "Procedimento comum cível"
+    assert old["oab_label"] == "OAB 777/SP"
+
+
+def test_import_found_cases_in_bulk(
+    as_a, api_client, oab, djen, django_capture_on_commit_callbacks
+):
+    a, b = make_cnj(sequence=844444), make_cnj(sequence=855555)
+    djen.items[("123456", "RJ")] = [comm(1, a), comm(2, b), comm(3, a)]
+    _sync(as_a, oab, django_capture_on_commit_callbacks)
+    response = api_client.post(PUBS + "import-cases/", {"cnj_numbers": [a, b, a]}, format="json")
+    assert response.json() == {"created": 2, "skipped": 0}
+    cases = api_client.get("/api/v1/cases/").json()["results"]
+    assert {c["cnj_number"] for c in cases} == {a, b}
+    assert all(c["responsible_id"] == str(as_a.owner.pk) for c in cases)
+    assert api_client.get(PUBS + "found-cases/").json() == []
+    assert api_client.get(PUBS, {"case_id": cases[0]["id"]}).json()["count"] >= 1
+    # Repetir não duplica.
+    again = api_client.post(PUBS + "import-cases/", {"cnj_numbers": [a]}, format="json")
+    assert again.json() == {"created": 0, "skipped": 1}
+    bad = api_client.post(PUBS + "import-cases/", {"cnj_numbers": ["123"]}, format="json")
+    assert bad.status_code == 400
+
+
+def test_ignored_and_trashed_cases_are_not_suggested(
+    as_a, api_client, oab, djen, django_capture_on_commit_callbacks
+):
+    a, b = make_cnj(sequence=866666), make_cnj(sequence=877777)
+    djen.items[("123456", "RJ")] = [comm(1, a), comm(2, b)]
+    _sync(as_a, oab, django_capture_on_commit_callbacks)
+    pub_a = next(p for p in api_client.get(PUBS).json()["results"] if p["cnj_number"] == a)
+    api_client.post(f"{PUBS}{pub_a['id']}/mark/", {"status": "IGNORED"}, format="json")
+    with tenant_context(as_a.tenant.id):
+        LegalCase.objects.create(cnj_number=b, deleted_at=timezone.now())
+    assert api_client.get(PUBS + "found-cases/").json() == []
+
+
+def test_discovery_button_guards(as_a, api_client, oab, djen, django_capture_on_commit_callbacks):
+    url = f"{OABS}{oab.pk}/discover/"
+    with django_capture_on_commit_callbacks(execute=True):
+        assert api_client.post(url).status_code == 202
+    again = api_client.post(url)
+    assert again.status_code == 429
+    assert again.json()["error"]["code"] == "checked_recently"
+
+
+def test_discovery_retries_then_finishes(tenant_a, oab, djen):
+    djen.fail_next = SourceError("http_503", retryable=True)
+    with pytest.raises(publications.RetryableSyncError):
+        publications.discover(tenant_a.tenant.id, oab.pk)
+    publications.finish_discovery(tenant_a.tenant.id, oab.pk)
+    with tenant_context(tenant_a.tenant.id):
+        oab.refresh_from_db()
+        assert oab.discovered_at is not None
+        assert oab.last_error == "http_503"
+
+
+def test_djen_waits_and_retries_same_page_on_429():
+    hits = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hits["n"] += 1
+        if hits["n"] == 1:
+            return httpx.Response(429)
+        item = {"id": 9, "data_disponibilizacao": "2026-11-19", "numero_processo": ""}
+        return httpx.Response(200, json={"count": 1, "items": [item]})
+
+    source = DjenSource(httpx.Client(transport=httpx.MockTransport(handler)))
+    assert [c.djen_id for c in source.fetch("1", "SP", date(2026, 11, 1), date(2026, 11, 19))] == [
+        9
+    ]
+    assert hits["n"] == 2

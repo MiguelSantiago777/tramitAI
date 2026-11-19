@@ -310,8 +310,13 @@ DJEN_URL: str = env("DJEN_URL", default="https://comunicaapi.pje.jus.br")
 DJEN_TIMEOUT: float = env.float("DJEN_TIMEOUT", default=30.0)
 # O DJEN aceita ~20 requisições por janela: uma OAB por vez, espaçadas.
 PUBLICATION_CHECK_SPACING_SECONDS: int = env.int("PUBLICATION_CHECK_SPACING_SECONDS", default=10)
-# Primeira busca de uma OAB recém-cadastrada olha esses dias para trás.
+# Busca normal de uma OAB sem histórico olha esses dias para trás.
 PUBLICATION_INITIAL_DAYS: int = env.int("PUBLICATION_INITIAL_DAYS", default=7)
+# "Buscar processos": varre o Diário desse tanto para trás (em janelas de 30 dias).
+PUBLICATION_DISCOVERY_DAYS: int = env.int("PUBLICATION_DISCOVERY_DAYS", default=365)
+# Pausa entre páginas e espera quando o DJEN responde 429 (limite ~20 req por janela).
+DJEN_PAGE_PAUSE_SECONDS: float = env.float("DJEN_PAGE_PAUSE_SECONDS", default=1.5)
+DJEN_RATE_LIMIT_WAIT_SECONDS: float = env.float("DJEN_RATE_LIMIT_WAIT_SECONDS", default=30.0)
 # Andamento novo para nós, mas mais velho que isso, não vira aviso (reindexação da fonte).
 MOVEMENT_NOTIFY_MAX_AGE_DAYS: int = env.int("MOVEMENT_NOTIFY_MAX_AGE_DAYS", default=30)
 
