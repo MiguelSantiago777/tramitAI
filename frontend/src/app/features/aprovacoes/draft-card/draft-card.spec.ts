@@ -152,7 +152,7 @@ describe('DraftCard', () => {
       await setup(movement);
       expect(text()).toContain('Processo 0801234-39.2024.8.19.0001');
       expect(text()).toContain('Conclusão');
-      expect(text()).toContain('A Lia acha que é rotina');
+      expect(text()).toContain('A Vera acha que é rotina');
     });
 
     it('com a janela fechada, deixa aprovar e explica que sai o modelo da Meta', async () => {

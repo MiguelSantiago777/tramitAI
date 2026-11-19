@@ -36,11 +36,11 @@ def default_business_hours() -> dict[str, list[list[str]]]:
 class TenantSettings(TenantModel):
     """Configurações do escritório (data plane, com RLS)."""
 
-    # Triagem automática: a Lia conversa sozinha com contato novo (desligada por padrão).
+    # Triagem automática: a Vera conversa sozinha com contato novo (desligada por padrão).
     auto_send_simple_replies = models.BooleanField(default=False)
-    # Horário de atendimento (a Lia avisa fora dele) e agenda de consultas da Lia.
+    # Horário de atendimento (a Vera avisa fora dele) e agenda de consultas da Vera.
     business_hours = models.JSONField(default=default_business_hours)
-    scheduling_enabled = models.BooleanField("Lia oferece horários", default=False)
+    scheduling_enabled = models.BooleanField("Vera oferece horários", default=False)
     consult_minutes = models.PositiveSmallIntegerField("duração da consulta", default=60)
     scheduling_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

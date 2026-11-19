@@ -1,6 +1,6 @@
 """Manuais em vídeo do TramitAI (aba Manuais do sistema): um vídeo curto por assunto.
 
-Reaproveita a montagem do make_video.py (voz da Lia, legendas, destaque sincronizado com a
+Reaproveita a montagem do make_video.py (voz da Vera, legendas, destaque sincronizado com a
 fala) com mais compressão, para servir os vídeos pelo próprio sistema.
 
 Uso (no container do vídeo, depois do capture_manuais.py):
@@ -88,8 +88,8 @@ MANUAIS = [
     ),
     (
         "conversas",
-        "Conversas e a Lia",
-        "Triagem pela Lia, aprovação de mensagens e respostas prontas.",
+        "Conversas e a Vera",
+        "Triagem pela Vera, aprovação de mensagens e respostas prontas.",
         [
             (
                 "conversa_joao",
@@ -97,8 +97,8 @@ MANUAIS = [
                 "Em Conversas ficam todas as mensagens do WhatsApp. À esquerda, a lista. À "
                 "direita, a conversa aberta. Com a triagem automática ligada, eu converso sozinha "
                 "com contatos novos: pergunto o nome e entendo o caso. As minhas mensagens "
-                "aparecem com o nome Lia.",
-                [("a lista", "lista"), ("aparecem com o nome Lia", "lia")],
+                "aparecem com o nome Vera.",
+                [("a lista", "lista"), ("aparecem com o nome Vera", "lia")],
             ),
             (
                 "conversa_maria",
@@ -187,7 +187,7 @@ MANUAIS = [
     (
         "agenda",
         "Agenda, tarefas e Google Agenda",
-        "Compromissos, consultas marcadas pela Lia, tarefas e Google Agenda.",
+        "Compromissos, consultas marcadas pela Vera, tarefas e Google Agenda.",
         [
             (
                 "agenda",
@@ -207,7 +207,7 @@ MANUAIS = [
             ),
             (
                 "agenda",
-                "Consultas da Lia",
+                "Consultas da Vera",
                 "As consultas que eu marco pelo WhatsApp aparecem no topo, como a confirmar. "
                 "Clique em Confirmar e o cliente recebe a confirmação na hora.",
                 [("como a confirmar", "pendentes"), ("Clique em Confirmar", "confirmar")],
@@ -286,7 +286,7 @@ MANUAIS = [
     (
         "equipe-configuracoes",
         "Equipe e configurações",
-        "Convidar a equipe, horário de atendimento e como a Lia trabalha.",
+        "Convidar a equipe, horário de atendimento e como a Vera trabalha.",
         [
             (
                 "equipe",
@@ -298,7 +298,7 @@ MANUAIS = [
             ),
             (
                 "configuracoes",
-                "Como a Lia trabalha",
+                "Como a Vera trabalha",
                 "Em Configurações do escritório você decide como eu trabalho: se posso fazer a "
                 "triagem sozinha com contatos novos, o horário de atendimento e se posso oferecer "
                 "horários na agenda para a consulta inicial. Depois, é só clicar em Salvar.",

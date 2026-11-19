@@ -225,7 +225,7 @@ type Tab = 'geral' | 'escritorios' | 'pagamentos' | 'planos';
                   </span>
                   @if (r.usage; as u) {
                     <span class="office__col muted small">
-                      {{ u.members }} usuários · {{ u.messages_in }} msgs · {{ u.ai_calls }} Lia
+                      {{ u.members }} usuários · {{ u.messages_in }} msgs · {{ u.ai_calls }} Vera
                     </span>
                   }
                 </button>
@@ -303,7 +303,7 @@ type Tab = 'geral' | 'escritorios' | 'pagamentos' | 'planos';
                 />
               </mat-form-field>
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan__num">
-                <mat-label>Lia por mês</mat-label>
+                <mat-label>Vera por mês</mat-label>
                 <input
                   matInput
                   [value]="p.monthly_ai_limit ?? ''"

@@ -53,7 +53,7 @@ export interface Draft {
 }
 
 export const ORIGIN_LABELS: Record<DraftOrigin, string> = {
-  AI_REPLY: 'Resposta da Lia',
+  AI_REPLY: 'Resposta da Vera',
   TERM_REQUEST: 'Termo de ciência',
   MOVEMENT_UPDATE: 'Andamento do processo',
   EVENT_REMINDER: 'Lembrete de compromisso',

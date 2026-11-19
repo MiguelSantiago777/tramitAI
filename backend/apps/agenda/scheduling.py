@@ -1,6 +1,6 @@
-"""Agenda da Lia: horário de atendimento, horários livres, pré-reserva e confirmação.
+"""Agenda da Vera: horário de atendimento, horários livres, pré-reserva e confirmação.
 
-Fluxo: a Lia recebe os próximos horários livres (já descontando a agenda do advogado), oferece
+Fluxo: a Vera recebe os próximos horários livres (já descontando a agenda do advogado), oferece
 ao contato, ele escolhe, o horário entra como "A confirmar" e o advogado confirma com um
 clique. Só então o contato recebe a confirmação.
 """
@@ -26,7 +26,7 @@ from .models import Event
 TZ = ZoneInfo("America/Sao_Paulo")
 WEEKDAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 WEEKDAYS_SHORT = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
-# Antecedência mínima para a Lia oferecer um horário.
+# Antecedência mínima para a Vera oferecer um horário.
 MIN_LEAD = timedelta(hours=2)
 DAYS_AHEAD = 14
 SLOTS_TO_OFFER = 3
@@ -193,7 +193,7 @@ class Booking:
 def prebook(
     cfg: TenantSettings, *, client: Client, start: datetime, mode: str, summary: str
 ) -> Booking | None:
-    """Pré-reserva pedida pelo contato (pela Lia). None se o horário não está mais livre."""
+    """Pré-reserva pedida pelo contato (pela Vera). None se o horário não está mais livre."""
     if not is_free(cfg, start):
         return None
     mode = mode if mode in MODES else "presencial"
@@ -204,7 +204,7 @@ def prebook(
         starts_at=start,
         ends_at=start + timedelta(minutes=cfg.consult_minutes),
         location=MODES[mode],
-        notes=f"Marcado pela Lia no WhatsApp. Resumo da triagem: {summary}"[:4000],
+        notes=f"Marcado pela Vera no WhatsApp. Resumo da triagem: {summary}"[:4000],
         responsible=responsible(cfg),
         client=client,
         remind_client=True,

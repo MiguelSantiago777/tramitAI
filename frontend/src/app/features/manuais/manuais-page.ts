@@ -25,7 +25,7 @@ export function duration(seconds: number): string {
     <header class="page-header">
       <div>
         <h1>Manuais</h1>
-        <p>Vídeos curtos, com a Lia, mostrando como usar cada parte do sistema.</p>
+        <p>Vídeos curtos, com a Vera, mostrando como usar cada parte do sistema.</p>
       </div>
     </header>
 

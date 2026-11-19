@@ -28,7 +28,7 @@ import { AuthLayout } from '../auth-layout/auth-layout';
   template: `
     <app-auth-layout>
       <h1>Teste grátis por 14 dias</h1>
-      <p class="lead">Sem cartão agora. Configure o WhatsApp e veja a Lia trabalhando.</p>
+      <p class="lead">Sem cartão agora. Configure o WhatsApp e veja a Vera trabalhando.</p>
 
       @if (loading()) {
         <mat-progress-bar mode="indeterminate" />

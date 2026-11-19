@@ -1,4 +1,4 @@
-"""Minuta em texto (formato simples da Lia) → Word (.docx) e PDF.
+"""Minuta em texto (formato simples da Vera) → Word (.docx) e PDF.
 
 Formato do texto (ver prompt legal_draft):
 - "# "  título centralizado em negrito

@@ -132,10 +132,10 @@ class Conversation(TenantModel):
     )
     # Versão do termo de ciência oferecida nesta conversa (rascunho criado).
     ai_consent_version = models.PositiveIntegerField(null=True, blank=True)
-    # A Lia não conseguiu responder a última mensagem (IA fora do ar depois de várias
+    # A Vera não conseguiu responder a última mensagem (IA fora do ar depois de várias
     # tentativas). Some quando ela consegue de novo. A tela mostra o aviso e "tentar de novo".
     ai_failed_at = models.DateTimeField(null=True, blank=True)
-    # Horários que a Lia ofereceu por último: [{"id": "H1", "start": "<iso>"}].
+    # Horários que a Vera ofereceu por último: [{"id": "H1", "start": "<iso>"}].
     offered_slots = models.JSONField(default=list, blank=True)
     # Quem da equipe cuida desta conversa (inbox de equipe).
     assignee = models.ForeignKey(

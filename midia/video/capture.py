@@ -1,5 +1,5 @@
 """Captura as telas do sistema (dev) com o escritório de demonstração, em 1920x1080, e guarda
-a posição dos elementos que a Lia vai destacar no vídeo (work/shots/boxes.json).
+a posição dos elementos que a Vera vai destacar no vídeo (work/shots/boxes.json).
 
 Uso (no container do vídeo): python3 capture.py [host]
 """

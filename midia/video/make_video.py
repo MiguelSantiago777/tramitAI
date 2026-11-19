@@ -1,6 +1,6 @@
 """Monta o vídeo de apresentação: cartelas, telas reais, voz neural (edge-tts) e legendas.
 
-Quando a Lia cita uma parte do sistema, o elemento é circulado e sublinhado na tela no
+Quando a Vera cita uma parte do sistema, o elemento é circulado e sublinhado na tela no
 momento da fala, e o termo aparece destacado na legenda.
 
 Uso (no container do vídeo, depois do capture.py): python3 make_video.py [voz]
@@ -37,7 +37,7 @@ SCENES = [
         "abertura",
         "card:abertura",
         "",
-        "Oi! Eu sou a Lia, a assistente virtual do TramitAI. Em poucos minutos, vou te mostrar "
+        "Oi! Eu sou a Vera, a assistente virtual do TramitAI. Em poucos minutos, vou te mostrar "
         "como o seu escritório pode atender pelo WhatsApp com a minha ajuda, sem perder o "
         "controle de nada.",
         [],
@@ -64,7 +64,7 @@ SCENES = [
     (
         "agenda",
         "agenda",
-        "Agenda da Lia",
+        "Agenda da Vera",
         "Quando a triagem termina, eu ofereço horários livres da agenda do advogado. A pessoa "
         "escolhe, e o horário aparece aqui como a confirmar. Com um clique em Confirmar, o "
         "cliente recebe a confirmação no WhatsApp. E na véspera, eu lembro ele da consulta.",
@@ -219,7 +219,7 @@ def with_written_words(
 
 
 def phrase_time(words: list[tuple[float, float, str]], phrase: str) -> float | None:
-    """Momento em que a Lia começa a falar o trecho."""
+    """Momento em que a Vera começa a falar o trecho."""
     target = [norm(w) for w in phrase.split()]
     keys = [norm(w[2]) for w in words]
     for i in range(len(keys) - len(target) + 1):

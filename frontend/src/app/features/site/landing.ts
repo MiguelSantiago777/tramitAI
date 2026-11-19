@@ -23,7 +23,7 @@ import { money } from '../financeiro/financeiro.models';
       <section class="hero">
         <h1>O WhatsApp do seu escritório atendendo bem, sem você perder o controle.</h1>
         <p class="sub">
-          A Lia faz a triagem das mensagens, explica andamentos em português simples e escreve as
+          A Vera faz a triagem das mensagens, explica andamentos em português simples e escreve as
           respostas. Nada sai para o cliente sem a aprovação do advogado.
         </p>
         <div class="cta">
@@ -183,7 +183,7 @@ export class Landing {
     {
       icon: 'forum',
       title: 'Triagem no WhatsApp',
-      text: 'A Lia entende o que o cliente quer, separa o urgente e deixa a resposta pronta.',
+      text: 'A Vera entende o que o cliente quer, separa o urgente e deixa a resposta pronta.',
     },
     {
       icon: 'gavel',

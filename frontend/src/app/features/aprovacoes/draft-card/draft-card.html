@@ -34,7 +34,7 @@
         }
       </ul>
       @if (draft().client_relevant === false) {
-        <span class="muted small">A Lia acha que é rotina do processo; avisar é opcional.</span>
+        <span class="muted small">A Vera acha que é rotina do processo; avisar é opcional.</span>
       }
     </div>
   }
@@ -57,7 +57,7 @@
 
   @if (flags().length > 0) {
     <div class="draft__warning" role="alert">
-      A Lia {{ flags().join(', ') }}. O texto foi trocado por uma resposta segura.
+      A Vera {{ flags().join(', ') }}. O texto foi trocado por uma resposta segura.
       @if (draft().original_ai_text) {
         <details>
           <summary>Ver o que a IA tinha escrito</summary>

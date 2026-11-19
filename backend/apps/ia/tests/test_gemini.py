@@ -9,7 +9,7 @@ from apps.ia.llm import LlmError, LlmRefusal, LlmRequest
 from apps.ia.llm.gemini_client import GeminiLlmClient
 
 REQUEST = LlmRequest(
-    system="Você é a Lia.", user_content="<conversa>oi</conversa>", json_schema={"type": "object"}
+    system="Você é a Vera.", user_content="<conversa>oi</conversa>", json_schema={"type": "object"}
 )
 
 
@@ -58,7 +58,7 @@ def test_success_sends_schema_and_parses_json(settings):
     [call] = models.calls
     assert call["model"] == "gemini-3.8-flash"
     assert call["contents"] == REQUEST.user_content
-    assert call["config"].system_instruction == "Você é a Lia."
+    assert call["config"].system_instruction == "Você é a Vera."
     assert call["config"].response_mime_type == "application/json"
     assert call["config"].response_json_schema == {"type": "object"}
 

@@ -106,7 +106,7 @@ def _lock_pending(draft_id: Any) -> OutboundDraft:
 
 
 def auto_send(draft: OutboundDraft) -> bool:
-    """Lia envia o rascunho sem aprovação (só na triagem de contato novo). Se não der para
+    """Vera envia o rascunho sem aprovação (só na triagem de contato novo). Se não der para
     enviar agora (ex.: janela da Meta fechada), o rascunho fica pendente para a equipe."""
     try:
         message = whatsapp.queue_text(

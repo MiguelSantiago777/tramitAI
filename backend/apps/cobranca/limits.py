@@ -1,7 +1,7 @@
-"""Limites do plano: usuários e mensagens da Lia por mês.
+"""Limites do plano: usuários e mensagens da Vera por mês.
 
 Isento ou sem plano = sem limite. Limite vazio no plano = sem limite.
-Ao atingir o limite da Lia, ela para de escrever até o mês virar; o atendimento continua
+Ao atingir o limite da Vera, ela para de escrever até o mês virar; o atendimento continua
 (mensagens chegam e a equipe responde à mão).
 """
 
@@ -56,7 +56,7 @@ def users_used(tenant_id: uuid.UUID) -> int:
 
 
 def ai_used(tenant_id: uuid.UUID) -> int:
-    """Respostas que a Lia escreveu no mês (tenant ativo). Falha do provedor não conta."""
+    """Respostas que a Vera escreveu no mês (tenant ativo). Falha do provedor não conta."""
     from apps.ia.models import AiGeneration
 
     return AiGeneration.objects.filter(
@@ -88,7 +88,7 @@ def check_can_add_user(tenant_id: uuid.UUID) -> None:
 
 
 def ai_allowed(tenant_id: uuid.UUID) -> bool:
-    """A Lia ainda pode escrever neste mês? (tenant ativo)"""
+    """A Vera ainda pode escrever neste mês? (tenant ativo)"""
     plan = plan_for(tenant_id)
     if plan is None or plan.monthly_ai_limit is None:
         return True

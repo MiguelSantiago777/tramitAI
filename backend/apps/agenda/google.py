@@ -1,9 +1,9 @@
 """Integração com o Google Agenda de cada advogado.
 
 - TramitAI → Google: compromisso criado, alterado ou cancelado aqui é refletido no Google
-  (pré-reserva da Lia entra como "provisório").
-- Google → Lia: só livre/ocupado (início/fim dos compromissos), guardado em cache, para a
-  Lia não oferecer horário que bate com compromisso marcado direto no Google. Título e
+  (pré-reserva da Vera entra como "provisório").
+- Google → Vera: só livre/ocupado (início/fim dos compromissos), guardado em cache, para a
+  Vera não oferecer horário que bate com compromisso marcado direto no Google. Título e
   detalhes dos eventos do Google nunca são lidos (nem pedidos ao Google).
 
 Regras: HTTP nunca dentro de transação aberta; token de atualização guardado cifrado; nada de
@@ -406,7 +406,7 @@ def sync_event(tenant_id: uuid.UUID, event_id: uuid.UUID) -> str:
     return "synced"
 
 
-# ---------------------------------------------------------------- Google → Lia (ocupado)
+# ---------------------------------------------------------------- Google → Vera (ocupado)
 
 
 def refresh_busy(tenant_id: uuid.UUID, connection_id: uuid.UUID) -> str:
@@ -428,7 +428,7 @@ def refresh_busy(tenant_id: uuid.UUID, connection_id: uuid.UUID) -> str:
 
 
 def refresh_stale_busy(tenant_id: uuid.UUID, user_id: uuid.UUID | None) -> None:
-    """Antes da Lia oferecer horários: atualiza o ocupado se o cache tiver mais de 5 min.
+    """Antes da Vera oferecer horários: atualiza o ocupado se o cache tiver mais de 5 min.
     Falha do Google não impede a resposta (usa o cache que tiver)."""
     if user_id is None:
         return

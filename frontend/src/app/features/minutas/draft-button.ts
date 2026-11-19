@@ -4,13 +4,13 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { DraftDialog, DraftDialogData } from './draft-dialog';
 
-/** "Escrever com a Lia": petição, contrato, procuração… em Word e PDF. */
+/** "Escrever com a Vera": petição, contrato, procuração… em Word e PDF. */
 @Component({
   selector: 'app-draft-button',
   imports: [MatButtonModule],
   template: `
     <button mat-stroked-button type="button" (click)="open()">
-      <span class="icon btn-icon">auto_awesome</span>Escrever com a Lia
+      <span class="icon btn-icon">auto_awesome</span>Escrever com a Vera
     </button>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,4 +1,4 @@
-"""Triagem automática: a Lia conversa sozinha com contato novo e passa para o advogado."""
+"""Triagem automática: a Vera conversa sozinha com contato novo e passa para o advogado."""
 
 import pytest
 

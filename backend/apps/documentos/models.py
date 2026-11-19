@@ -36,7 +36,7 @@ class Document(TenantModel):
     class Source(models.TextChoices):
         UPLOAD = "UPLOAD", "Enviado pela equipe"
         WHATSAPP = "WHATSAPP", "WhatsApp"
-        GENERATED = "GENERATED", "Escrito pela Lia"
+        GENERATED = "GENERATED", "Escrito pela Vera"
 
     file = models.FileField(upload_to=document_path, max_length=255)
     name = models.CharField("nome", max_length=255)
@@ -113,9 +113,9 @@ class Document(TenantModel):
 
 
 class DocumentDraft(TenantModel):
-    """Pedido de minuta à Lia (petição, contrato...). Gera .docx e .pdf na pasta do cliente.
+    """Pedido de minuta à Vera (petição, contrato...). Gera .docx e .pdf na pasta do cliente.
 
-    A Lia escreve com marcadores ([NOME DO CLIENTE], [CPF/CNPJ DO CLIENTE]...); os dados
+    A Vera escreve com marcadores ([NOME DO CLIENTE], [CPF/CNPJ DO CLIENTE]...); os dados
     pessoais são preenchidos aqui no servidor e nunca vão para o provedor de IA.
     """
 

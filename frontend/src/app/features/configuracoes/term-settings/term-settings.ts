@@ -27,7 +27,7 @@ import { TenantService, TermVersion } from '../../../core/tenant/tenant.service'
       <div>
         <h1>Termo de ciência de IA</h1>
         <p>
-          Texto que o cliente aceita antes de conversar com a Lia. Editar publica uma nova versão;
+          Texto que o cliente aceita antes de conversar com a Vera. Editar publica uma nova versão;
           os aceites antigos continuam ligados à versão que o cliente viu.
         </p>
       </div>

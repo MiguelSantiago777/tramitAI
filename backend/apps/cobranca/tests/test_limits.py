@@ -1,4 +1,4 @@
-"""Limites do plano: usuários, mensagens da Lia no mês e troca de plano pelo escritório."""
+"""Limites do plano: usuários, mensagens da Vera no mês e troca de plano pelo escritório."""
 
 from datetime import timedelta
 from decimal import Decimal
@@ -18,7 +18,7 @@ BILLING = "/api/v1/billing/"
 
 @pytest.fixture
 def essencial(tenant_a):
-    """Escritório A no plano Essencial (2 usuários, 300 da Lia), em teste."""
+    """Escritório A no plano Essencial (2 usuários, 300 da Vera), em teste."""
     return Subscription.objects.create(
         tenant=tenant_a.tenant,
         plan=Plan.objects.get(code="essencial"),

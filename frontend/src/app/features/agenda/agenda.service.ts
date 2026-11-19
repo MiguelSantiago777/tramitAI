@@ -61,7 +61,7 @@ export class AgendaService {
     return this.http.post<CalendarEvent>('/api/v1/events/', input);
   }
 
-  /** Confirma o horário pré-reservado pela Lia (o contato recebe a confirmação). */
+  /** Confirma o horário pré-reservado pela Vera (o contato recebe a confirmação). */
   confirmEvent(id: string): Observable<CalendarEvent> {
     return this.http.post<CalendarEvent>(`/api/v1/events/${id}/confirm/`, {});
   }

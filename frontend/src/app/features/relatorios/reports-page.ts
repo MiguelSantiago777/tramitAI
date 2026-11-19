@@ -190,18 +190,18 @@ export function periodRange(period: Period, today = new Date()): { start: string
 
         <section class="card panel-card">
           <header class="panel-card__header">
-            <h2 class="section-title"><span class="icon">smart_toy</span> WhatsApp e Lia</h2>
+            <h2 class="section-title"><span class="icon">smart_toy</span> WhatsApp e Vera</h2>
           </header>
           <dl class="kv">
             <dt>Mensagens recebidas</dt>
             <dd>{{ d.whatsapp['inbound'] }}</dd>
             <dt>Mensagens enviadas</dt>
             <dd>{{ d.whatsapp['outbound'] }}</dd>
-            <dt>Rascunhos da Lia</dt>
+            <dt>Rascunhos da Vera</dt>
             <dd>{{ d.ai.ai_drafts }}</dd>
             <dt>Aprovados / rejeitados</dt>
             <dd>{{ d.ai.approved }} / {{ d.ai.rejected }}</dd>
-            <dt>Texto da Lia enviado sem edição</dt>
+            <dt>Texto da Vera enviado sem edição</dt>
             <dd>{{ d.ai.ai_unedited_pct | number: '1.0-1' }}%</dd>
             <dt>Aguardando aprovação agora</dt>
             <dd [class.warn]="d.ai.pending_now > 0">{{ d.ai.pending_now }}</dd>

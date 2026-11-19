@@ -73,7 +73,7 @@ def handle_inbound(tenant_id: uuid.UUID, conversation_id: uuid.UUID, message_id:
 
 
 def _refresh_calendar(tenant_id: uuid.UUID) -> None:
-    """Antes da Lia oferecer horários, atualiza o ocupado do Google (HTTP fora de transação)."""
+    """Antes da Vera oferecer horários, atualiza o ocupado do Google (HTTP fora de transação)."""
     from apps.agenda import google, scheduling
 
     with tenant_atomic(tenant_id):
@@ -84,7 +84,7 @@ def _refresh_calendar(tenant_id: uuid.UUID) -> None:
 
 
 def mark_ai_failed(tenant_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
-    """A Lia desistiu desta conversa: a tela avisa a equipe para responder ou tentar de novo."""
+    """A Vera desistiu desta conversa: a tela avisa a equipe para responder ou tentar de novo."""
     with tenant_atomic(tenant_id):
         Conversation.objects.filter(pk=conversation_id).update(ai_failed_at=timezone.now())
 
@@ -263,7 +263,7 @@ def _store(
         outcome = "auto_sent"
     elif auto_mode:
         # Triagem terminou (ou precisa do advogado): o cliente fica sabendo na hora, e o
-        # rascunho da Lia espera a aprovação.
+        # rascunho da Vera espera a aprovação.
         _acknowledge_handoff(conversation)
     if triage.intent == "new_matter":
         # Pessoa querendo contratar: entra no funil de novos clientes.
@@ -275,7 +275,7 @@ def _store(
 
 # ---------------------------------------------------------------- triagem automática
 
-# Teto de mensagens que a Lia manda sozinha numa conversa em 24h (evita conversa em loop).
+# Teto de mensagens que a Vera manda sozinha numa conversa em 24h (evita conversa em loop).
 MAX_AUTO_REPLIES_PER_DAY = 8
 HANDOFF_ACK = (
     "Obrigada pelas informações! Já passei tudo para o(a) advogado(a) do escritório, "

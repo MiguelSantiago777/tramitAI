@@ -1,4 +1,4 @@
-"""Minutas da Lia: sigilo (marcadores), preenchimento local, Word/PDF e falhas."""
+"""Minutas da Vera: sigilo (marcadores), preenchimento local, Word/PDF e falhas."""
 
 import io
 from typing import Any
@@ -106,7 +106,7 @@ def test_personal_data_never_reaches_the_ai_and_is_filled_locally(
         assert "Maria da Silva" in text
         assert "529.982.247-25" in text
         assert "Dra. Ana Lima, OAB 123456/RJ" in text
-        assert "[ENDEREÇO DO CLIENTE]" in text  # o que a Lia não sabe fica marcado
+        assert "[ENDEREÇO DO CLIENTE]" in text  # o que a Vera não sabe fica marcado
         assert AiGeneration.objects.get(pk=draft.ai_generation_id).kind == "DRAFT"
 
     docs = api_client.get("/api/v1/documents/", {"client": str(maria.pk)}).json()

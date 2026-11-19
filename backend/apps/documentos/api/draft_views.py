@@ -94,7 +94,7 @@ class DocumentDraftViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Minutas escritas pela Lia. POST devolve 201 "Escrevendo"; consulte até ficar pronta."""
+    """Minutas escritas pela Vera. POST devolve 201 "Escrevendo"; consulte até ficar pronta."""
 
     serializer_class = DocumentDraftSerializer
 
@@ -119,7 +119,7 @@ class DocumentDraftViewSet(
         draft = serializer.save(created_by=self.request.user)
         if not ai_allowed(draft.tenant_id):
             raise ApiError(
-                "A Lia já usou todas as mensagens do plano neste mês. Mude de plano em "
+                "A Vera já usou todas as mensagens do plano neste mês. Mude de plano em "
                 "Assinatura para continuar.",
                 code="ai_limit",
                 status_code=402,

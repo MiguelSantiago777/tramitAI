@@ -83,7 +83,7 @@ class ConversationViewSet(
     @extend_schema(request=None, responses={202: None})
     @action(detail=True, methods=["post"], url_path="retry-ai")
     def retry_ai(self, request: Request, pk: str | None = None) -> Response:
-        """Pede para a Lia tentar de novo responder a última mensagem do contato."""
+        """Pede para a Vera tentar de novo responder a última mensagem do contato."""
         from django.db import transaction
 
         from apps.ia.tasks import triage_message

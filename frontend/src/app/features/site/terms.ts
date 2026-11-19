@@ -17,7 +17,7 @@ import { RouterLink } from '@angular/router';
       <h2>1. O serviço</h2>
       <p>
         O TramitAI é um sistema para escritórios de advocacia organizarem atendimento por WhatsApp,
-        processos, agenda, documentos e honorários. A assistente virtual (Lia) sugere respostas; o
+        processos, agenda, documentos e honorários. A assistente virtual (Vera) sugere respostas; o
         envio ao cliente depende da aprovação de um usuário do escritório.
       </p>
 

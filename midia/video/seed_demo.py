@@ -229,7 +229,7 @@ with tenant_atomic(tenant.id):
         starts_at=at(1, 14),
         ends_at=at(1, 15),
         location="Online (vídeo ou telefone)",
-        notes="Marcado pela Lia no WhatsApp. Demitido sem verbas rescisórias após 4 anos.",
+        notes="Marcado pela Vera no WhatsApp. Demitido sem verbas rescisórias após 4 anos.",
         responsible=owner,
         client=joao,
         remind_client=True,

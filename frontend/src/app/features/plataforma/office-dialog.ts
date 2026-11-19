@@ -62,7 +62,7 @@ import {
             <dt>Uso no mês</dt>
             <dd>
               {{ u.members }} usuário(s) · {{ u.clients }} cliente(s) ·
-              {{ u.messages_in }} mensagens recebidas · {{ u.ai_calls }} chamadas da Lia
+              {{ u.messages_in }} mensagens recebidas · {{ u.ai_calls }} chamadas da Vera
             </dd>
           }
         </dl>

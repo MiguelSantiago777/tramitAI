@@ -277,7 +277,7 @@ export class Thread {
     this.retrying.set(true);
     this.inbox.retryAi(id).subscribe({
       next: () => {
-        // O aviso some na hora; o rascunho aparece pelo polling quando a Lia terminar.
+        // O aviso some na hora; o rascunho aparece pelo polling quando a Vera terminar.
         this.conversation.update((c) => (c ? { ...c, ai_failed_at: null } : c));
         setTimeout(() => this.retrying.set(false), 60_000);
       },

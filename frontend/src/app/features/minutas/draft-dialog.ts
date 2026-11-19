@@ -30,10 +30,10 @@ export interface DraftDialogData {
 }
 
 const POLL_MS = 3000;
-// A Lia insiste até ~13 min quando o Google está cheio; a tela espera um pouco mais.
+// A Vera insiste até ~13 min quando o Google está cheio; a tela espera um pouco mais.
 const POLL_MAX = 300;
 
-/** Pede uma minuta à Lia e espera ficar pronta (Word + PDF). */
+/** Pede uma minuta à Vera e espera ficar pronta (Word + PDF). */
 @Component({
   selector: 'app-draft-dialog',
   imports: [
@@ -47,7 +47,7 @@ const POLL_MAX = 300;
   ],
   template: `
     <h2 mat-dialog-title>
-      Escrever com a Lia
+      Escrever com a Vera
       @if (data.label) {
         <span class="muted small"> · {{ data.label }}</span>
       }
@@ -56,7 +56,7 @@ const POLL_MAX = 300;
     <mat-dialog-content>
       @if (draft(); as d) {
         @if (d.status === 'PENDING') {
-          <p>A Lia está escrevendo a minuta… isso leva de 20 segundos a alguns minutos.</p>
+          <p>A Vera está escrevendo a minuta… isso leva de 20 segundos a alguns minutos.</p>
           <mat-progress-bar mode="indeterminate" />
           <p class="muted small">Pode fechar: o Word e o PDF ficam salvos na pasta do cliente.</p>
         } @else if (d.status === 'DONE') {
@@ -101,7 +101,7 @@ const POLL_MAX = 300;
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Honorários cadastrados (opcional)</mat-label>
               <mat-select [formControl]="agreement">
-                <mat-option [value]="null">Nenhum: a Lia deixa os valores em branco</mat-option>
+                <mat-option [value]="null">Nenhum: a Vera deixa os valores em branco</mat-option>
                 @for (a of agreements(); track a.id) {
                   <mat-option [value]="a.id">{{ a.title }} · R$ {{ a.total_amount }}</mat-option>
                 }
@@ -120,7 +120,7 @@ const POLL_MAX = 300;
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>O que a Lia deve escrever</mat-label>
+            <mat-label>O que a Vera deve escrever</mat-label>
             <textarea
               matInput
               [formControl]="instructions"
@@ -213,7 +213,7 @@ export class DraftDialog {
     if (this.title.invalid || this.instructions.invalid) {
       this.title.markAsTouched();
       this.instructions.markAsTouched();
-      this.error.set('Preencha o título e o que a Lia deve escrever.');
+      this.error.set('Preencha o título e o que a Vera deve escrever.');
       return;
     }
     this.busy.set(true);
@@ -250,12 +250,12 @@ export class DraftDialog {
 
   failure(d: DocumentDraft): string {
     if (d.error_code === 'ai_limit') {
-      return 'A Lia já usou todas as mensagens do plano neste mês.';
+      return 'A Vera já usou todas as mensagens do plano neste mês.';
     }
     if (['rate_limited', 'connection', 'http_503', 'http_500'].includes(d.error_code)) {
       return 'A IA está sobrecarregada agora. Tente de novo em alguns minutos.';
     }
-    return 'A Lia não conseguiu escrever esta minuta. Tente reformular o pedido.';
+    return 'A Vera não conseguiu escrever esta minuta. Tente reformular o pedido.';
   }
 
   private watch(id: string): void {

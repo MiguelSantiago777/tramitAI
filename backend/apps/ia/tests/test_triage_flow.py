@@ -53,7 +53,7 @@ def test_first_message_offers_term_without_calling_llm(
     [draft] = drafts()
     assert draft.origin == TERM
     assert draft.status == OutboundDraft.Status.DRAFT
-    assert "Lia" in draft.generated_body
+    assert "Vera" in draft.generated_body
     assert "Escritorio A" in draft.generated_body
     assert "responda ACEITO" in draft.generated_body
     assert fake_llm.calls == []  # nada vai para o provedor antes do aceite

@@ -64,7 +64,7 @@ describe('DraftDialog', () => {
   const button = (label: string) =>
     [...el().querySelectorAll('button')].find((b) => b.textContent?.includes(label));
 
-  it('pede título e texto antes de chamar a Lia', () => {
+  it('pede título e texto antes de chamar a Vera', () => {
     button('Escrever')?.click();
     fixture.detectChanges();
     expect(api.create).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe('DraftDialog', () => {
       expect.objectContaining({ kind: 'POWER', client_id: 'c1', fee_agreement_id: null }),
     );
     fixture.detectChanges();
-    expect(el().textContent).toContain('A Lia está escrevendo');
+    expect(el().textContent).toContain('A Vera está escrevendo');
 
     vi.advanceTimersByTime(3000);
     fixture.detectChanges();

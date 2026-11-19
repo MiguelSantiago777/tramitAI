@@ -53,10 +53,10 @@ import { DAY_NAMES, DayHours, hoursFromDays, daysFromHours } from './business-ho
         <mat-hint>Aparece para os clientes no termo de ciência e nas mensagens.</mat-hint>
       </mat-form-field>
 
-      <h2>Lia (inteligência artificial)</h2>
+      <h2>Vera (inteligência artificial)</h2>
       <div class="setting">
         <mat-slide-toggle formControlName="ai_triage_enabled">
-          Lia escreve rascunhos de resposta e de aviso de andamento
+          Vera escreve rascunhos de resposta e de aviso de andamento
         </mat-slide-toggle>
         <span class="muted small">
           Desligado: as mensagens continuam chegando em Conversas e os avisos de andamento usam um
@@ -67,10 +67,10 @@ import { DAY_NAMES, DayHours, hoursFromDays, daysFromHours } from './business-ho
       <h2>Triagem automática</h2>
       <div class="setting">
         <mat-slide-toggle formControlName="auto_send_simple_replies">
-          Lia conversa sozinha com contatos novos até entender o caso
+          Vera conversa sozinha com contatos novos até entender o caso
         </mat-slide-toggle>
         <span class="muted small">
-          Só com quem ainda não é cliente e já aceitou o termo de IA. A Lia pergunta nome e o que
+          Só com quem ainda não é cliente e já aceitou o termo de IA. A Vera pergunta nome e o que
           aconteceu, sem dar orientação jurídica. Quando tiver o resumo (ou se for urgente), avisa o
           contato que passou para o advogado e a resposta seguinte espera a sua aprovação. Clientes
           com processo continuam sempre com aprovação.
@@ -79,7 +79,7 @@ import { DAY_NAMES, DayHours, hoursFromDays, daysFromHours } from './business-ho
 
       <h2>Horário de atendimento</h2>
       <p class="muted small">
-        Fora desse horário, a Lia avisa o contato quando o escritório atende e segue a triagem.
+        Fora desse horário, a Vera avisa o contato quando o escritório atende e segue a triagem.
       </p>
       <div class="hours" formArrayName="days">
         @for (day of days.controls; track $index) {
@@ -114,13 +114,13 @@ import { DAY_NAMES, DayHours, hoursFromDays, daysFromHours } from './business-ho
         }
       </div>
 
-      <h2>Agenda da Lia</h2>
+      <h2>Agenda da Vera</h2>
       <div class="setting">
         <mat-slide-toggle formControlName="scheduling_enabled">
-          Lia oferece horários livres para a consulta inicial
+          Vera oferece horários livres para a consulta inicial
         </mat-slide-toggle>
         <span class="muted small">
-          A Lia oferece 3 horários livres dentro do horário de atendimento (sem bater com a agenda),
+          A Vera oferece 3 horários livres dentro do horário de atendimento (sem bater com a agenda),
           pergunta se a pessoa prefere presencial ou online e deixa o horário escolhido como "a
           confirmar" na Agenda. O contato só recebe a confirmação quando você confirmar.
         </span>

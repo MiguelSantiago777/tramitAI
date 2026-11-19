@@ -55,7 +55,7 @@ export interface DraftInput {
   fee_agreement_id?: string | null;
 }
 
-/** Minutas escritas pela Lia (Word e PDF salvos na pasta do cliente). */
+/** Minutas escritas pela Vera (Word e PDF salvos na pasta do cliente). */
 @Injectable({ providedIn: 'root' })
 export class DraftsService {
   private readonly http = inject(HttpClient);

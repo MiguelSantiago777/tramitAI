@@ -111,7 +111,7 @@ def overview(start: date, end: date) -> Overview:
         "approved": approved.count(),
         "rejected": decided.filter(status=OutboundDraft.Status.REJECTED).count(),
         "pending_now": OutboundDraft.objects.filter(status=OutboundDraft.Status.DRAFT).count(),
-        # Quanto do texto da Lia saiu sem edição: mede se a IA está ajudando de verdade.
+        # Quanto do texto da Vera saiu sem edição: mede se a IA está ajudando de verdade.
         "ai_unedited_pct": _pct(unedited, ai_approved.count()),
     }
 

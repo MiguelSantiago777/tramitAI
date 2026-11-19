@@ -1,11 +1,11 @@
-"""Minutas da Lia (petição, contrato, procuração...) → .docx e .pdf na pasta do cliente.
+"""Minutas da Vera (petição, contrato, procuração...) → .docx e .pdf na pasta do cliente.
 
 Três fases, como no resto da IA: prepara numa transação curta, chama o LLM FORA de
 transação e grava numa transação curta.
 
 Sigilo: para o provedor de IA vão só o pedido do advogado (com nome, CPF, telefone e e-mail
 do cliente trocados por marcadores), o tipo de pessoa, o papel no processo e os dados públicos
-do processo (classe, assunto, órgão). A Lia escreve com marcadores e os dados reais entram
+do processo (classe, assunto, órgão). A Vera escreve com marcadores e os dados reais entram
 aqui, no servidor, na hora de montar o Word/PDF.
 """
 
@@ -358,7 +358,7 @@ def _save_file(
         size=len(content),
         sha256=_hash(upload),
         category=category,
-        description="Minuta escrita pela Lia: revise antes de usar.",
+        description="Minuta escrita pela Vera: revise antes de usar.",
         source=Document.Source.GENERATED,
         client=draft.client,
         legal_case=draft.legal_case,

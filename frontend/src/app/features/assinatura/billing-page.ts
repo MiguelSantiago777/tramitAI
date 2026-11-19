@@ -96,7 +96,7 @@ import { Billing, BillingService, Plan } from './billing.service';
             </div>
             <div class="usage__item">
               <span class="small">
-                Mensagens da Lia este mês: <strong>{{ b.ai_used }}</strong>
+                Mensagens da Vera este mês: <strong>{{ b.ai_used }}</strong>
                 {{ b.ai_limit !== null ? 'de ' + b.ai_limit : '(sem limite)' }}
               </span>
               @if (b.ai_limit !== null) {
@@ -110,8 +110,8 @@ import { Billing, BillingService, Plan } from './billing.service';
           </div>
           @if (b.ai_limit !== null && b.ai_used >= b.ai_limit) {
             <p class="bill__alert">
-              A Lia atingiu o limite do plano neste mês. As mensagens continuam chegando em
-              Conversas para a equipe responder; a Lia volta no dia 1º ou ao mudar de plano.
+              A Vera atingiu o limite do plano neste mês. As mensagens continuam chegando em
+              Conversas para a equipe responder; a Vera volta no dia 1º ou ao mudar de plano.
             </p>
           }
 
@@ -178,8 +178,8 @@ import { Billing, BillingService, Plan } from './billing.service';
                 <li>
                   {{
                     p.monthly_ai_limit !== null
-                      ? (p.monthly_ai_limit | number) + ' mensagens da Lia por mês'
-                      : 'Lia liberada, sem limite de mensagens'
+                      ? (p.monthly_ai_limit | number) + ' mensagens da Vera por mês'
+                      : 'Vera liberada, sem limite de mensagens'
                   }}
                 </li>
                 <li>{{ p.description }}</li>

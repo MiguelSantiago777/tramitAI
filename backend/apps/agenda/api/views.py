@@ -188,7 +188,7 @@ class EventViewSet(
     @extend_schema(request=None, responses=EventSerializer)
     @action(detail=True, methods=["post"])
     def confirm(self, request: Request, pk: str | None = None) -> Response:
-        """Confirma o horário pré-reservado pela Lia: o contato recebe a confirmação."""
+        """Confirma o horário pré-reservado pela Vera: o contato recebe a confirmação."""
         event = scheduling.confirm(self.get_object(), user=cast(User, request.user))
         return Response(EventSerializer(event).data)
 

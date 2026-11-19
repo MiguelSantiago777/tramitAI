@@ -96,7 +96,7 @@
   <div class="thread__ai-failed" role="alert">
     <span class="icon">error</span>
     <span>
-      A Lia não conseguiu responder a última mensagem (serviço de IA sobrecarregado). Responda você
+      A Vera não conseguiu responder a última mensagem (serviço de IA sobrecarregado). Responda você
       mesmo abaixo ou peça para ela tentar de novo.
     </span>
     <button mat-stroked-button type="button" [disabled]="retrying()" (click)="retryAi()">
@@ -104,7 +104,7 @@
     </button>
   </div>
 } @else if (retrying()) {
-  <p class="thread__ai-retrying muted small" role="status">A Lia está tentando de novo…</p>
+  <p class="thread__ai-retrying muted small" role="status">A Vera está tentando de novo…</p>
 }
 
 @if (pendingDrafts().length > 0) {

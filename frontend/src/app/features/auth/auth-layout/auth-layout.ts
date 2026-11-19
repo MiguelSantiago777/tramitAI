@@ -15,7 +15,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
           <ul>
             <li>
               <span class="icon">forum</span>
-              A Lia faz a triagem das mensagens e escreve a resposta.
+              A Vera faz a triagem das mensagens e escreve a resposta.
             </li>
             <li>
               <span class="icon">gavel</span>

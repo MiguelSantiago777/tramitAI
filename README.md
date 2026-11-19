@@ -1,7 +1,7 @@
 # TramitAI
 
 Secretária jurídica no WhatsApp para pequenos escritórios de advocacia. A assistente que fala com o
-cliente final se chama **Lia**. A IA nunca envia nada sozinha: tudo passa pela aprovação do advogado.
+cliente final se chama **Vera**. A IA nunca envia nada sozinha: tudo passa pela aprovação do advogado.
 
 ## Stack
 
@@ -57,7 +57,7 @@ Cada escritório conecta o próprio número lendo um QR Code, como no WhatsApp W
   para contatos novos. Use número dedicado ao escritório.
 - A Cloud API oficial continua suportada (conta `CLOUD_API`); um escritório usa um dos dois.
 
-## IA (Lia)
+## IA (Vera)
 
 - `LLM_PROVIDER=fake` (padrão): respostas determinísticas locais, nada sai da máquina.
 - `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` (Google AI Studio). Modelo em `LLM_MODEL`
@@ -120,15 +120,15 @@ A primeira busca de uma OAB olha os últimos 7 dias. O DJEN limita ~20 requisiç
 então as OABs são consultadas uma por vez (`PUBLICATION_CHECK_SPACING_SECONDS`). Só nos planos
 com "publicações do Diário" marcado (Escritório e Equipe).
 
-### Minutas com a Lia (petição, contrato, procuração)
+### Minutas com a Vera (petição, contrato, procuração)
 
-Na ficha do cliente ou do processo, **Escrever com a Lia** gera a minuta em Word (.docx) e PDF
-e salva na pasta do cliente. A Lia escreve com marcadores (`[NOME DO CLIENTE]`,
+Na ficha do cliente ou do processo, **Escrever com a Vera** gera a minuta em Word (.docx) e PDF
+e salva na pasta do cliente. A Vera escreve com marcadores (`[NOME DO CLIENTE]`,
 `[CPF/CNPJ DO CLIENTE]`, `[VALOR DA PARCELA]`...) e os dados reais são preenchidos no servidor:
 nome, CPF, telefone, e-mail e valores **não** vão para o provedor de IA (o pedido digitado passa
-por um filtro que troca CPF, e-mail, telefone e o nome do cliente por marcadores). O que a Lia
+por um filtro que troca CPF, e-mail, telefone e o nome do cliente por marcadores). O que a Vera
 não sabe (endereço, parte contrária...) fica destacado em amarelo no Word. Conta no limite
-mensal da Lia do plano.
+mensal da Vera do plano.
 
 ### Lixeira
 
@@ -194,7 +194,7 @@ Depois: entre em `https://SEU_DOMINIO`, abra **WhatsApp** e leia o QR Code.
 ## Google Agenda
 
 Cada advogado conecta o próprio Google Agenda em **Agenda → Conectar**. O que é marcado no
-TramitAI vai para o Google (pré-reserva da Lia como "provisório"), e a Lia não oferece horário
+TramitAI vai para o Google (pré-reserva da Vera como "provisório"), e a Vera não oferece horário
 em que o advogado está ocupado no Google (só livre/ocupado é lido, nunca títulos).
 
 Configuração única (projeto do TramitAI no Google Cloud):

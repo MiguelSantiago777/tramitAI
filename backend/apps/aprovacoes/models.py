@@ -75,7 +75,7 @@ class OutboundDraft(TenantModel):
         related_name="draft",
     )
 
-    # Enviado pela Lia sem aprovação (triagem de contato novo, se o escritório ligou).
+    # Enviado pela Vera sem aprovação (triagem de contato novo, se o escritório ligou).
     auto_sent = models.BooleanField(default=False)
 
     # Triagem (só para o escritório; não vai ao cliente).

@@ -48,7 +48,7 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             "timezone",
             "updated_at",
         ]
-        # auto_send_simple_replies: Lia responde sozinha na triagem de contato novo.
+        # auto_send_simple_replies: Vera responde sozinha na triagem de contato novo.
         read_only_fields = [
             "id",
             "data_retention_days",

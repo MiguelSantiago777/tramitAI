@@ -23,7 +23,7 @@ const RESULT_MESSAGES: Record<string, string> = {
   erro: 'O Google não confirmou a conexão. Tente de novo.',
 };
 
-/** Google Agenda da pessoa logada: o que é marcado aqui vai pra lá, e a Lia respeita o ocupado. */
+/** Google Agenda da pessoa logada: o que é marcado aqui vai pra lá, e a Vera respeita o ocupado. */
 @Component({
   selector: 'app-google-calendar-card',
   imports: [DatePipe, MatButtonModule],
@@ -36,7 +36,7 @@ const RESULT_MESSAGES: Record<string, string> = {
             @if (!s.connected) {
               <strong>Conecte seu Google Agenda</strong>
               <span class="muted small">
-                O que for marcado aqui aparece no seu Google, e a Lia não oferece horário em que
+                O que for marcado aqui aparece no seu Google, e a Vera não oferece horário em que
                 você já tem compromisso por lá.
               </span>
             } @else if (s.needs_reconnect) {

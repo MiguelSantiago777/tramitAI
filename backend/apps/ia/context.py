@@ -31,7 +31,7 @@ def _day(value: datetime | None) -> str:
 
 
 def _agenda_parts(conversation: Conversation) -> list[str]:
-    """Expediente (a Lia avisa fora dele) e horários livres que ela pode oferecer.
+    """Expediente (a Vera avisa fora dele) e horários livres que ela pode oferecer.
 
     Guarda os horários oferecidos na conversa: quando o contato escolher "H2", a reserva usa
     exatamente o horário que ele viu.

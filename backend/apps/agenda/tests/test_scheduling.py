@@ -1,4 +1,4 @@
-"""Agenda da Lia: expediente, horários livres, pré-reserva pelo WhatsApp e confirmação."""
+"""Agenda da Vera: expediente, horários livres, pré-reserva pelo WhatsApp e confirmação."""
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo

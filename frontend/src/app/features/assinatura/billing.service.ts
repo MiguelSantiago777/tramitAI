@@ -70,12 +70,12 @@ export class BillingService {
   }
 }
 
-/** Aviso no topo: teste acabando, pagamento pendente/atrasado, bloqueado ou Lia no limite. */
+/** Aviso no topo: teste acabando, pagamento pendente/atrasado, bloqueado ou Vera no limite. */
 export function billingNotice(b: Billing | null): string | null {
   if (!b || b.exempt) return null;
   if (b.blocked) return 'Acesso bloqueado: a assinatura venceu.';
   if (b.ai_limit !== null && b.ai_used >= b.ai_limit) {
-    return 'A Lia atingiu o limite do plano neste mês: responda as conversas manualmente ou mude de plano.';
+    return 'A Vera atingiu o limite do plano neste mês: responda as conversas manualmente ou mude de plano.';
   }
   if (b.status === 'TRIAL' && b.days_left !== null && b.days_left <= 7) {
     return b.days_left === 0
@@ -87,7 +87,7 @@ export function billingNotice(b: Billing | null): string | null {
   if (b.status === 'CANCELLED')
     return 'Assinatura cancelada: o acesso vai até o fim do período pago.';
   if (b.ai_limit !== null && b.ai_used >= b.ai_limit * 0.8) {
-    return `A Lia já usou ${b.ai_used} de ${b.ai_limit} mensagens do plano neste mês.`;
+    return `A Vera já usou ${b.ai_used} de ${b.ai_limit} mensagens do plano neste mês.`;
   }
   return null;
 }

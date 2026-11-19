@@ -55,7 +55,7 @@ export class AgendaPage {
 
   readonly weekStart = signal(mondayOf(new Date()));
   readonly events = signal<CalendarEvent[]>([]);
-  /** Pré-reservas da Lia nos próximos 30 dias (independe da semana na tela). */
+  /** Pré-reservas da Vera nos próximos 30 dias (independe da semana na tela). */
   readonly pending = signal<CalendarEvent[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);

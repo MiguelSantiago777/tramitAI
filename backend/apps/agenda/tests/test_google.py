@@ -1,4 +1,4 @@
-"""Google Agenda: conectar, refletir compromissos e a Lia respeitar o ocupado do Google."""
+"""Google Agenda: conectar, refletir compromissos e a Vera respeitar o ocupado do Google."""
 
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse

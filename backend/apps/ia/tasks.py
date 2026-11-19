@@ -36,7 +36,7 @@ def explain_movements(self: Any, tenant_id: str, case_id: str) -> str:
 
 @shared_task(bind=True, max_retries=4, acks_late=True)
 def write_legal_draft(self: Any, tenant_id: str, draft_id: str) -> str:
-    """Minuta da Lia (peça/contrato). IA sobrecarregada: tenta de novo em 20s, 1, 3 e 9 min."""
+    """Minuta da Vera (peça/contrato). IA sobrecarregada: tenta de novo em 20s, 1, 3 e 9 min."""
     try:
         return drafting.generate(uuid.UUID(tenant_id), uuid.UUID(draft_id))
     except drafting.RetryableDraftError as exc:
