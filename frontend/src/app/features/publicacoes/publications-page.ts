@@ -74,6 +74,8 @@ export class PublicationsPage {
   readonly uf = new FormControl('', { nonNullable: true, validators: [Validators.required] });
   readonly lawyerName = new FormControl('', { nonNullable: true });
   readonly oabBusy = signal(false);
+  /** Por que a OAB não foi adicionada (campo faltando). */
+  readonly formHint = signal<string | null>(null);
 
   // Publicações
   readonly status = new FormControl<PublicationStatus | ''>('NEW', { nonNullable: true });
@@ -123,8 +125,14 @@ export class PublicationsPage {
     if (this.number.invalid || this.uf.invalid) {
       this.number.markAsTouched();
       this.uf.markAsTouched();
+      const missing = [
+        this.number.invalid ? 'o número da OAB' : '',
+        this.uf.invalid ? 'a UF (estado da OAB)' : '',
+      ].filter(Boolean);
+      this.formHint.set(`Falta preencher ${missing.join(' e ')}.`);
       return;
     }
+    this.formHint.set(null);
     this.runOab(
       this.api.createOab({
         number: this.number.value,
@@ -133,6 +141,7 @@ export class PublicationsPage {
       }),
       () => {
         this.number.reset('');
+        this.uf.reset('');
         this.lawyerName.reset('');
         this.snackBar.open(
           'OAB cadastrada. Buscando os últimos 12 meses do Diário (leva alguns minutos)…',

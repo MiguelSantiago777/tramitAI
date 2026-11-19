@@ -91,7 +91,10 @@
     <form class="oab-form" (ngSubmit)="addOab()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="oab-form__number">
         <mat-label>Número da OAB</mat-label>
-        <input matInput [formControl]="number" inputmode="numeric" placeholder="123456" />
+        <input matInput [formControl]="number" inputmode="numeric" placeholder="Ex.: 123456" />
+        @if (number.touched && number.invalid) {
+          <mat-error>Digite o número.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="oab-form__uf">
         <mat-label>UF</mat-label>
@@ -100,6 +103,9 @@
             <mat-option [value]="u">{{ u }}</mat-option>
           }
         </mat-select>
+        @if (uf.touched && uf.invalid) {
+          <mat-error>Escolha a UF.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
         <mat-label>Advogado(a) (opcional)</mat-label>
@@ -107,6 +113,9 @@
       </mat-form-field>
       <button mat-flat-button type="submit" [disabled]="oabBusy()">Adicionar OAB</button>
     </form>
+    @if (formHint(); as hint) {
+      <p class="error-text small" role="alert">{{ hint }}</p>
+    }
   </section>
 
   @if (found().length > 0) {

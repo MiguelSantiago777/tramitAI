@@ -138,4 +138,20 @@ describe('PublicationsPage', () => {
     button('Cadastrar 1 processo(s)')?.click();
     expect(api['importCases']).toHaveBeenCalledWith(['40008817220268260526']);
   });
+
+  it('diz o que falta quando a OAB não pode ser adicionada', async () => {
+    await setup();
+    fixture.componentInstance.number.setValue('123456');
+    fixture.componentInstance.addOab();
+    fixture.detectChanges();
+    expect(api['createOab']).not.toHaveBeenCalled();
+    expect(el().textContent).toContain('Falta preencher a UF (estado da OAB).');
+    fixture.componentInstance.uf.setValue('SP');
+    fixture.componentInstance.addOab();
+    expect(api['createOab']).toHaveBeenCalledWith({
+      number: '123456',
+      uf: 'SP',
+      lawyer_name: '',
+    });
+  });
 });
