@@ -154,4 +154,15 @@ describe('PublicationsPage', () => {
       lawyer_name: '',
     });
   });
+
+  it('clicar em Adicionar OAB salva sem recarregar a página', async () => {
+    await setup();
+    fixture.componentInstance.number.setValue('123456');
+    fixture.componentInstance.uf.setValue('SP');
+    const form = el().querySelector<HTMLFormElement>('form.oab-form');
+    const submit = new Event('submit', { cancelable: true });
+    form?.dispatchEvent(submit);
+    expect(submit.defaultPrevented).toBe(true); // o navegador não recarrega
+    expect(api['createOab']).toHaveBeenCalledWith({ number: '123456', uf: 'SP', lawyer_name: '' });
+  });
 });

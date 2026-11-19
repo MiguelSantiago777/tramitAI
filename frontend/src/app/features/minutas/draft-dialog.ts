@@ -87,7 +87,7 @@ const POLL_MAX = 300;
           <button mat-stroked-button type="button" (click)="draft.set(null)">Tentar de novo</button>
         }
       } @else {
-        <form class="form" (ngSubmit)="submit()">
+        <form class="form" (submit)="$event.preventDefault(); submit()">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Tipo de documento</mat-label>
             <mat-select [formControl]="kind">

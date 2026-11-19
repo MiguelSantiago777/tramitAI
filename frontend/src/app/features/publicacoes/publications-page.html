@@ -88,7 +88,7 @@
       </p>
     }
 
-    <form class="oab-form" (ngSubmit)="addOab()">
+    <form class="oab-form" (submit)="$event.preventDefault(); addOab()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="oab-form__number">
         <mat-label>Número da OAB</mat-label>
         <input matInput [formControl]="number" inputmode="numeric" placeholder="Ex.: 123456" />

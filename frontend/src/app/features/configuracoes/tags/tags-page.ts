@@ -21,7 +21,7 @@ import { ClientsService } from '../../clientes/clients.service';
       </div>
     </header>
 
-    <form class="card new-tag" (ngSubmit)="create()">
+    <form class="card new-tag" (submit)="$event.preventDefault(); create()">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
         <mat-label>Nova etiqueta</mat-label>
         <input matInput [formControl]="name" placeholder="Ex.: Trabalhista" maxlength="40" />
