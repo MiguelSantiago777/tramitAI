@@ -1,6 +1,11 @@
 <header class="page-header">
   <h1>{{ id() ? current()?.cnj_formatted || 'Processo' : 'Novo processo' }}</h1>
-  <a mat-button routerLink="/processos">Voltar</a>
+  <div class="header-actions">
+    @if (current(); as legalCase) {
+      <app-remove-button kind="case" [itemId]="legalCase.id" [label]="legalCase.cnj_formatted" />
+    }
+    <a mat-button routerLink="/processos">Voltar</a>
+  </div>
 </header>
 
 @if (loading() || saving()) {

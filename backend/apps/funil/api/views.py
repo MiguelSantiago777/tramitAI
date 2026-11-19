@@ -43,7 +43,9 @@ class OpportunityViewSet(
         fake = schema_safe_queryset(self, Opportunity)
         if fake is not None:
             return fake
-        qs = Opportunity.objects.select_related("client", "owner")
+        qs = Opportunity.objects.select_related("client", "owner").filter(
+            client__deleted_at__isnull=True  # cliente na lixeira some do funil
+        )
         if self.action != "list":
             return qs
         f = OpportunityFilterSerializer(data=self.request.query_params)

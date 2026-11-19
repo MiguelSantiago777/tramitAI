@@ -51,8 +51,10 @@ class FeeAgreementViewSet(
         fake = schema_safe_queryset(self, FeeAgreement)
         if fake is not None:
             return fake
-        qs = FeeAgreement.objects.select_related("client", "legal_case").prefetch_related(
-            "installments__agreement__client", "installments__settled_by"
+        qs = (
+            FeeAgreement.objects.select_related("client", "legal_case")
+            .prefetch_related("installments__agreement__client", "installments__settled_by")
+            .filter(client__deleted_at__isnull=True)  # cliente na lixeira some do financeiro
         )
         client = self.request.query_params.get("client")
         if client:
@@ -114,7 +116,7 @@ class InstallmentViewSet(
             return fake
         qs = Installment.objects.select_related(
             "agreement__client", "agreement__legal_case", "settled_by"
-        )
+        ).filter(agreement__client__deleted_at__isnull=True)
         if self.action != "list":
             return qs
         f = InstallmentFilterSerializer(data=self.request.query_params)

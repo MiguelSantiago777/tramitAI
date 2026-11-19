@@ -4,10 +4,10 @@ from django.conf import settings
 from django.db import models
 from django.db.models.functions import Lower
 
-from apps.core.models import TenantModel
+from apps.core.models import ActiveTenantManager, SoftDeletable, TenantManager, TenantModel
 
 
-class Client(TenantModel):
+class Client(SoftDeletable, TenantModel):
     """Cliente do escritório (ou lead vindo do WhatsApp). Dados pessoais mínimos (LGPD)."""
 
     class Kind(models.TextChoices):
@@ -28,8 +28,17 @@ class Client(TenantModel):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     notes = models.TextField("observações", blank=True, default="")
 
+    # Apagado de vez, mas com aceite do termo de IA (prova, append-only): a linha fica sem
+    # nenhum dado pessoal e nunca mais aparece (nem na lixeira).
+    anonymized_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    objects: ActiveTenantManager[Any] = ActiveTenantManager()
+    # Inclui os que estão na lixeira (unicidade, lixeira, restauração).
+    with_deleted: TenantManager[Any] = TenantManager()
+
     class Meta:
         verbose_name = "cliente"
+        default_manager_name = "objects"
         ordering = ["name"]
         constraints = [
             models.UniqueConstraint(

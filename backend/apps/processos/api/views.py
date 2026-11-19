@@ -8,7 +8,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from apps.accounts.authentication import get_membership
 from apps.accounts.models import User
+from apps.core import trash
 from apps.core.views_base import schema_safe_queryset
 from apps.processos import monitoring, selectors, services
 from apps.processos.models import LegalCase
@@ -29,9 +31,10 @@ class LegalCaseViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Processos do escritório. Sem DELETE: arquive com status ARCHIVED."""
+    """Processos do escritório. DELETE manda para a lixeira (restaurável por 30 dias)."""
 
     serializer_class = LegalCaseSerializer
 
@@ -58,6 +61,11 @@ class LegalCaseViewSet(
         serializer.instance = services.update_case(
             cast(LegalCase, serializer.instance), links=_links(data), **data
         )
+
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        trash.require_can_remove(get_membership(request))
+        trash.trash_case(self.get_object(), user=cast(User, request.user))
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(responses=CaseMovementSerializer(many=True))
     @action(detail=True, methods=["get"])

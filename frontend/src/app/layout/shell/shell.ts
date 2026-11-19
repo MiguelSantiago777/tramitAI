@@ -65,6 +65,7 @@ export class Shell {
     { path: '/configuracoes/respostas', label: 'Respostas prontas', icon: 'bolt' },
     { path: '/configuracoes/escritorio', label: 'Configurações', icon: 'settings' },
     { path: '/configuracoes/termo', label: 'Termo de IA', icon: 'verified_user' },
+    { path: '/lixeira', label: 'Lixeira', icon: 'delete' },
     { path: '/assinatura', label: 'Assinatura', icon: 'workspace_premium' },
     { path: '/manuais', label: 'Manuais', icon: 'play_circle' },
   ];

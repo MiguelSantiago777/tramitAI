@@ -200,6 +200,11 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.processos.tasks.schedule_case_checks",
         "schedule": 60 * 60,
     },
+    # Lixeira: apaga de vez o que foi removido há mais de 30 dias (4h da manhã).
+    "purge-trash": {
+        "task": "apps.core.tasks.purge_trash",
+        "schedule": crontab(hour=7, minute=0),
+    },
     # Diário (DJEN): busca as publicações das OABs monitoradas a cada 2h.
     "schedule-publication-checks": {
         "task": "apps.processos.tasks.schedule_publication_checks",

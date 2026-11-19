@@ -3,7 +3,7 @@ from typing import Any
 from rest_framework import serializers
 
 from apps.clientes.models import Client, ClientNote, ClientTermAcceptance, Tag
-from apps.clientes.selectors import document_in_use
+from apps.clientes.selectors import document_owner
 from apps.core.br import is_valid_cnpj, is_valid_cpf, normalize_br_phone, normalize_document
 from apps.core.serializers import TenantScopedPrimaryKeyRelatedField
 from apps.processos.models import LegalCase
@@ -79,10 +79,14 @@ class ClientSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"cpf_cnpj": "CPF inválido."})
             if kind == Client.Kind.COMPANY and not is_valid_cnpj(document):
                 raise serializers.ValidationError({"cpf_cnpj": "CNPJ inválido."})
-            if document_in_use(document, exclude_id=instance.pk if instance else None):
-                raise serializers.ValidationError(
-                    {"cpf_cnpj": "Já existe um cliente com este CPF/CNPJ."}
+            owner = document_owner(document, exclude_id=instance.pk if instance else None)
+            if owner is not None:
+                message = (
+                    "Este CPF/CNPJ é de um cliente que está na Lixeira. Restaure-o por lá."
+                    if owner.deleted_at
+                    else "Já existe um cliente com este CPF/CNPJ."
                 )
+                raise serializers.ValidationError({"cpf_cnpj": message})
         return attrs
 
 

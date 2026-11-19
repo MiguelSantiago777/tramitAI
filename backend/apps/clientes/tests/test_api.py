@@ -104,9 +104,10 @@ def test_changing_kind_revalidates_document(as_a, api_client):
     assert response.json()["error"]["details"]["cpf_cnpj"] == ["CNPJ inválido."]
 
 
-def test_delete_is_not_allowed(as_a, api_client):
+def test_delete_sends_to_trash(as_a, api_client):
     client_id = _create(api_client).json()["id"]
-    assert api_client.delete(f"{URL}{client_id}/").status_code == 405
+    assert api_client.delete(f"{URL}{client_id}/").status_code == 204
+    assert api_client.get(f"{URL}{client_id}/").status_code == 404
 
 
 def test_other_tenant_cannot_see_or_edit_client(tenant_a, tenant_b, login, api_client):

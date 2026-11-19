@@ -25,6 +25,7 @@ api_v1 = [
     path("", include("apps.financeiro.api.urls")),
     path("", include("apps.cobranca.api.urls")),
     path("", include("apps.relatorios.api.urls")),
+    path("", include("apps.core.trash_views")),
 ]
 
 urlpatterns = [

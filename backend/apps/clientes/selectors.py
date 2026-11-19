@@ -32,11 +32,16 @@ def search_clients(
     return qs.order_by("name")
 
 
-def document_in_use(document: str, *, exclude_id: object = None) -> bool:
-    qs = Client.objects.filter(cpf_cnpj=document)
+def document_owner(document: str, *, exclude_id: object = None) -> Client | None:
+    """Cliente (inclusive na lixeira) que já usa este CPF/CNPJ."""
+    qs = Client.with_deleted.filter(cpf_cnpj=document)
     if exclude_id is not None:
         qs = qs.exclude(pk=exclude_id)
-    return qs.exists()
+    return qs.first()
+
+
+def document_in_use(document: str, *, exclude_id: object = None) -> bool:
+    return document_owner(document, exclude_id=exclude_id) is not None
 
 
 def term_acceptances(client: Client) -> QuerySet[ClientTermAcceptance]:

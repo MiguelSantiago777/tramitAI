@@ -41,6 +41,13 @@ class LegalCaseSerializer(serializers.ModelSerializer):
     clients = CaseClientSerializer(many=True, source="case_clients", required=False)
     pending_movements = serializers.SerializerMethodField()
 
+    def to_representation(self, instance: LegalCase) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        # Cliente na lixeira não aparece no processo.
+        trashed = {str(cc.client_id) for cc in instance.case_clients.all() if cc.client.deleted_at}
+        data["clients"] = [c for c in data["clients"] if str(c["client_id"]) not in trashed]
+        return data
+
     class Meta:
         model = LegalCase
         fields = [
@@ -94,7 +101,14 @@ class LegalCaseSerializer(serializers.ModelSerializer):
             )
         instance: LegalCase | None = self.instance
         if cnj_in_use(digits, exclude_id=instance.pk if instance else None):
-            raise serializers.ValidationError("Este processo já está cadastrado.")
+            trashed = LegalCase.with_deleted.filter(
+                cnj_number=digits, deleted_at__isnull=False
+            ).exists()
+            raise serializers.ValidationError(
+                "Este processo está na Lixeira. Restaure-o por lá."
+                if trashed
+                else "Este processo já está cadastrado."
+            )
         return digits
 
     def validate_clients(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:

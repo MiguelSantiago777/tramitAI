@@ -1,17 +1,19 @@
 from typing import Any, cast
 
 from django.db.models import Count, QuerySet
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from apps.accounts.authentication import get_membership
+from apps.accounts.models import User
 from apps.clientes import selectors, services
 from apps.clientes.models import Client, Tag
 from apps.clientes.timeline import client_timeline
-from apps.core import audit
+from apps.core import audit, trash
 from apps.core.views_base import schema_safe_queryset
 
 from .serializers import (
@@ -31,11 +33,13 @@ class ClientViewSet(
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Clientes do escritório. Sem DELETE: para tirar de circulação, use status ARCHIVED.
+    """Clientes do escritório. DELETE manda para a lixeira (restaurável por 30 dias).
 
-    Exclusão definitiva (pedido LGPD) será um fluxo próprio, com anonimização.
+    Com parcelas em aberto, o DELETE devolve 409 `has_open_installments`; repita com
+    `?force=1` para confirmar.
     """
 
     serializer_class = ClientSerializer
@@ -66,6 +70,13 @@ class ClientViewSet(
         client = services.update_client(cast(Client, serializer.instance), tags=tags, **data)
         # Recarrega para a resposta trazer as etiquetas novas (o prefetch antigo ficou velho).
         serializer.instance = selectors.clients_with_tags().get(pk=client.pk)
+
+    @extend_schema(parameters=[OpenApiParameter("force", bool, required=False)])
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        trash.require_can_remove(get_membership(request))
+        force = request.query_params.get("force") in ("1", "true")
+        trash.trash_client(self.get_object(), user=cast(User, request.user), force=force)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(responses=TermAcceptanceSerializer(many=True))
     @action(detail=True, methods=["get"], url_path="term-acceptances")

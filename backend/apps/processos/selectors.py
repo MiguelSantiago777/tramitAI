@@ -45,7 +45,8 @@ def search_cases(
 
 
 def cnj_in_use(cnj_number: str, *, exclude_id: object = None) -> bool:
-    qs = LegalCase.objects.filter(cnj_number=cnj_number)
+    """Inclui a lixeira (o número é único por escritório no banco)."""
+    qs = LegalCase.with_deleted.filter(cnj_number=cnj_number)
     if exclude_id is not None:
         qs = qs.exclude(pk=exclude_id)
     return qs.exists()

@@ -78,6 +78,11 @@ export const routes: Routes = [
           import('./features/processos/processos.routes').then((m) => m.PROCESSOS_ROUTES),
       },
       {
+        path: 'lixeira',
+        title: 'Lixeira · TramitAI',
+        loadComponent: () => import('./features/lixeira/trash-page').then((m) => m.TrashPage),
+      },
+      {
         path: 'publicacoes',
         title: 'Publicações · TramitAI',
         loadComponent: () =>

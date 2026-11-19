@@ -1,6 +1,11 @@
 <header class="page-header">
   <h1>{{ id() ? client()?.name || 'Cliente' : 'Novo cliente' }}</h1>
-  <a mat-button routerLink="/clientes">Voltar</a>
+  <div class="header-actions">
+    @if (client(); as c) {
+      <app-remove-button kind="client" [itemId]="c.id" [label]="c.name" />
+    }
+    <a mat-button routerLink="/clientes">Voltar</a>
+  </div>
 </header>
 
 @if (loading() || saving()) {

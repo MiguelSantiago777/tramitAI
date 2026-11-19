@@ -271,6 +271,14 @@ def create_case_from(publication: Publication, *, user: User) -> LegalCase:
             code="no_cnj",
             status_code=http_status.HTTP_400_BAD_REQUEST,
         )
+    if LegalCase.with_deleted.filter(
+        cnj_number=publication.cnj_number, deleted_at__isnull=False
+    ).exists():
+        raise ApiError(
+            "Este processo está na Lixeira. Restaure-o por lá.",
+            code="case_in_trash",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
     case = LegalCase.objects.filter(cnj_number=publication.cnj_number).first()
     if case is None:
         responsible = publication.oab.user if publication.oab else None

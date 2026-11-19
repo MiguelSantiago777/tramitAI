@@ -3,12 +3,12 @@ from typing import Any
 from django.conf import settings
 from django.db import models
 
-from apps.core.models import TenantModel
+from apps.core.models import ActiveTenantManager, SoftDeletable, TenantManager, TenantModel
 
 from .cnj import format_cnj, tribunal_alias
 
 
-class LegalCase(TenantModel):
+class LegalCase(SoftDeletable, TenantModel):
     """Processo judicial acompanhado pelo escritório."""
 
     class Status(models.TextChoices):
@@ -54,8 +54,13 @@ class LegalCase(TenantModel):
         "clientes.Client", through="CaseClient", related_name="cases"
     )
 
+    objects: ActiveTenantManager[Any] = ActiveTenantManager()
+    # Inclui os que estão na lixeira (unicidade, lixeira, restauração).
+    with_deleted: TenantManager[Any] = TenantManager()
+
     class Meta:
         verbose_name = "processo"
+        default_manager_name = "objects"
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(fields=["tenant", "cnj_number"], name="case_cnj_unique"),

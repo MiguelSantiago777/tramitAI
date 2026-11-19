@@ -16,6 +16,13 @@ class TenantManager[M: models.Model](models.Manager[M]):
         return super().get_queryset().filter(tenant_id=get_current_tenant_id())
 
 
+class ActiveTenantManager[M: models.Model](TenantManager[M]):
+    """Manager padrão de quem tem lixeira: esconde o que foi removido (deleted_at preenchido)."""
+
+    def get_queryset(self) -> models.QuerySet[M]:
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
 class TenantModel(models.Model):
     """Base de toda tabela de negócio (data plane).
 
@@ -82,3 +89,24 @@ class AuditEvent(TenantModel):
         if not self._state.adding:
             raise ValueError("Evento de auditoria é imutável.")
         super().save(*args, **kwargs)
+
+
+class SoftDeletable(models.Model):
+    """Lixeira: removido some das listas (manager `objects`), restaurável por 30 dias.
+
+    Use com `objects = ActiveTenantManager()` e `with_deleted = TenantManager()` na classe
+    concreta e `default_manager_name = "objects"` no Meta. Regras em apps.core.trash.
+    """
+
+    deleted_at = models.DateTimeField(null=True, blank=True, editable=False, db_index=True)
+    deleted_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        editable=False,
+    )
+
+    class Meta:
+        abstract = True

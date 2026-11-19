@@ -34,9 +34,11 @@ import { TermAcceptances } from '../term-acceptances/term-acceptances';
 import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 import { ClientFeesPanel } from '../../financeiro/client-fees-panel';
 
+import { RemoveButton } from '../../lixeira/remove-button';
 @Component({
   selector: 'app-client-form',
   imports: [
+    RemoveButton,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
