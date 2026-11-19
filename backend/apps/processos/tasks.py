@@ -6,12 +6,17 @@ from celery import shared_task
 from . import monitoring, publications
 
 
-@shared_task(bind=True, max_retries=4, acks_late=True)
+@shared_task(bind=True, max_retries=6, acks_late=True)
 def sync_case_task(self: Any, tenant_id: str, case_id: str) -> str:
-    """Consulta o andamento de um processo. Idempotente (dedupe por fingerprint + lock)."""
+    """Consulta o andamento de um processo. Idempotente (dedupe por fingerprint + lock).
+
+    DataJud cheio (429/timeout): tenta de novo em 1, 2, 4, 8, 16 e 30 min (~1 h no total).
+    """
     try:
         return monitoring.sync_case(uuid.UUID(tenant_id), uuid.UUID(case_id))
     except monitoring.RetryableSyncError as exc:
+        if self.request.retries >= self.max_retries:
+            return f"gave_up:{exc}"
         raise self.retry(exc=exc, countdown=min(60 * 2**self.request.retries, 1800)) from exc
 
 

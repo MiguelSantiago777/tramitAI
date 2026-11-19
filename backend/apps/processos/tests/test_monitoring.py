@@ -146,7 +146,7 @@ def test_schedule_picks_only_due_cases(tenant_a, tenant_b, monitored_case):
     scheduled = {call.kwargs["args"][1] for call in apply_async.call_args_list}
     assert scheduled == {str(monitored_case.pk), str(stale.pk), str(other.pk)}
     countdowns = sorted(call.kwargs["countdown"] for call in apply_async.call_args_list)
-    assert countdowns == [0, 3, 6]
+    assert countdowns == [0, 15, 30]
 
 
 # --------------------------------------------------------------------------- API

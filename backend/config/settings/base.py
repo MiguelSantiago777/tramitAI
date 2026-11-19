@@ -297,12 +297,13 @@ PROCESS_SOURCE: str = env("PROCESS_SOURCE", default="fake")
 DATAJUD_URL: str = env("DATAJUD_URL", default="https://api-publica.datajud.cnj.jus.br")
 # Chave pública divulgada pelo CNJ na wiki do DataJud. Fica só em env: o CNJ troca às vezes.
 DATAJUD_API_KEY: str = env("DATAJUD_API_KEY", default="")
-DATAJUD_TIMEOUT: float = env.float("DATAJUD_TIMEOUT", default=30.0)
+# O DataJud anda levando 30-60 s por consulta quando está cheio; 30 s cortava respostas boas.
+DATAJUD_TIMEOUT: float = env.float("DATAJUD_TIMEOUT", default=90.0)
 # Cada processo ativo é consultado no máximo a cada N horas.
 CASE_CHECK_INTERVAL_HOURS: int = env.int("CASE_CHECK_INTERVAL_HOURS", default=2)
-CASE_CHECKS_PER_RUN: int = env.int("CASE_CHECKS_PER_RUN", default=300)
+CASE_CHECKS_PER_RUN: int = env.int("CASE_CHECKS_PER_RUN", default=200)
 # Intervalo entre consultas agendadas no mesmo ciclo (o DataJud devolve 429 fácil).
-CASE_CHECK_SPACING_SECONDS: int = env.int("CASE_CHECK_SPACING_SECONDS", default=3)
+CASE_CHECK_SPACING_SECONDS: int = env.int("CASE_CHECK_SPACING_SECONDS", default=15)
 # Publicações do Diário (DJEN) por OAB: "djen" (API pública do CNJ, sem chave) ou "fake".
 PUBLICATION_SOURCE: str = env("PUBLICATION_SOURCE", default="djen")
 DJEN_URL: str = env("DJEN_URL", default="https://comunicaapi.pje.jus.br")
