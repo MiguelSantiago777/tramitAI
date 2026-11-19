@@ -73,6 +73,11 @@ class GeminiLlmClient:
             response_json_schema=request.json_schema,
             max_output_tokens=settings.LLM_MAX_TOKENS,
         )
+        if request.timeout_seconds:
+            config.http_options = types.HttpOptions(
+                timeout=int(request.timeout_seconds * 1000),
+                retry_options=types.HttpRetryOptions(attempts=1),
+            )
         if settings.LLM_THINKING_LEVEL:
             # Triagem não precisa de raciocínio longo: "low"/"minimal" responde bem mais rápido.
             config.thinking_config = types.ThinkingConfig(

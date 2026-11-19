@@ -120,6 +120,22 @@ A primeira busca de uma OAB olha os últimos 7 dias. O DJEN limita ~20 requisiç
 então as OABs são consultadas uma por vez (`PUBLICATION_CHECK_SPACING_SECONDS`). Só nos planos
 com "publicações do Diário" marcado (Escritório e Equipe).
 
+### Minutas com a Lia (petição, contrato, procuração)
+
+Na ficha do cliente ou do processo, **Escrever com a Lia** gera a minuta em Word (.docx) e PDF
+e salva na pasta do cliente. A Lia escreve com marcadores (`[NOME DO CLIENTE]`,
+`[CPF/CNPJ DO CLIENTE]`, `[VALOR DA PARCELA]`...) e os dados reais são preenchidos no servidor:
+nome, CPF, telefone, e-mail e valores **não** vão para o provedor de IA (o pedido digitado passa
+por um filtro que troca CPF, e-mail, telefone e o nome do cliente por marcadores). O que a Lia
+não sabe (endereço, parte contrária...) fica destacado em amarelo no Word. Conta no limite
+mensal da Lia do plano.
+
+### Lixeira
+
+Remover cliente/processo manda para a **Lixeira** (titular e advogado). Fica 30 dias
+restaurável; depois o beat apaga de vez, com documentos, honorários e oportunidades. Cliente com
+aceite do termo de IA é anonimizado (o aceite é prova e não pode ser apagado).
+
 ## Deploy (produção, um servidor)
 
 Pré-requisitos: VPS Ubuntu 24.04 (2 vCPU / 4 GB), um domínio com registro **A** apontando para o

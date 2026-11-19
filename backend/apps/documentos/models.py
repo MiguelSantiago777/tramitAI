@@ -36,6 +36,7 @@ class Document(TenantModel):
     class Source(models.TextChoices):
         UPLOAD = "UPLOAD", "Enviado pela equipe"
         WHATSAPP = "WHATSAPP", "WhatsApp"
+        GENERATED = "GENERATED", "Escrito pela Lia"
 
     file = models.FileField(upload_to=document_path, max_length=255)
     name = models.CharField("nome", max_length=255)
@@ -44,7 +45,7 @@ class Document(TenantModel):
     sha256 = models.CharField(max_length=64)
     category = models.CharField(max_length=12, choices=Category.choices, default=Category.OUTRO)
     description = models.CharField("descrição", max_length=500, blank=True, default="")
-    source = models.CharField(max_length=8, choices=Source.choices, default=Source.UPLOAD)
+    source = models.CharField(max_length=10, choices=Source.choices, default=Source.UPLOAD)
 
     client = models.ForeignKey(
         "clientes.Client",
@@ -109,3 +110,68 @@ class Document(TenantModel):
             # Apaga o arquivo só depois do commit: se a transação voltar, o arquivo continua.
             transaction.on_commit(lambda: storage.delete(path))
         return result
+
+
+class DocumentDraft(TenantModel):
+    """Pedido de minuta à Lia (petição, contrato...). Gera .docx e .pdf na pasta do cliente.
+
+    A Lia escreve com marcadores ([NOME DO CLIENTE], [CPF/CNPJ DO CLIENTE]...); os dados
+    pessoais são preenchidos aqui no servidor e nunca vão para o provedor de IA.
+    """
+
+    class Kind(models.TextChoices):
+        PETITION = "PETITION", "Petição"
+        FEE_CONTRACT = "FEE_CONTRACT", "Contrato de honorários"
+        POWER_OF_ATTORNEY = "POWER", "Procuração"
+        DECLARATION = "DECLARATION", "Declaração"
+        OTHER = "OTHER", "Outro documento"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Escrevendo"
+        DONE = "DONE", "Pronta"
+        ERROR = "ERROR", "Falhou"
+
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    title = models.CharField("título", max_length=200)
+    instructions = models.TextField("pedido")
+    client = models.ForeignKey(
+        "clientes.Client", on_delete=models.CASCADE, null=True, blank=True, related_name="drafts"
+    )
+    legal_case = models.ForeignKey(
+        "processos.LegalCase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="drafts",
+    )
+    fee_agreement = models.ForeignKey(
+        "financeiro.FeeAgreement",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.PENDING)
+    error_code = models.CharField(max_length=64, blank=True, default="")
+    review_notes = models.TextField(blank=True, default="")
+    # Marcadores que ficaram para o advogado preencher no Word.
+    missing_fields = models.JSONField(default=list, blank=True)
+    docx = models.ForeignKey(
+        Document, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    pdf = models.ForeignKey(
+        Document, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    ai_generation = models.ForeignKey(
+        "ia.AiGeneration", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+
+    class Meta:
+        verbose_name = "minuta"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.title

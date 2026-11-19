@@ -48,9 +48,11 @@ type ClientRowGroup = FormGroup<{
 import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 
 import { RemoveButton } from '../../lixeira/remove-button';
+import { DraftButton } from '../../minutas/draft-button';
 @Component({
   selector: 'app-case-form',
   imports: [
+    DraftButton,
     RemoveButton,
     CasePublications,
     DatePipe,

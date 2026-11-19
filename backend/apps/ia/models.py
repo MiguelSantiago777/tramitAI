@@ -13,6 +13,7 @@ class AiGeneration(TenantModel):
     class Kind(models.TextChoices):
         TRIAGE = "TRIAGE", "Triagem"
         MOVEMENT_UPDATE = "MOVEMENT", "Aviso de andamento"
+        LEGAL_DRAFT = "DRAFT", "Minuta (peça/contrato)"
 
     class Status(models.TextChoices):
         OK = "OK", "Gerado"

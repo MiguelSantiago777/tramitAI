@@ -11,6 +11,8 @@ class LlmRequest:
     json_schema: dict[str, Any]
     # Só para registro/observabilidade (nunca o conteúdo).
     purpose: str = "triage"
+    # Texto longo (peça, contrato) demora mais que a triagem: sobrescreve LLM_TIMEOUT_SECONDS.
+    timeout_seconds: float | None = None
 
 
 @dataclass(frozen=True)

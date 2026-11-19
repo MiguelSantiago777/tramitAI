@@ -3,7 +3,7 @@ from typing import Any
 
 from celery import shared_task
 
-from . import movements, services
+from . import drafting, movements, services
 
 
 @shared_task(bind=True, max_retries=6, acks_late=True)
@@ -32,3 +32,15 @@ def explain_movements(self: Any, tenant_id: str, case_id: str) -> str:
         return movements.explain_case_movements(uuid.UUID(tenant_id), uuid.UUID(case_id))
     except movements.RetryableMovementError as exc:
         raise self.retry(exc=exc, countdown=min(60 * 2**self.request.retries, 900)) from exc
+
+
+@shared_task(bind=True, max_retries=4, acks_late=True)
+def write_legal_draft(self: Any, tenant_id: str, draft_id: str) -> str:
+    """Minuta da Lia (peça/contrato). IA sobrecarregada: tenta de novo em 20s, 1, 3 e 9 min."""
+    try:
+        return drafting.generate(uuid.UUID(tenant_id), uuid.UUID(draft_id))
+    except drafting.RetryableDraftError as exc:
+        if self.request.retries >= self.max_retries:
+            drafting.give_up(uuid.UUID(tenant_id), uuid.UUID(draft_id), str(exc))
+            return "llm_gave_up"
+        raise self.retry(exc=exc, countdown=min(20 * 3**self.request.retries, 600)) from exc

@@ -1,5 +1,6 @@
 {
   "triage": "v3",
   "term_request": "v1",
-  "movement_update": "v1"
+  "movement_update": "v1",
+  "legal_draft": "v1"
 }

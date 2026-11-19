@@ -42,13 +42,18 @@ class AnthropicLlmClient:
             },
         }
         started = time.monotonic()
+        client = (
+            self._client.with_options(timeout=request.timeout_seconds)
+            if request.timeout_seconds
+            else self._client
+        )
         try:
             if settings.LLM_REFUSAL_FALLBACK:
-                response = self._client.beta.messages.create(
+                response = client.beta.messages.create(
                     **params, betas=[REFUSAL_FALLBACK_BETA], fallbacks="default"
                 )
             else:
-                response = self._client.messages.create(**params)
+                response = client.messages.create(**params)
         except anthropic.RateLimitError as exc:
             raise LlmError("rate_limited", retryable=True) from exc
         except anthropic.APIConnectionError as exc:  # inclui timeout

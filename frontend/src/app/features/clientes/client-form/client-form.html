@@ -2,6 +2,7 @@
   <h1>{{ id() ? client()?.name || 'Cliente' : 'Novo cliente' }}</h1>
   <div class="header-actions">
     @if (client(); as c) {
+      <app-draft-button [clientId]="c.id" [label]="c.name" />
       <app-remove-button kind="client" [itemId]="c.id" [label]="c.name" />
     }
     <a mat-button routerLink="/clientes">Voltar</a>

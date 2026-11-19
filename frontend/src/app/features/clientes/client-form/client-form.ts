@@ -35,9 +35,11 @@ import { DocumentsPanel } from '../../../shared/documents/documents-panel';
 import { ClientFeesPanel } from '../../financeiro/client-fees-panel';
 
 import { RemoveButton } from '../../lixeira/remove-button';
+import { DraftButton } from '../../minutas/draft-button';
 @Component({
   selector: 'app-client-form',
   imports: [
+    DraftButton,
     RemoveButton,
     ReactiveFormsModule,
     RouterLink,

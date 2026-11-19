@@ -27,7 +27,20 @@ DEFAULT_MOVEMENT_UPDATE: dict[str, Any] = {
     "needs_lawyer": True,
     "summary_for_lawyer": "[IA de teste] Andamento novo; texto simulado.",
 }
-_DEFAULTS = {"movement_update": DEFAULT_MOVEMENT_UPDATE}
+DEFAULT_LEGAL_DRAFT: dict[str, Any] = {
+    "title": "Minuta de teste",
+    "body": (
+        "# PROCURAÇÃO AD JUDICIA\n\n"
+        "## OUTORGANTE\n\n"
+        "[NOME DO CLIENTE], inscrito(a) no CPF/CNPJ sob o nº [CPF/CNPJ DO CLIENTE], "
+        "residente em [ENDEREÇO DO CLIENTE].\n\n"
+        "## OUTORGADO\n\n"
+        "[NOME DO ADVOGADO], OAB [OAB DO ADVOGADO], do escritório [NOME DO ESCRITÓRIO].\n\n"
+        "> [DATA DE HOJE]"
+    ),
+    "review_notes": "[IA de teste] Confira o endereço do cliente.",
+}
+_DEFAULTS = {"movement_update": DEFAULT_MOVEMENT_UPDATE, "legal_draft": DEFAULT_LEGAL_DRAFT}
 
 
 @dataclass
