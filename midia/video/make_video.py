@@ -316,6 +316,32 @@ def duration(path: Path) -> float:
     return float(json.loads(out.stdout)["format"]["duration"])
 
 
+MUSIC_VOLUME = 0.22  # trilha bem baixa: a voz é o que importa
+
+
+def add_music(video: Path, seed: int = 1) -> None:
+    """Põe a trilha de fundo no vídeo pronto. A música abaixa sozinha enquanto a Vera fala."""
+    import make_music
+
+    music = make_music.render(duration(video), WORK / "audio" / f"musica-{video.stem}.wav", seed)
+    mixed = video.with_name(f"{video.stem}.musica.mp4")
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(music),
+            "-filter_complex",
+            "[0:a]asplit=2[voz][chave];"
+            f"[1:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={MUSIC_VOLUME}[m];"
+            "[m][chave]sidechaincompress=threshold=0.03:ratio=5:attack=40:release=700[fundo];"
+            "[voz][fundo]amix=inputs=2:duration=first:normalize=0[a]",
+            "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+            "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ar", "48000", "-movflags", "+faststart",
+            str(mixed),
+        ],
+        check=True,
+    )
+    mixed.replace(video)
+
+
 def render_scene(index: int, scene: tuple, raw_words: list, boxes: dict) -> tuple[Path, float, list]:
     scene_id, image, label, text, highlights = scene
     audio = WORK / "audio" / f"{scene_id}.mp3"
@@ -397,6 +423,7 @@ def main() -> None:
         ],
         check=True,
     )
+    add_music(OUT / "tramitai-apresentacao.mp4")
     (OUT / "roteiro.srt").write_text("\n".join(srt), encoding="utf-8")
     print(f"pronto: out/tramitai-apresentacao.mp4 ({offset:.0f}s)")
 

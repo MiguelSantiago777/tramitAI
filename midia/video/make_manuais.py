@@ -368,6 +368,7 @@ def build(n: int, manual: tuple) -> dict:
         ],
         check=True,
     )
+    mv.add_music(video, seed=n)  # cada manual com uma variação do arpejo
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error", "-i", str(mv.WORK / "cards" / f"{manual_id}.png"),

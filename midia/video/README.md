@@ -18,6 +18,10 @@ docker run --rm -v "$PWD/midia/video:/video" tramitai-video python3 make_video.p
 # outra voz: ... python3 make_video.py pt-BR-AntonioNeural
 ```
 
+Trilha de fundo: composta por `make_music.py` (pad, baixo e arpejo em Dó maior, sem direitos de
+terceiros) e mixada no fim por `add_music` em `make_video.py`, que também vale para os manuais. A
+música abaixa sozinha enquanto a narração fala; o volume geral fica em `MUSIC_VOLUME`.
+
 O roteiro fica em `SCENES` dentro de `make_video.py`. O texto da narração é enviado ao serviço
 de voz da Microsoft (só o roteiro, sem dados de clientes).
 

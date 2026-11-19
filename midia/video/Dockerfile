@@ -4,6 +4,6 @@ FROM mcr.microsoft.com/playwright/python:v1.49.0-noble
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg fonts-noto-core fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir --break-system-packages playwright==1.49.0 edge-tts httpx==0.28.1
+RUN pip install --no-cache-dir --break-system-packages playwright==1.49.0 edge-tts httpx==0.28.1 numpy==2.1.3
 
 WORKDIR /video
