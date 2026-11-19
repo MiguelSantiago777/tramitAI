@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
@@ -30,19 +31,24 @@ const invited: TeamMember = {
 describe('Team', () => {
   let fixture: ComponentFixture<Team>;
   let api: Record<string, ReturnType<typeof vi.fn>>;
+  let dialog: { open: ReturnType<typeof vi.fn> };
 
   async function setup(role: 'OWNER' | 'LAWYER') {
+    dialog = { open: vi.fn() };
     api = {
       team: vi.fn(() => of([me, invited])),
-      invite: vi.fn(() => of(invited)),
+      invite: vi.fn(() => of({ ...invited, access_link: 'https://app/convite' })),
       updateMember: vi.fn(() => of(invited)),
-      resendInvite: vi.fn(() => of(undefined)),
+      accessLink: vi.fn(() =>
+        of({ url: 'https://app/redefinir-senha?uid=x&token=y', kind: 'invite' }),
+      ),
     };
     await TestBed.configureTestingModule({
       imports: [Team],
       providers: [
         { provide: TenantService, useValue: api },
         { provide: AuthService, useValue: { session: signal({ role }) } },
+        { provide: MatDialog, useValue: dialog },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(Team);
@@ -72,6 +78,17 @@ describe('Team', () => {
       full_name: 'Nova',
       role: 'STAFF',
     });
+    // Sem e-mail: o titular recebe o link para mandar.
+    expect(dialog.open.mock.calls[0][1].data).toEqual(
+      expect.objectContaining({ url: 'https://app/convite', kind: 'invite' }),
+    );
+  });
+
+  it('gera link de nova senha pelo menu', async () => {
+    await setup('OWNER');
+    fixture.componentInstance.link(invited);
+    expect(api['accessLink']).toHaveBeenCalledWith('m2');
+    expect(dialog.open.mock.calls[0][1].data.email).toBe('nova@escritorio.com');
   });
 
   it('quem não é titular só vê a lista', async () => {

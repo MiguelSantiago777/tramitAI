@@ -96,8 +96,21 @@ export class TenantService {
     return this.http.get<TeamMember[]>('/api/v1/tenant/team/');
   }
 
-  invite(body: { email: string; full_name: string; role: Role }): Observable<TeamMember> {
-    return this.http.post<TeamMember>('/api/v1/tenant/team/', body);
+  /** Devolve o membro e o link de convite para o titular mandar (sem depender de e-mail). */
+  invite(body: {
+    email: string;
+    full_name: string;
+    role: Role;
+  }): Observable<TeamMember & { access_link: string }> {
+    return this.http.post<TeamMember & { access_link: string }>('/api/v1/tenant/team/', body);
+  }
+
+  /** Link de convite (sem senha ainda) ou de nova senha (esqueceu). Vale 3 dias. */
+  accessLink(id: string): Observable<{ url: string; kind: 'invite' | 'reset' }> {
+    return this.http.post<{ url: string; kind: 'invite' | 'reset' }>(
+      `/api/v1/tenant/team/${id}/access-link/`,
+      {},
+    );
   }
 
   updateMember(id: string, body: { role?: Role; is_active?: boolean }): Observable<TeamMember> {

@@ -155,3 +155,70 @@ def test_lawyer_cannot_edit_settings(tenant_a, api_client, login):
     assert (
         api_client.patch(SETTINGS, {"ai_triage_enabled": False}, format="json").status_code == 403
     )
+
+
+def _uid_token(url):
+    match = re.search(r"uid=([^&\s]+)&token=([^&\s]+)", url)
+    assert match
+    return match.group(1), match.group(2)
+
+
+def test_invite_returns_link_to_share_without_email(
+    tenant_a, api_client, login, django_capture_on_commit_callbacks
+):
+    login(tenant_a.owner.email)
+    body = _invite(
+        api_client,
+        django_capture_on_commit_callbacks,
+        email="sem.email@exemplo.com",
+        full_name="Sem Email",
+        role="STAFF",
+    ).json()
+    assert body["access_link"].endswith("&convite=1")
+    uid, token = _uid_token(body["access_link"])
+
+    # O titular pode gerar o link de novo (perdeu a mensagem, venceu os 3 dias...).
+    again = api_client.post(f"{TEAM}{body['id']}/access-link/").json()
+    assert again["kind"] == "invite"
+
+    api_client.credentials()
+    ok = api_client.post(
+        CONFIRM, {"uid": uid, "token": token, "password": "senha-sem-email-1"}, format="json"
+    )
+    assert ok.status_code == 204
+    assert login("sem.email@exemplo.com", password="senha-sem-email-1").status_code == 200
+
+
+def test_owner_creates_new_password_link_for_member_who_forgot(tenant_a, api_client, login):
+    lawyer = User.objects.create_user(email="esqueci@a.test", password="senha-antiga-123")
+    m = Membership.objects.create(user=lawyer, tenant=tenant_a.tenant, role="LAWYER")
+    login(tenant_a.owner.email)
+    link = api_client.post(f"{TEAM}{m.pk}/access-link/").json()
+    assert link["kind"] == "reset"
+    assert "convite" not in link["url"]
+    uid, token = _uid_token(link["url"])
+    api_client.credentials()
+    payload = {"uid": uid, "token": token, "password": "senha-nova-456"}
+    assert api_client.post(CONFIRM, payload, format="json").status_code == 204
+    assert login("esqueci@a.test", password="senha-nova-456").status_code == 200
+    # Link usado não vale de novo.
+    payload["password"] = "outra-senha-789"
+    assert api_client.post(CONFIRM, payload, format="json").status_code == 400
+
+
+def test_no_reset_link_for_someone_from_another_office(tenant_a, tenant_b, api_client, login):
+    shared = Membership.objects.create(user=tenant_b.owner, tenant=tenant_a.tenant, role="STAFF")
+    login(tenant_a.owner.email)
+    response = api_client.post(f"{TEAM}{shared.pk}/access-link/")
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "member_elsewhere"
+
+
+def test_only_owner_creates_links(tenant_a, tenant_b, api_client, login):
+    lawyer = User.objects.create_user(email="adv2@a.test", password="senha-de-teste-123")
+    Membership.objects.create(user=lawyer, tenant=tenant_a.tenant, role="LAWYER")
+    owner_m = Membership.objects.get(user=tenant_a.owner, tenant=tenant_a.tenant)
+    login("adv2@a.test")
+    assert api_client.post(f"{TEAM}{owner_m.pk}/access-link/").status_code == 403
+    login(tenant_b.owner.email)
+    assert api_client.post(f"{TEAM}{owner_m.pk}/access-link/").status_code == 404

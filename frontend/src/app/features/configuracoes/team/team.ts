@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
@@ -13,6 +14,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
 import { TeamMember, TenantService } from '../../../core/tenant/tenant.service';
 import { initialsOf } from '../../../shared/initials';
+import { AccessLinkData, AccessLinkDialog } from './access-link-dialog';
 
 /** Equipe do escritório: convidar, mudar papel, desativar. Mexer: só o titular. */
 @Component({
@@ -32,6 +34,7 @@ import { initialsOf } from '../../../shared/initials';
 export class Team {
   private readonly api = inject(TenantService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly session = inject(AuthService).session;
   readonly isOwner = computed(() => this.session()?.role === 'OWNER');
 
@@ -64,10 +67,14 @@ export class Team {
       this.form.markAllAsTouched();
       return;
     }
-    this.run(this.api.invite(this.form.getRawValue()), () => {
-      this.snackBar.open('Convite enviado por e-mail.', undefined, { duration: 4000 });
+    this.run(this.api.invite(this.form.getRawValue()), (member) => {
       this.form.reset({ email: '', full_name: '', role: 'LAWYER' });
       this.inviting.set(false);
+      if (member.access_link) {
+        this.showLink(member, member.access_link, 'invite');
+      } else {
+        this.snackBar.open('Pessoa adicionada à equipe.', undefined, { duration: 4000 });
+      }
     });
   }
 
@@ -83,19 +90,41 @@ export class Team {
     );
   }
 
-  resend(m: TeamMember): void {
-    this.run(this.api.resendInvite(m.id), () =>
-      this.snackBar.open('Convite reenviado.', undefined, { duration: 3000 }),
-    );
+  link(m: TeamMember): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.api.accessLink(m.id).subscribe({
+      next: ({ url, kind }) => {
+        this.busy.set(false);
+        this.showLink(m, url, kind);
+      },
+      error: (err: unknown) => {
+        this.busy.set(false);
+        this.error.set(toApiError(err).message);
+      },
+    });
   }
 
-  private run(request: Observable<unknown>, done?: () => void): void {
+  private showLink(m: TeamMember, url: string, kind: 'invite' | 'reset'): void {
+    this.dialog.open<AccessLinkDialog, AccessLinkData>(AccessLinkDialog, {
+      data: {
+        url,
+        kind,
+        name: m.full_name,
+        email: m.email,
+        officeName: this.session()?.tenant?.name ?? '',
+      },
+      maxWidth: '560px',
+    });
+  }
+
+  private run<T>(request: Observable<T>, done?: (result: T) => void): void {
     this.busy.set(true);
     this.error.set(null);
     request.subscribe({
-      next: () => {
+      next: (result) => {
         this.busy.set(false);
-        done?.();
+        done?.(result);
         this.load();
       },
       error: (err: unknown) => {

@@ -4,7 +4,10 @@ Regras:
 - Só o titular (OWNER) mexe na equipe (permissão na view).
 - O escritório nunca fica sem titular ativo.
 - Ninguém altera o próprio vínculo (evita se trancar para fora por engano).
-- Convite = usuário sem senha + e-mail com link para criar a senha (vale 3 dias, uso único).
+- Convite = usuário sem senha + link para criar a senha (vale 3 dias, uso único). O titular
+  copia o link e manda como quiser (WhatsApp); o e-mail é só um extra quando houver SMTP.
+- Esqueceu a senha e não há e-mail configurado: o titular gera um link de nova senha, mas só
+  para quem não está em outro escritório (senão um titular tomaria a conta de outro lugar).
 """
 
 import uuid
@@ -120,3 +123,37 @@ def invite_link(user: User) -> str:
     from .services import password_reset_link
 
     return password_reset_link(user) + "&convite=1"
+
+
+@dataclass(frozen=True)
+class AccessLink:
+    url: str
+    kind: str  # "invite" (criar senha) ou "reset" (nova senha)
+
+
+def access_link(membership: Membership) -> AccessLink:
+    """Link para a pessoa entrar: convite (sem senha ainda) ou nova senha (esqueceu)."""
+    if not membership.is_active:
+        raise ApiError(
+            "Reative a pessoa antes de gerar o link.",
+            code="inactive_member",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+    user = membership.user
+    if not user.has_usable_password():
+        return AccessLink(invite_link(user), "invite")
+    elsewhere = (
+        Membership.objects.filter(user=user, is_active=True)
+        .exclude(tenant_id=membership.tenant_id)
+        .exists()
+    )
+    if elsewhere:
+        raise ApiError(
+            "Essa pessoa também usa o TramitAI em outro escritório. Ela mesma precisa usar "
+            "'Esqueci minha senha' na tela de login.",
+            code="member_elsewhere",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+    from .services import password_reset_link
+
+    return AccessLink(password_reset_link(user), "reset")

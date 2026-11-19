@@ -1,7 +1,7 @@
 from typing import cast
 
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.generics import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -135,10 +135,10 @@ class TeamView(APIView):
             data={"role": membership.role},
         )
         member = team.TeamMember(membership, pending=not membership.user.has_usable_password())
-        return Response(
-            TeamMemberSerializer(member, context={"request": request}).data,
-            status=status.HTTP_201_CREATED,
-        )
+        data = dict(TeamMemberSerializer(member, context={"request": request}).data)
+        # Sem e-mail configurado, o titular manda este link (WhatsApp, por exemplo).
+        data["access_link"] = team.access_link(membership).url if member.pending else ""
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class TeamMemberView(APIView):
@@ -177,3 +177,26 @@ class TeamResendInviteView(TeamMemberView):
     def post(self, request: Request, membership_id: str) -> Response:
         team.resend_invite(self._membership(membership_id), invited_by=cast(User, request.user))
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TeamAccessLinkView(TeamMemberView):
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            "TeamAccessLink",
+            {"url": serializers.CharField(), "kind": serializers.CharField()},
+        ),
+        tags=["tenant"],
+    )
+    def post(self, request: Request, membership_id: str) -> Response:
+        """Link para entrar: convite (ainda sem senha) ou nova senha. Vale 3 dias, uso único."""
+        membership = self._membership(membership_id)
+        link = team.access_link(membership)
+        audit.record(
+            "team.access_link_created",
+            membership,
+            actor_type=audit.Actor.USER,
+            actor_user=request.user,
+            data={"kind": link.kind},
+        )
+        return Response({"url": link.url, "kind": link.kind})

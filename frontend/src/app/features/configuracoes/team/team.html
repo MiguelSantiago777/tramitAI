@@ -35,14 +35,15 @@
       </mat-form-field>
     </div>
     <p class="muted small">
-      A pessoa recebe um e-mail para criar a senha (vale 3 dias).
+      Você recebe um link para mandar à pessoa (WhatsApp, por exemplo); com ele ela cria a senha
+      (vale 3 dias).
       <strong>Titular</strong> faz tudo, inclusive equipe e configurações.
       <strong>Advogado(a)</strong> aprova mensagens. <strong>Equipe</strong> atende e cadastra, mas
       só aprova se você liberar em Configurações.
     </p>
     <div class="form-actions">
       <button mat-button type="button" (click)="inviting.set(false)">Cancelar</button>
-      <button mat-flat-button type="submit" [disabled]="busy()">Enviar convite</button>
+      <button mat-flat-button type="submit" [disabled]="busy()">Criar convite</button>
     </div>
   </form>
 }
@@ -77,9 +78,9 @@
               </button>
             }
           }
-          @if (m.pending) {
-            <button mat-menu-item type="button" (click)="resend(m)">Reenviar convite</button>
-          }
+          <button mat-menu-item type="button" (click)="link(m)">
+            {{ m.pending ? 'Link de convite' : 'Link para nova senha' }}
+          </button>
           <button mat-menu-item type="button" class="danger" (click)="setActive(m, false)">
             Remover acesso
           </button>
