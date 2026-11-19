@@ -106,7 +106,6 @@ def test_lia_offers_books_and_lawyer_confirms(
     django_capture_on_commit_callbacks,
 ):
     inbound("Oi, fui demitido")
-    approve(drafts(origin=TERM)[0])
     fake_llm.queue.append(
         _llm("Posso marcar com a advogada: H1, H2 ou H3?", scheduling_step="offer")
     )
@@ -146,7 +145,6 @@ def test_taken_slot_goes_to_lawyer(
     tenant_a, account_a, scheduling_on, inbound, approve, drafts, fake_llm, fake_gateway
 ):
     inbound("Oi")
-    approve(drafts(origin=TERM)[0])
     fake_llm.queue.append(_llm("H1, H2 ou H3?", scheduling_step="offer"))
     inbound("Aceito")
     with tenant_context(tenant_a.tenant.id):
@@ -193,7 +191,6 @@ def test_only_mode_does_not_book_first_slot(
 ):
     """Cliente responde só "online": a IA chuta H1, mas o sistema pergunta o horário."""
     inbound("Oi")
-    approve(drafts(origin=TERM)[0])
     fake_llm.queue.append(_llm("H1, H2 ou H3? Presencial ou online?", scheduling_step="offer"))
     inbound("Aceito")
     fake_llm.queue.append(

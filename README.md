@@ -69,9 +69,11 @@ Cada escritório conecta o próprio número lendo um QR Code, como no WhatsApp W
 - Prompts versionados em `backend/apps/ia/prompts/` (versão ativa em `manifest.json`; nunca edite
   uma versão já usada, crie `v2.md`). Toda chamada fica em `AiGeneration` com tokens e modelo.
 
-Fluxo: primeiro contato → rascunho com o termo de ciência (sem IA) → advogado aprova → cliente
-responde ACEITO → a partir daí cada mensagem passa pela triagem e vira rascunho na fila
-**Aprovações**. Nada é enviado sem aprovação humana; tudo fica em `core_auditevent`
+Fluxo: primeiro contato → o termo de ciência (texto fixo publicado pelo escritório, sem IA) sai
+sozinho → cliente responde ACEITO → a partir daí cada mensagem passa pela triagem e vira
+rascunho na fila **Aprovações**. Se o termo não puder sair na hora (janela da Meta fechada), ele
+fica como rascunho para a equipe enviar. Respostas escritas pela IA só saem sem aprovação na
+triagem automática de contato novo, se o escritório ligar; tudo fica em `core_auditevent`
 (append-only).
 
 ## Andamentos (DataJud)

@@ -1,7 +1,8 @@
 """Termo de ciência de IA dentro da conversa.
 
 Regra: nenhuma mensagem do contato vai para o provedor de IA antes do aceite da versão vigente
-do termo. Até lá, o sistema só oferece o termo (rascunho sem IA, aprovado pelo advogado).
+do termo. Até lá, o sistema só oferece o termo: texto fixo, sem IA, enviado sozinho (se a janela
+da Meta estiver fechada, fica como rascunho para a equipe enviar).
 """
 
 import re
@@ -70,7 +71,7 @@ def offer_was_sent(conversation: Conversation, term: ClientTermVersion) -> bool:
 
 
 def offer(conversation: Conversation, term: ClientTermVersion, trigger: Message) -> OutboundDraft:
-    """Cria o rascunho com o termo (sem IA). Sai só com aprovação humana."""
+    """Envia o termo (sem IA). Se não der para enviar agora, fica o rascunho para a equipe."""
     tenant = Tenant.objects.get(pk=conversation.tenant_id)
     name = conversation.client.name if conversation.client else conversation.contact_name
     first_name = (name or "").split(" ")[0]
@@ -80,7 +81,7 @@ def offer(conversation: Conversation, term: ClientTermVersion, trigger: Message)
         termo=term.body,
     )
     Conversation.objects.filter(pk=conversation.pk).update(ai_consent_version=term.version)
-    return approvals.create_draft(
+    draft = approvals.create_draft(
         conversation=conversation,
         origin=OutboundDraft.Origin.TERM_REQUEST,
         body=body,
@@ -89,6 +90,9 @@ def offer(conversation: Conversation, term: ClientTermVersion, trigger: Message)
         source_message=trigger,
         summary="Primeiro contato: enviar o termo de ciência de uso de IA.",
     )
+    # O texto é o termo publicado pelo próprio escritório (sem IA): não há o que revisar.
+    approvals.auto_send(draft)
+    return draft
 
 
 def _lead_phone(wa_id: str) -> str:

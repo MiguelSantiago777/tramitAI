@@ -33,7 +33,6 @@ def auto_on(tenant_a):
 
 def _accepted(inbound, approve, drafts):
     inbound("Oi, fui demitido")
-    approve(drafts(origin=TERM)[0])
 
 
 def _sent(fake_gateway):

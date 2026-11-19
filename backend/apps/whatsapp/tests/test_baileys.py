@@ -71,7 +71,7 @@ def test_inbound_message_creates_conversation_and_is_idempotent(tenant_a, bailey
     post_bridge(_message(baileys_a.phone_number_id))  # a ponte reenviou
 
     with tenant_context(tenant_a.tenant.id):
-        [message] = Message.objects.all()
+        [message] = Message.objects.filter(direction="IN")
         conversation = Conversation.objects.get()
         offered = OutboundDraft.objects.filter(origin=OutboundDraft.Origin.TERM_REQUEST).count()
     assert message.wa_message_id == "bl:3EB0AAA"

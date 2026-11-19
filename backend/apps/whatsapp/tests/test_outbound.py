@@ -12,6 +12,15 @@ from .fixtures import NUMBER_A, TOKEN_A, status_payload
 
 pytestmark = pytest.mark.django_db
 
+
+@pytest.fixture(autouse=True)
+def _term_not_auto_sent(monkeypatch):
+    """Aqui o assunto é o transporte: o termo de IA fica como rascunho, sem mensagem a mais."""
+    from apps.aprovacoes import services as approvals
+
+    monkeypatch.setattr(approvals, "auto_send", lambda draft: False)
+
+
 URL = "/api/v1/conversations/"
 
 

@@ -233,7 +233,7 @@ def test_window_open_sends_text_directly(
 
     [draft] = _updates(drafts)
     assert draft.status == OutboundDraft.Status.SENT
-    [sent] = fake_gateway.sent
+    sent = fake_gateway.sent[-1]  # antes dele, só o termo de IA
     assert sent.template == ""
     assert sent.body == draft.generated_body
 

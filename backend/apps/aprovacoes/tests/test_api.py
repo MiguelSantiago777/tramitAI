@@ -216,7 +216,7 @@ def test_manual_reply_is_audited(
         {"body": "Oi! Tudo bem?"},
     )
     with tenant_context(tenant_a.tenant.id):
-        message = Message.objects.get(direction="OUT")
+        message = Message.objects.get(direction="OUT", body="Oi! Tudo bem?")
         event = AuditEvent.objects.get(action="message.manual_reply")
     assert event.entity_id == message.id
     assert event.actor_user == tenant_a.owner

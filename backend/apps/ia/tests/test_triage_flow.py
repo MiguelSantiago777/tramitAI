@@ -38,21 +38,22 @@ def _reply(text, **extra):
 def _consent_given(tenant_a, account_a, inbound, approve, drafts, fake_gateway):
     """Primeira mensagem, termo aprovado e enviado, cliente responde ACEITO."""
     inbound("Oi, tenho uma dúvida sobre minha aposentadoria")
-    approve(drafts(origin=TERM)[0])
     inbound("Aceito")
 
 
 # ------------------------------------------------------------------ termo de ciência
 
 
-def test_first_message_offers_term_without_calling_llm(
-    tenant_a, account_a, inbound, drafts, fake_llm
+def test_first_message_sends_term_alone_without_calling_llm(
+    tenant_a, account_a, inbound, drafts, fake_llm, fake_gateway
 ):
     inbound("Bom dia, meu CPF é 529.982.247-25")
 
     [draft] = drafts()
     assert draft.origin == TERM
-    assert draft.status == OutboundDraft.Status.DRAFT
+    assert draft.auto_sent is True  # texto fixo do escritório: sai sem aprovação
+    assert draft.status in (OutboundDraft.Status.APPROVED, OutboundDraft.Status.SENT)
+    assert "Vera" in fake_gateway.sent[-1].body
     assert "Vera" in draft.generated_body
     assert "Escritorio A" in draft.generated_body
     assert "responda ACEITO" in draft.generated_body
@@ -64,16 +65,22 @@ def test_more_messages_before_term_is_sent_do_not_duplicate_offer(
 ):
     inbound("Oi")
     inbound("Alguém aí?")
-    inbound("aceito")  # termo ainda não foi enviado: não vale como aceite
     assert len(drafts(origin=TERM)) == 1
     assert drafts(origin=AI) == []
     assert fake_llm.calls == []
 
 
-def test_rejected_offer_is_offered_again(tenant_a, account_a, inbound, drafts):
+def test_term_not_sent_stays_for_team_and_rejected_is_offered_again(
+    tenant_a, account_a, inbound, drafts, monkeypatch
+):
+    from apps.aprovacoes import services as approvals
     from apps.aprovacoes.services import reject_draft
 
+    # Não deu para enviar (ex.: janela da Meta fechada): fica o rascunho para a equipe.
+    monkeypatch.setattr(approvals, "auto_send", lambda draft: False)
     inbound("Oi")
+    inbound("aceito")  # termo ainda não foi enviado: não vale como aceite
+    assert [d.status for d in drafts(origin=TERM)] == ["DRAFT"]
     with tenant_context(tenant_a.tenant.id):
         reject_draft(
             draft=drafts(origin=TERM)[0], user=tenant_a.owner, membership=tenant_a.membership
@@ -175,7 +182,6 @@ def test_cpf_only_suggests_client_and_never_exposes_cases(
     assert conversation.suggested_client_id == joao.id
     assert conversation.client_id is None
 
-    approve(drafts(origin=TERM)[0])
     inbound("aceito", wa_id="5521911112222")
     content = fake_llm.calls[0].user_content
     assert case.cnj_formatted not in content
