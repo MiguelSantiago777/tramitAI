@@ -134,6 +134,24 @@
   background: var(--mat-sys-surface-container-lowest);
 }
 
+.thread__attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-low);
+  min-width: 0;
+}
+
+.thread__attachment-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .thread__closed {
   margin: 8px 0;
 }

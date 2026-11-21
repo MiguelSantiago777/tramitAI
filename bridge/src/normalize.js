@@ -179,3 +179,21 @@ export function normalizeStatus(update) {
   }
   return { id: key.id, status, timestamp: Math.floor(Date.now() / 1000) };
 }
+
+/** Conteúdo do Baileys para enviar um arquivo. Tipo desconhecido: null. */
+export function mediaContent({ kind, buffer, mimetype, fileName, caption }) {
+  const text = caption || undefined;
+  switch (kind) {
+    case 'image':
+      return { image: buffer, mimetype, caption: text };
+    case 'video':
+      return { video: buffer, mimetype, caption: text };
+    case 'audio':
+      // Arquivo de áudio comum, não mensagem de voz; o WhatsApp não aceita legenda em áudio.
+      return { audio: buffer, mimetype, ptt: false };
+    case 'document':
+      return { document: buffer, mimetype, fileName: fileName || 'arquivo', caption: text };
+    default:
+      return null;
+  }
+}

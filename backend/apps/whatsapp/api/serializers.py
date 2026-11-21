@@ -157,6 +157,13 @@ class SendMessageSerializer(serializers.Serializer):
     body = serializers.CharField(max_length=services.MAX_TEXT_LENGTH, trim_whitespace=True)
 
 
+class SendAttachmentSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    caption = serializers.CharField(
+        max_length=1024, required=False, allow_blank=True, default="", trim_whitespace=True
+    )
+
+
 class ConversationFilterSerializer(serializers.Serializer):
     q = serializers.CharField(required=False, allow_blank=True, default="")
     status = serializers.ChoiceField(

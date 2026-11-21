@@ -4,6 +4,7 @@ from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
@@ -19,6 +20,7 @@ from .serializers import (
     ConversationSerializer,
     MessageSerializer,
     QuickReplySerializer,
+    SendAttachmentSerializer,
     SendMessageSerializer,
 )
 
@@ -33,6 +35,7 @@ class ConversationViewSet(
     """Inbox do WhatsApp. PATCH altera cliente vinculado, situação e responsável."""
 
     serializer_class = ConversationSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self) -> QuerySet[Conversation]:
@@ -76,6 +79,24 @@ class ConversationViewSet(
         message = services.send_text_reply(
             conversation=conversation,
             body=payload.validated_data["body"],
+            user=cast(User, request.user),
+        )
+        return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        request={"multipart/form-data": SendAttachmentSerializer},
+        responses={201: MessageSerializer},
+    )
+    @action(detail=True, methods=["post"])
+    def attachments(self, request: Request, pk: str | None = None) -> Response:
+        """Envia um arquivo ao contato. O arquivo fica guardado na pasta do cliente."""
+        conversation = self.get_object()
+        payload = SendAttachmentSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        message = services.send_document_reply(
+            conversation=conversation,
+            upload=payload.validated_data["file"],
+            caption=payload.validated_data["caption"],
             user=cast(User, request.user),
         )
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)

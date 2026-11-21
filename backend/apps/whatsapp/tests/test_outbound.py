@@ -254,3 +254,112 @@ def test_access_token_never_leaves_the_api(conversation, reply, api_client):
 
 def test_token_is_encrypted_at_rest(tenant_a, account_a):
     assert TOKEN_A not in account_a.access_token_encrypted
+
+
+# ============================================================================ anexos
+
+
+@pytest.fixture
+def attach(api_client, django_capture_on_commit_callbacks):
+    def _send(conversation, upload, caption=""):
+        with django_capture_on_commit_callbacks(execute=True):
+            return api_client.post(
+                f"{URL}{conversation.id}/attachments/",
+                {"file": upload, "caption": caption},
+                format="multipart",
+            )
+
+    return _send
+
+
+def _pdf_upload(name="procuracao.pdf"):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    return SimpleUploadedFile(name, b"%PDF-1.4 procuracao", content_type="application/pdf")
+
+
+def test_attachment_is_sent_and_saved_in_client_folder(
+    tenant_a, conversation, attach, fake_gateway, api_client
+):
+    from apps.clientes.models import Client
+    from apps.core.tenancy import tenant_atomic
+    from apps.documentos.models import Document
+
+    with tenant_atomic(tenant_a.tenant.id):
+        ana = Client.objects.create(name="Ana Souza")
+        Conversation.objects.filter(pk=conversation.pk).update(client=ana)
+
+    response = attach(conversation, _pdf_upload(), caption="Segue a procuração para assinar")
+    assert response.status_code == 201, response.content
+    data = response.json()
+    assert data["type"] == "document"
+    assert data["document"]["name"] == "procuracao.pdf"
+
+    message = _message(tenant_a)
+    assert message.status == Message.Status.SENT
+    assert message.sent_by == tenant_a.owner
+    sent = fake_gateway.sent[-1]
+    assert sent.kind == "document"
+    assert sent.filename == "procuracao.pdf"
+    assert sent.body == "Segue a procuração para assinar"
+
+    with tenant_context(tenant_a.tenant.id):
+        doc = Document.objects.get(message=message)
+    assert doc.client_id == ana.pk
+    assert doc.conversation_id == conversation.pk
+    assert doc.source == Document.Source.UPLOAD
+    assert doc.uploaded_by == tenant_a.owner
+
+    listed = api_client.get(f"/api/v1/documents/?client={ana.pk}").json()["results"]
+    assert [d["name"] for d in listed] == ["procuracao.pdf"]
+
+
+def test_attachment_without_client_stays_with_conversation(
+    tenant_a, conversation, attach, fake_gateway
+):
+    from apps.documentos.models import Document
+
+    assert attach(conversation, _pdf_upload()).status_code == 201
+    with tenant_context(tenant_a.tenant.id):
+        doc = Document.objects.get()
+    assert doc.client_id is None
+    assert doc.conversation_id == conversation.pk
+
+
+def test_small_image_goes_as_image(tenant_a, conversation, attach, fake_gateway):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    image = SimpleUploadedFile("foto.png", b"\x89PNG\r\n\x1a\nxxxx", content_type="image/png")
+    assert attach(conversation, image, caption="olha").status_code == 201
+    assert fake_gateway.sent[-1].kind == "image"
+
+
+def test_media_kind_rules():
+    assert services.media_kind("image/jpeg", 1000) == "image"
+    assert services.media_kind("image/jpeg", 6 * 1024 * 1024) == "document"
+    assert services.media_kind("image/webp", 1000) == "document"
+    assert services.media_kind("audio/mpeg", 1000) == "audio"
+    assert services.media_kind("audio/mpeg", 1000, caption="oi") == "document"
+    assert services.media_kind("video/quicktime", 1000) == "document"
+    assert services.media_kind("application/pdf", 1000) == "document"
+
+
+def test_attachment_rejects_unsafe_file(tenant_a, conversation, attach, fake_gateway):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    response = attach(conversation, SimpleUploadedFile("x.exe", b"MZ\x90\x00"))
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "file_type_not_allowed"
+    with tenant_context(tenant_a.tenant.id):
+        assert not Message.objects.filter(direction=Message.Direction.OUTBOUND).exists()
+    assert fake_gateway.sent == []
+
+
+def test_attachment_blocked_when_window_closed(tenant_a, conversation, attach, fake_gateway):
+    with tenant_context(tenant_a.tenant.id):
+        Conversation.objects.filter(pk=conversation.pk).update(
+            last_inbound_at=timezone.now() - timedelta(hours=25)
+        )
+    response = attach(conversation, _pdf_upload())
+    assert response.status_code == 409
+    assert fake_gateway.sent == []

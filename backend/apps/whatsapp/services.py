@@ -29,7 +29,7 @@ from apps.core.exceptions import ApiError
 from apps.core.tenancy import tenant_atomic, tenant_context
 from apps.tenants.models import Tenant
 
-from .gateway import Credentials, GatewayError, get_gateway
+from .gateway import Credentials, GatewayError, MediaFile, get_gateway
 from .inbound import (
     ConnectionUpdate,
     InboundMessage,
@@ -421,6 +421,80 @@ def queue_text(*, conversation: Conversation, body: str, sent_by: User | None) -
     return message
 
 
+# Limites do WhatsApp por tipo de mídia. Acima disso (ou formato que o WhatsApp não toca como
+# mídia), o arquivo vai como documento, que aceita qualquer formato até 100 MB.
+_MEDIA_KINDS: dict[str, tuple[set[str], int]] = {
+    Message.Type.IMAGE: ({"image/jpeg", "image/png"}, 5 * 1024 * 1024),
+    Message.Type.VIDEO: ({"video/mp4", "video/3gpp"}, 16 * 1024 * 1024),
+    Message.Type.AUDIO: ({"audio/mpeg", "audio/ogg", "audio/mp4", "audio/aac"}, 16 * 1024 * 1024),
+}
+
+
+def media_kind(content_type: str, size: int, *, caption: str = "") -> str:
+    """Como o arquivo aparece no WhatsApp: imagem, vídeo, áudio ou documento."""
+    for kind, (types, limit) in _MEDIA_KINDS.items():
+        if content_type in types and size <= limit:
+            # Áudio não leva legenda no WhatsApp: com texto junto, vai como documento.
+            if kind == Message.Type.AUDIO and caption:
+                break
+            return str(kind)
+    return str(Message.Type.DOCUMENT)
+
+
+def send_document_reply(
+    *, conversation: Conversation, upload: Any, caption: str, user: User
+) -> Message:
+    """Anexo enviado pela equipe na conversa. O arquivo vira documento da pasta do cliente
+    (ou da conversa, até ela ser vinculada a um cliente) e sai pelo WhatsApp."""
+    from apps.documentos import services as documents
+    from apps.documentos.models import Document
+
+    from .tasks import send_message
+
+    caption = (caption or "").strip()
+    if len(caption) > 1024:
+        raise ApiError("Legenda longa demais (máx. 1024 caracteres).", code="caption_too_long")
+    if not window_open(conversation):
+        raise ApiError(
+            "A janela de 24h do WhatsApp está fechada: o cliente não manda mensagem há mais de "
+            "24 horas. Só é possível enviar um modelo aprovado pela Meta.",
+            code="window_closed",
+            status_code=http_status.HTTP_409_CONFLICT,
+        )
+    name, content_type = documents.validate_upload(upload)
+    message = Message.objects.create(
+        conversation=conversation,
+        direction=Message.Direction.OUTBOUND,
+        type=media_kind(content_type, upload.size, caption=caption),
+        body=caption,
+        media_filename=name[:200],
+        status=Message.Status.QUEUED,
+        sent_by=user,
+    )
+    document = documents.create_upload(
+        upload=upload,
+        user=user,
+        client=conversation.client,
+        conversation=conversation,
+        message=message,
+        category=Document.Category.OUTRO,
+        description=caption,
+    )
+    Conversation.objects.filter(pk=conversation.pk).update(
+        last_message_at=message.created_at, unread_count=0
+    )
+    audit.record(
+        "message.manual_attachment",
+        message,
+        actor_type=audit.Actor.USER,
+        actor_user=user,
+        data={"conversation_id": str(conversation.pk), "document_id": str(document.pk)},
+    )
+    tenant_id, message_id = str(conversation.tenant_id), str(message.id)
+    transaction.on_commit(lambda: send_message.delay(tenant_id, message_id))
+    return message
+
+
 def queue_template(
     *,
     conversation: Conversation,
@@ -535,15 +609,35 @@ def deliver_outbound(tenant_id: uuid.UUID, message_id: uuid.UUID) -> None:
         account = message.conversation.account
         provider = account.provider
         credentials = account_credentials(account)
-        to, body = message.conversation.wa_id, message.body
+        to, body, kind = message.conversation.wa_id, message.body, message.type
         template = (
             (message.template_name, message.template_language, list(message.template_params))
             if message.type == Message.Type.TEMPLATE
             else None
         )
+        doc = getattr(message, "document", None)
+        attachment = (doc.file.name, doc.content_type, doc.name) if doc is not None else None
 
     try:
-        if template is not None:
+        if attachment is not None:
+            path, content_type, filename = attachment
+            from apps.documentos.models import Document
+
+            try:
+                with Document._meta.get_field("file").storage.open(path, "rb") as fp:
+                    content = fp.read()
+            except OSError as exc:
+                raise GatewayError(
+                    "file_missing", "Arquivo não encontrado no servidor.", retryable=False
+                ) from exc
+            result = get_gateway(provider).send_media(
+                credentials,
+                to=to,
+                kind=kind,
+                media=MediaFile(content=content, content_type=content_type, filename=filename),
+                caption=body,
+            )
+        elif template is not None:
             name, language, params = template
             result = get_gateway(provider).send_template(
                 credentials, to=to, name=name, language=language, params=params

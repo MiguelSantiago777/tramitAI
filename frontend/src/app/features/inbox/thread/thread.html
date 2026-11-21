@@ -124,16 +124,56 @@
   <p class="error-text thread__error" role="alert">{{ message }}</p>
 }
 
+@if (canReply() && attachment(); as file) {
+  <div class="thread__attachment" data-testid="attachment">
+    <span class="icon">{{ attachmentIcon(file) }}</span>
+    <span class="thread__attachment-name">{{ file.name }}</span>
+    <span class="muted small">{{ attachmentSize(file) }} · fica salvo na pasta do cliente</span>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="clearAttachment()"
+      [disabled]="sending()"
+      aria-label="Remover anexo"
+      matTooltip="Remover anexo"
+    >
+      <span class="icon">close</span>
+    </button>
+  </div>
+}
+
 <footer class="thread__composer">
   @if (canReply()) {
+    <input
+      #filePicker
+      type="file"
+      hidden
+      [accept]="attachmentAccept"
+      (change)="pickAttachment($event)"
+      data-testid="file-picker"
+    />
+    <button
+      mat-icon-button
+      type="button"
+      (click)="filePicker.click()"
+      [disabled]="sending()"
+      matTooltip="Anexar arquivo"
+      aria-label="Anexar arquivo"
+    >
+      <span class="icon">attach_file</span>
+    </button>
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
-      <mat-label>Responder</mat-label>
+      <mat-label>{{ attachment() ? 'Legenda (opcional)' : 'Responder' }}</mat-label>
       <textarea
         matInput
         [formControl]="draft"
         rows="2"
         (keydown)="onComposerKeydown($event)"
-        placeholder="Escreva a resposta (Ctrl+Enter envia)"
+        [placeholder]="
+          attachment()
+            ? 'Texto que vai junto com o arquivo (Ctrl+Enter envia)'
+            : 'Escreva a resposta (Ctrl+Enter envia)'
+        "
       ></textarea>
     </mat-form-field>
     <button
@@ -155,13 +195,8 @@
         </button>
       }
     </mat-menu>
-    <button
-      mat-flat-button
-      type="button"
-      (click)="send()"
-      [disabled]="sending() || draft.invalid || !draft.value.trim()"
-    >
-      Enviar
+    <button mat-flat-button type="button" (click)="send()" [disabled]="!canSend()">
+      {{ sending() && attachment() ? 'Enviando…' : 'Enviar' }}
     </button>
   } @else if (conversation()) {
     <p class="muted small thread__closed" data-testid="window-closed">

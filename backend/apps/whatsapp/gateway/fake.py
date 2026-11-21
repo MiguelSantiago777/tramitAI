@@ -13,6 +13,9 @@ class SentMessage:
     body: str
     template: str = ""
     params: list[str] = field(default_factory=list)
+    kind: str = ""
+    filename: str = ""
+    content_type: str = ""
 
 
 @dataclass
@@ -45,6 +48,30 @@ class FakeGateway:
             raise error
         self.sent.append(
             SentMessage(credentials.phone_number_id, to, "", template=name, params=list(params))
+        )
+        return SendResult(wa_message_id=f"wamid.fake.{uuid.uuid4().hex}")
+
+    def send_media(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        kind: str,
+        media: MediaFile,
+        caption: str = "",
+    ) -> SendResult:
+        if self.fail_next is not None:
+            error, self.fail_next = self.fail_next, None
+            raise error
+        self.sent.append(
+            SentMessage(
+                credentials.phone_number_id,
+                to,
+                caption,
+                kind=kind,
+                filename=media.filename,
+                content_type=media.content_type,
+            )
         )
         return SendResult(wa_message_id=f"wamid.fake.{uuid.uuid4().hex}")
 

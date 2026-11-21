@@ -47,6 +47,14 @@ export class InboxService {
     return this.http.post<Message>(`${URL}${id}/messages/`, { body });
   }
 
+  /** Envia um arquivo ao contato; ele também fica guardado na pasta do cliente. */
+  sendAttachment(id: string, file: File, caption = ''): Observable<Message> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (caption) form.append('caption', caption);
+    return this.http.post<Message>(`${URL}${id}/attachments/`, form);
+  }
+
   /** Pede para a Vera tentar de novo responder a última mensagem do contato. */
   retryAi(id: string): Observable<void> {
     return this.http.post<void>(`/api/v1/conversations/${id}/retry-ai/`, {});

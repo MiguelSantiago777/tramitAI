@@ -7,6 +7,7 @@ import { signal } from '@angular/core';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { DraftsService } from '../../aprovacoes/drafts.service';
+import { DocumentsService } from '../../../shared/documents/documents.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ClientsService } from '../../clientes/clients.service';
 import { Conversation, Message } from '../inbox.models';
@@ -65,6 +66,7 @@ describe('Thread', () => {
       ),
       markRead: vi.fn(() => of(undefined)),
       send: vi.fn(),
+      sendAttachment: vi.fn(),
       update: vi.fn(),
       retryAi: vi.fn(() => of(undefined)),
     };
@@ -82,6 +84,7 @@ describe('Thread', () => {
           },
         },
         { provide: AuthService, useValue: { session: signal({ can_approve: true }) } },
+        { provide: DocumentsService, useValue: { objectUrl: vi.fn(), open: vi.fn() } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(Thread);
@@ -124,6 +127,42 @@ describe('Thread', () => {
     expect(fixture.componentInstance.messages().map((m) => m.id)).toEqual(['1', '9']);
     expect(el().textContent).toContain('Enviando…');
     expect(fixture.componentInstance.draft.value).toBe('');
+  });
+
+  it('anexa um arquivo e envia com o texto como legenda', async () => {
+    await setup(conversation, [msg('1', 'IN', 'Bom dia')]);
+    const doc = { id: 'd1', name: 'procuracao.pdf', content_type: 'application/pdf', size: 20 };
+    inbox['sendAttachment'].mockReturnValue(
+      of(
+        msg('9', 'OUT', 'Segue', {
+          type: 'document',
+          status: 'QUEUED',
+          document: doc,
+          media_pending: false,
+        }),
+      ),
+    );
+
+    const file = new File(['%PDF-1.4'], 'procuracao.pdf', { type: 'application/pdf' });
+    const picker = el().querySelector('[data-testid="file-picker"]') as HTMLInputElement;
+    Object.defineProperty(picker, 'files', { value: [file], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+
+    expect(el().querySelector('[data-testid="attachment"]')?.textContent).toContain(
+      'procuracao.pdf',
+    );
+    expect(fixture.componentInstance.canSend()).toBe(true);
+
+    fixture.componentInstance.draft.setValue(' Segue ');
+    fixture.componentInstance.send();
+    await fixture.whenStable();
+
+    expect(inbox['sendAttachment']).toHaveBeenCalledWith('conv1', file, 'Segue');
+    expect(inbox['send']).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.attachment()).toBeNull();
+    expect(el().querySelector('[data-testid="attachment"]')).toBeNull();
+    expect(el().textContent).toContain('procuracao.pdf');
   });
 
   it('esconde o campo de resposta quando a janela de 24h está fechada', async () => {

@@ -59,6 +59,54 @@ class CloudApiGateway:
             },
         )
 
+    def send_media(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        kind: str,
+        media: MediaFile,
+        caption: str = "",
+    ) -> SendResult:
+        """Dois passos: sobe o arquivo para a Meta (devolve um id) e manda a mensagem com ele."""
+        media_id = self._upload(credentials, media)
+        body: dict[str, Any] = {"id": media_id}
+        if caption and kind != "audio":
+            body["caption"] = caption
+        if kind == "document" and media.filename:
+            body["filename"] = media.filename
+        return self._send(
+            credentials,
+            {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": to,
+                "type": kind,
+                kind: body,
+            },
+        )
+
+    def _upload(self, credentials: Credentials, media: MediaFile) -> str:
+        base = settings.WHATSAPP_GRAPH_URL.rstrip("/")
+        url = f"{base}/{settings.WHATSAPP_GRAPH_VERSION}/{credentials.phone_number_id}/media"
+        try:
+            response = self._client.post(
+                url,
+                data={"messaging_product": "whatsapp", "type": media.content_type},
+                files={"file": (media.filename or "arquivo", media.content, media.content_type)},
+                headers={"Authorization": f"Bearer {credentials.access_token}"},
+                timeout=max(settings.WHATSAPP_HTTP_TIMEOUT, 60.0),
+            )
+        except httpx.HTTPError as exc:
+            # Subir o arquivo não manda nada para o cliente: dá para tentar de novo.
+            raise GatewayError("upload_failed", type(exc).__name__, retryable=True) from exc
+        if not response.is_success:
+            raise _error_from(response)
+        try:
+            return str(response.json()["id"])
+        except (ValueError, KeyError, TypeError) as exc:
+            raise GatewayError("bad_response", "upload sem id", retryable=False) from exc
+
     def _send(self, credentials: Credentials, payload: dict[str, Any]) -> SendResult:
         try:
             response = self._client.post(

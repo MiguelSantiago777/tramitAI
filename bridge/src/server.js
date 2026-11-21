@@ -6,6 +6,8 @@
 //   POST   /sessions/:id/start        → { status, qr, phone }
 //   DELETE /sessions/:id              → desconecta e apaga a sessão
 //   POST   /sessions/:id/messages     { to, text } → { id }
+//   POST   /sessions/:id/media-messages  arquivo cru (Content-Type, X-To, X-Kind,
+//                                         X-File-Name, X-Caption) → { id }
 //   GET    /sessions/:id/media/:msgId  → arquivo (Content-Type + X-File-Name)
 //   DELETE /sessions/:id/media/:msgId  → apaga a cópia temporária
 
@@ -22,6 +24,7 @@ const SECRET = process.env.WHATSAPP_BRIDGE_SECRET ?? '';
 const WEBHOOK_URL = process.env.BACKEND_WEBHOOK_URL ?? 'http://backend:8000/api/webhooks/bridge/';
 const DATA_DIR = process.env.DATA_DIR ?? '/data';
 const MAX_BODY = 64 * 1024;
+const MAX_MEDIA_BODY = Number(process.env.MAX_MEDIA_BYTES ?? 30 * 1024 * 1024);
 
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 if (SECRET.length < 32) {
@@ -37,6 +40,27 @@ function send(res, status, body) {
   const payload = body === undefined ? '' : JSON.stringify(body);
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(payload);
+}
+
+async function readBody(req, limit) {
+  let size = 0;
+  const chunks = [];
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > limit) {
+      throw new SendError('body_too_large', 413);
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function header(req, name) {
+  try {
+    return decodeURIComponent(String(req.headers[name] ?? ''));
+  } catch {
+    return '';
+  }
 }
 
 async function readJson(req) {
@@ -86,7 +110,7 @@ async function route(req, res) {
     return send(res, 405, { error: 'method_not_allowed' });
   }
 
-  const match = url.pathname.match(/^\/sessions\/([^/]+)(\/start|\/messages)?$/);
+  const match = url.pathname.match(/^\/sessions\/([^/]+)(\/start|\/messages|\/media-messages)?$/);
   if (!match || !SESSION_ID.test(match[1])) {
     return send(res, 404, { error: 'not_found' });
   }
@@ -108,6 +132,22 @@ async function route(req, res) {
       return send(res, 400, { error: 'invalid_message' });
     }
     const messageId = await sessions.sendText(id, body.to, body.text);
+    return send(res, 200, { id: messageId });
+  }
+  if (req.method === 'POST' && action === '/media-messages') {
+    const to = String(req.headers['x-to'] ?? '');
+    const kind = String(req.headers['x-kind'] ?? '');
+    const buffer = await readBody(req, MAX_MEDIA_BODY);
+    if (!to || !buffer.length || !['image', 'video', 'audio', 'document'].includes(kind)) {
+      return send(res, 400, { error: 'invalid_message' });
+    }
+    const messageId = await sessions.sendMedia(id, to, {
+      kind,
+      buffer,
+      mimetype: String(req.headers['content-type'] ?? 'application/octet-stream'),
+      fileName: header(req, 'x-file-name'),
+      caption: header(req, 'x-caption'),
+    });
     return send(res, 200, { id: messageId });
   }
   return send(res, 405, { error: 'method_not_allowed' });

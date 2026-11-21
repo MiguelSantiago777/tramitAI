@@ -18,7 +18,13 @@ import makeWASocket, {
 } from 'baileys';
 import QRCode from 'qrcode';
 
-import { MAX_MEDIA_BYTES, jidFromWaId, normalizeInbound, normalizeStatus } from './normalize.js';
+import {
+  MAX_MEDIA_BYTES,
+  jidFromWaId,
+  mediaContent,
+  normalizeInbound,
+  normalizeStatus,
+} from './normalize.js';
 
 export const SESSION_ID = /^[a-z0-9_-]{6,64}$/;
 
@@ -276,6 +282,24 @@ export class SessionManager {
     return job;
   }
 
+  /**
+   * Envia um arquivo na mesma fila do texto. `kind`: image | video | audio | document.
+   * Devolve o id da mensagem.
+   */
+  sendMedia(id, to, { kind, buffer, mimetype, fileName, caption }) {
+    const content = mediaContent({ kind, buffer, mimetype, fileName, caption });
+    if (!content) {
+      return Promise.reject(new SendError('invalid_kind', 400));
+    }
+    const session = this.sessions.get(id);
+    if (!session || session.status !== 'open' || !session.sock) {
+      return Promise.reject(new SendError('not_connected', 409));
+    }
+    const job = session.queue.then(() => this.#send(session, to, content));
+    session.queue = job.catch(() => undefined);
+    return job;
+  }
+
   async #send(session, to, text) {
     const sock = session.sock;
     if (!sock || session.status !== 'open') {
@@ -293,7 +317,8 @@ export class SessionManager {
     } catch {
       // presença é cosmética
     }
-    const sent = await sock.sendMessage(jid, { text });
+    const content = typeof text === 'string' ? { text } : text;
+    const sent = await sock.sendMessage(jid, content);
     session.lastSendAt = Date.now();
     if (!sent?.key?.id) {
       throw new SendError('uncertain', 502);

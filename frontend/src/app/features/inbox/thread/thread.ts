@@ -38,6 +38,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { toApiError } from '../../../core/http/api-error';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { formatPhone } from '../../../shared/br';
+import { fileIcon, formatSize } from '../../../shared/documents/documents.models';
 import { MessageMedia } from '../../../shared/documents/message-media';
 import { Client } from '../../clientes/client.models';
 import { ClientsService } from '../../clientes/clients.service';
@@ -56,6 +57,11 @@ import {
 import { InboxService } from '../inbox.service';
 
 export const THREAD_POLL_MS = 5_000;
+
+/** Mesmos formatos que o servidor aceita para documentos. */
+export const ATTACHMENT_ACCEPT =
+  '.pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,.doc,.docx,.xls,.xlsx,.odt,.ods,.rtf,.txt,.csv,' +
+  '.mp3,.ogg,.opus,.m4a,.wav,.mp4,.mov,.zip';
 
 @Component({
   selector: 'app-thread',
@@ -94,6 +100,9 @@ export class Thread {
   readonly hasOlder = signal(false);
   readonly error = signal<string | null>(null);
   readonly sending = signal(false);
+  /** Arquivo escolhido para enviar; o texto do campo vira a legenda. */
+  readonly attachment = signal<File | null>(null);
+  readonly attachmentAccept = ATTACHMENT_ACCEPT;
   /** Rascunhos aguardando aprovação nesta conversa. */
   readonly pendingDrafts = signal<Draft[]>([]);
   readonly canDecide = computed(() => this.auth.session()?.can_approve ?? false);
@@ -186,7 +195,41 @@ export class Thread {
     return MEDIA_LABELS[m.type] ?? MEDIA_LABELS['other'];
   }
 
+  pickAttachment(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (file) {
+      this.attachment.set(file);
+      this.error.set(null);
+    }
+  }
+
+  clearAttachment(): void {
+    this.attachment.set(null);
+  }
+
+  attachmentIcon(file: File): string {
+    return fileIcon(file.type);
+  }
+
+  attachmentSize(file: File): string {
+    return formatSize(file.size);
+  }
+
+  canSend(): boolean {
+    if (this.sending()) return false;
+    const text = this.draft.value.trim();
+    if (this.attachment()) return text.length <= 1024;
+    return this.draft.valid && text.length > 0;
+  }
+
   send(): void {
+    const file = this.attachment();
+    if (file) {
+      this.sendAttachment(file);
+      return;
+    }
     const body = this.draft.value.trim();
     const conversation = this.conversation();
     if (!body || !conversation || this.sending()) {
@@ -197,6 +240,28 @@ export class Thread {
     this.inbox.send(conversation.id, body).subscribe({
       next: (message) => {
         this.sending.set(false);
+        this.draft.reset('');
+        this.messages.update((list) => [...list, message]);
+        this.changed.emit();
+      },
+      error: (err: unknown) => {
+        this.sending.set(false);
+        this.error.set(toApiError(err).message);
+      },
+    });
+  }
+
+  private sendAttachment(file: File): void {
+    const conversation = this.conversation();
+    if (!conversation || this.sending()) {
+      return;
+    }
+    this.sending.set(true);
+    this.error.set(null);
+    this.inbox.sendAttachment(conversation.id, file, this.draft.value.trim()).subscribe({
+      next: (message) => {
+        this.sending.set(false);
+        this.attachment.set(null);
         this.draft.reset('');
         this.messages.update((list) => [...list, message]);
         this.changed.emit();
@@ -317,6 +382,7 @@ export class Thread {
     this.error.set(null);
     this.olderPage = 1;
     this.draft.reset('');
+    this.attachment.set(null);
   }
 
   /** Junta a página mais recente com o que já está na tela (mantém as antigas carregadas). */

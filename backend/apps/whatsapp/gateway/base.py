@@ -50,6 +50,18 @@ class WhatsAppGateway(Protocol):
         params: list[str],
     ) -> SendResult: ...
 
+    def send_media(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        kind: str,
+        media: MediaFile,
+        caption: str = "",
+    ) -> SendResult:
+        """Envia um arquivo. `kind`: image | video | audio | document (áudio não tem legenda)."""
+        ...
+
     def download_media(self, credentials: Credentials, *, media_id: str) -> MediaFile: ...
 
     def release_media(self, credentials: Credentials, *, media_id: str) -> None:

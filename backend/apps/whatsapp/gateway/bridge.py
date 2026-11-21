@@ -48,11 +48,38 @@ class BridgeGateway:
         self._client = client or _client()
 
     def send_text(self, credentials: Credentials, *, to: str, body: str) -> SendResult:
+        return self._post_send(
+            f"/sessions/{credentials.phone_number_id}/messages",
+            json={"to": to, "text": body},
+        )
+
+    def send_media(
+        self,
+        credentials: Credentials,
+        *,
+        to: str,
+        kind: str,
+        media: MediaFile,
+        caption: str = "",
+    ) -> SendResult:
+        """Arquivo cru no corpo; destino, tipo, nome e legenda nos cabeçalhos."""
+        return self._post_send(
+            f"/sessions/{credentials.phone_number_id}/media-messages",
+            content=media.content,
+            headers={
+                "Content-Type": media.content_type or "application/octet-stream",
+                "X-To": to,
+                "X-Kind": kind,
+                "X-File-Name": quote(media.filename or "", safe=""),
+                "X-Caption": quote(caption or "", safe=""),
+            },
+            # Arquivo grande + ritmo humano da fila: bem mais que o timeout do texto.
+            timeout=max(settings.WHATSAPP_BRIDGE_TIMEOUT, 120.0),
+        )
+
+    def _post_send(self, path: str, **kwargs: Any) -> SendResult:
         try:
-            response = self._client.post(
-                f"/sessions/{credentials.phone_number_id}/messages",
-                json={"to": to, "text": body},
-            )
+            response = self._client.post(path, **kwargs)
         except httpx.ConnectError as exc:
             raise GatewayError("bridge_down", "ponte indisponível", retryable=True) from exc
         except httpx.HTTPError as exc:

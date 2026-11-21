@@ -136,10 +136,12 @@ def create_upload(
     user: User,
     client: Client | None = None,
     legal_case: LegalCase | None = None,
+    conversation: Conversation | None = None,
+    message: Message | None = None,
     category: str = Document.Category.OUTRO,
     description: str = "",
 ) -> Document:
-    if client is None and legal_case is None:
+    if client is None and legal_case is None and conversation is None:
         raise ApiError("Escolha o cliente ou o processo do documento.", code="document_owner")
     name, content_type = validate_upload(upload)
     document = Document(
@@ -152,6 +154,8 @@ def create_upload(
         source=Document.Source.UPLOAD,
         client=client,
         legal_case=legal_case,
+        conversation=conversation,
+        message=message,
         uploaded_by=user,
     )
     document.file.save(name, File(upload), save=False)
